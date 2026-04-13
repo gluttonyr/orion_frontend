@@ -1,17 +1,38 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
-
+import { userService } from "../service/utilisateur.service";
+import { toast } from "react-toastify";
 export function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Simulate login
-    navigate("/profile-selection");
+    
+    
+        try {
+         const user= await userService.login(
+          email,
+         password,
+           
+          );
+          if (user){
+            toast.success("conexion avec succes")
+          } else{
+            toast .error("email ou mots de passe incorect")
+          }
+   
+          navigate("/dashboard");
+        } catch (err: any) {
+          toast .error("email ou mots de passe incorect")
+        } finally {
+          
+        }
+    
   };
 
   return (
