@@ -49,8 +49,7 @@ export function Products() {
         </div>
         <Link
           to="/dashboard/products/add"
-          className="flex items-center gap-2 px-5 py-3 bg-primary text-white hover:bg-blue-700 transition-colors font-medium shadow-md border-2 border-primary"
-        >
+          className="flex items-center gap-2 px-5 py-3 bg-primary text-white hover:bg-blue-700 transition-colors font-medium shadow-md border-2 border-primary">
           <Plus className="w-5 h-5" />
           <span>Ajouter un produit</span>
         </Link>
@@ -106,8 +105,7 @@ export function Products() {
             placeholder="Rechercher un produit..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-          />
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"/>
         </div>
       </div>
 
@@ -145,8 +143,7 @@ export function Products() {
                       <img
                         src={product.images[0]}
                         alt={product.name}
-                        className="w-14 h-14 border-2 border-gray-200 object-cover flex-shrink-0"
-                      />
+                        className="w-14 h-14 border-2 border-gray-200 object-cover flex-shrink-0"/>
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-gray-900 break-words line-clamp-2">
                           {product.name}
@@ -186,22 +183,19 @@ export function Products() {
                       <button
                         onClick={() => navigate(`/dashboard/products/${product.id}`)}
                         className="p-2 text-gray-600 hover:text-primary hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
-                        title="Voir les détails"
-                      >
+                        title="Voir les détails">
                         <Eye className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => navigate(`/dashboard/products/edit/${product.id}`)}
                         className="p-2 text-gray-600 hover:text-primary hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
-                        title="Modifier"
-                      >
+                        title="Modifier">
                         <Edit className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => handleDelete(product.id)}
                         className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors border-2 border-transparent hover:border-red-200"
-                        title="Supprimer"
-                      >
+                        title="Supprimer">
                         <Trash2 className="w-5 h-5" />
                       </button>
                     </div>

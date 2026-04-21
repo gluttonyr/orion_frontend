@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Mail, Lock, User, Phone, Eye, EyeOff, Store, Briefcase, ArrowRight, ArrowLeft } from "lucide-react";
-import { UserRole } from "../model/utilisateur.model";
+import { UserRole } from "../model/model";
 import { userService } from "../service/utilisateur.service";
 
 type Step = "form" | "role";
@@ -172,6 +172,7 @@ export function Register() {
                   name="date_naissance"
                   value={formData.date_naissance}
                   onChange={handleChange}
+                  placeholder="2005-01-01"
                   className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                   required
                 />

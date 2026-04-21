@@ -12,25 +12,23 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Simulate login
-    
-    
         try {
-         const user= await userService.login(
-          email,
-         password,
-           
-          );
-          if (user){
-            toast.success("conexion avec succes")
-          } else{
-            toast .error("email ou mots de passe incorect")
+          if (!email || !password) {
+            toast.error("Veuillez remplir tous les champs");
+            return;
+          }
+          
+          if (email && password) {
+            const user = await userService.login(email, password);
+            if (user){ toast.success("conexion avec succes")
+            } else{ toast .error("email ou mots de passe incorect")}
           }
    
           navigate("/dashboard");
         } catch (err: any) {
           toast .error("email ou mots de passe incorect")
         } finally {
-          
+          setEmail(""); setPassword("");
         }
     
   };

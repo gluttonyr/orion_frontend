@@ -24,8 +24,7 @@ export function ProductDetail() {
       <div className="text-center py-12">
         <h2 className="text-2xl font-semibold text-gray-900">Produit non trouvé</h2>
         <Link to={marketplaceUrl} className="text-primary hover:text-blue-700 mt-4 inline-block">
-          Retour au marketplace
-        </Link>
+          Retour au marketplace</Link>
       </div>
     );
   }
@@ -38,9 +37,7 @@ export function ProductDetail() {
     }).format(amount);
   };
 
-  const handleAddToCart = () => {
-    navigate(checkoutUrl);
-  };
+  const handleAddToCart = () => { navigate(checkoutUrl);};
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
@@ -112,7 +109,11 @@ export function ProductDetail() {
                   <span className="text-gray-600">({product.rating})</span>
                 </div>
               </div>
-              <button className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors">
+              <button 
+                className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+                title="Ajouter à la liste de souhaits"
+                aria-label="Ajouter à la liste de souhaits"
+              >
                 <Heart className="w-5 h-5" />
               </button>
             </div>
@@ -150,6 +151,7 @@ export function ProductDetail() {
                   <input
                     type="number"
                     value={quantity}
+                    placeholder="Stock"
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                     className="w-20 text-center py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     min="1"

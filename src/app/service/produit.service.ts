@@ -1,58 +1,58 @@
 import axios from "axios";
 import type { AxiosInstance } from "axios";
-import type { Utilisateur } from "../model/model";
+import type { produits } from "../model/model";
 
 
-class UserService {
+class ProduitService {
   private api: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
-      baseURL: "http://localhost:3000/utilisateur",
+      baseURL: "http://localhost:3000/produits",
     });
   }
 
   // =======================
-  // REGISTER
-  // =======================
-  async register(userData: Partial<Utilisateur>) {
-    const res = await this.api.post("/register", userData);
-    console.log("Register response:", res.data);
+  async create(produitData: Partial<produits>, imageFile?: File | string) {
+    const formData = new FormData();
+    Object.keys(produitData).forEach((key) => {
+      formData.append(key, (produitData as any)[key]);
+    });
+
+    if (imageFile) {
+      formData.append("image", imageFile);
+    }
+    const res = await this.api.post("/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return res.data;
   }
 
   // =======================
-  // LOGIN
+  // GET ALL PRODUITS
   // =======================
-  async login(email: string, password: string) {
-    const res = await this.api.post("/login", { email, password });
-    return res.data;
-  }
-
-  // =======================
-  // GET ALL USERS
-  // =======================
-  async getAll(): Promise<Utilisateur[]> {
+  async getAll(): Promise<produits[]> {
     const res = await this.api.get("/");
-    console.log("Get all users response:", res.data);
+    console.log("Get all produits response:", res.data);
     return res.data;
   }
 
   // =======================
-  // GET ONE USER
+  // GET ONE PRODUITS
   // =======================
-  async getById(id: number): Promise<Utilisateur> {
+  async getById(id: number): Promise<produits> {
     const res = await this.api.get(`/${id}`);
     return res.data;
   }
 
   // =======================
-  // UPDATE USER + IMAGE
+  // UPDATE PRODUITS
   // =======================
   async update(
     id: number,
-    userData: Partial<Utilisateur>,
-    imageFile?: File
+    userData: Partial<produits>,
   ) {
     const formData = new FormData();
 
@@ -60,11 +60,7 @@ class UserService {
       formData.append(key, (userData as any)[key]);
     });
 
-    if (imageFile) {
-      formData.append("image", imageFile);
-    }
-
-    const res = await this.api.put(`/${id}`, formData, {
+    const res = await this.api.patch(`/${id}`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -74,7 +70,7 @@ class UserService {
   }
 
   // =======================
-  // DELETE USER
+  // DELETE PRODUITS
   // =======================
   async delete(id: number) {
     const res = await this.api.delete(`/${id}`);
@@ -83,4 +79,4 @@ class UserService {
 }
 
 // Singleton (important)
-export const userService = new UserService();
+export const produitService = new ProduitService();
