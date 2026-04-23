@@ -102,7 +102,7 @@ export function Messages() {
                   <p className="text-xs text-gray-500">En ligne</p>
                 </div>
               </div>
-              <button className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors">
+              <button title="Options" type="button" className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors">
                 <MoreVertical className="w-5 h-5 text-gray-600" />
               </button>
             </div>
@@ -112,8 +112,7 @@ export function Messages() {
               {conversationMessages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.isOwn ? "justify-end" : "justify-start"}`}
-                >
+                  className={`flex ${message.isOwn ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[75%] ${message.isOwn ? "order-2" : "order-1"}`}>
                     <div
                       className={`px-4 py-2 shadow-sm ${
@@ -143,13 +142,12 @@ export function Messages() {
                   placeholder="Écrivez votre message..."
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
-                  className="flex-1 px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                />
+                  className="flex-1 px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"/>
                 <button
                   type="submit"
+                  title="Envoyer le message"
                   disabled={!messageText.trim()}
-                  className="w-12 h-12 bg-primary text-white hover:bg-blue-700 transition-colors flex items-center justify-center border-2 border-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                  className="w-12 h-12 bg-primary text-white hover:bg-blue-700 transition-colors flex items-center justify-center border-2 border-primary disabled:opacity-50 disabled:cursor-not-allowed">
                   <Send className="w-5 h-5" />
                 </button>
               </form>

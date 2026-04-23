@@ -126,10 +126,10 @@ export function Marketplace() {
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-600 font-medium">Trier par:</span>
           <select
+            title="Sélectionnez un critère de tri"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-          >
+            className="px-4 py-2 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all">
             <option value="popular">Popularité</option>
             <option value="price-asc">Prix croissant</option>
             <option value="price-desc">Prix décroissant</option>

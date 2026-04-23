@@ -83,6 +83,7 @@ export function Cart() {
                     {/* Quantity Controls */}
                     <div className="flex items-center gap-2">
                       <button
+                        title="Diminuer la quantité"
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         className="w-8 h-8 bg-gray-100 border-2 border-gray-200 hover:border-primary hover:bg-gray-200 transition-all flex items-center justify-center"
                       >
@@ -90,6 +91,7 @@ export function Cart() {
                       </button>
                       <span className="w-12 text-center font-semibold text-gray-900">{item.quantity}</span>
                       <button
+                        title="Augmenter la quantité"
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                         className="w-8 h-8 bg-gray-100 border-2 border-gray-200 hover:border-primary hover:bg-gray-200 transition-all flex items-center justify-center"
                       >

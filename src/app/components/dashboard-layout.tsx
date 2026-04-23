@@ -14,7 +14,7 @@ import {
   CheckCheck
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { currentUserType, isMerchant, isEntrepreneur } from "../lib/user-context";
+import { useUser } from "../lib/user-context";
 import { useNotifications } from "../lib/notification-context";
 
 export function DashboardLayout() {
@@ -24,6 +24,7 @@ export function DashboardLayout() {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const { notifications, markAsRead, markAllAsRead, getUnreadCount } = useNotifications();
+  const { user } = useUser();
 
   // Fermer le dropdown si on clique à l'extérieur
   useEffect(() => {
@@ -102,7 +103,7 @@ export function DashboardLayout() {
   ];
 
   // Sélectionner les items selon le type d'utilisateur
-  const navItems = isMerchant() ? merchantNavItems : entrepreneurNavItems;
+  const navItems = user?.role === 'COMMERCANT' ? merchantNavItems : entrepreneurNavItems;
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -361,11 +362,11 @@ export function DashboardLayout() {
             <div className="border-t-4 border-gray-200 p-4">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary border-2 border-secondary flex items-center justify-center text-white font-medium flex-shrink-0">
-                  {isMerchant() ? "CM" : "EN"}
+                  {user?.role === 'COMMERCANT' ? "CM" : "EN"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">
-                    {isMerchant() ? "Commerçant" : "Entrepreneur"}
+                    {user?.role === 'COMMERCANT' ? "Commerçant" : "Entrepreneur"}
                   </p>
                   <p className="text-sm text-gray-500 truncate">Dakar, Sénégal</p>
                 </div>

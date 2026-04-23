@@ -1,12 +1,12 @@
 // Simuler le contexte utilisateur
 // Dans une vraie application, cela viendrait d'un Context React ou d'un state management
-export type UserType = "merchant" | "entrepreneur";
+export type UserType = "merchant" | "commercant";
 
 // Changer cette valeur pour tester les deux profils
-// "merchant" = Commerçant
-// "entrepreneur" = Jeune Entrepreneur
+// "merchant" = Client ou Utilisateur
+// "commercant" = Jeune Commerçant
 export const currentUserType: UserType = "merchant";
 
 // Fonction helper pour vérifier le type d'utilisateur
 export const isMerchant = () => currentUserType === "merchant";
-export const isEntrepreneur = () => currentUserType === "entrepreneur";
+export const isEntrepreneur = () => !isMerchant();
