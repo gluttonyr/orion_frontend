@@ -31,24 +31,17 @@ export function Home() {
 
   return (
     <div className="space-y-12">
-      {/* Hero Banner with African Pattern */}
-      <div className="relative bg-gradient-to-br from-primary to-secondary overflow-hidden border-b-4 border-secondary">
-        {/* African Pattern SVG Background */}
-        <div className="absolute inset-0 opacity-10">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="african-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-                {/* Motif géométrique africain */}
-                <circle cx="50" cy="50" r="20" fill="none" stroke="white" strokeWidth="2" />
-                <path d="M30,30 L70,70 M70,30 L30,70" stroke="white" strokeWidth="2" />
-                <polygon points="50,10 70,40 50,40 30,40" fill="white" />
-                <polygon points="50,90 70,60 50,60 30,60" fill="white" />
-                <rect x="10" y="45" width="10" height="10" fill="white" />
-                <rect x="80" y="45" width="10" height="10" fill="white" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#african-pattern)" />
-          </svg>
+      {/* Hero Banner with Background Image */}
+      <div className="relative overflow-hidden border-b-4 border-secondary">
+        {/* Background Image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: "url('https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1920&h=1080&fit=crop')",
+          }}
+        >
+          {/* Dark Overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/95 to-secondary/95"></div>
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">

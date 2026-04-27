@@ -12,6 +12,7 @@ import { Checkout } from "./pages/checkout";
 import { Analytics } from "./pages/analytics";
 import { Messages } from "./pages/messages";
 import { Profile } from "./pages/profile";
+import { Opportunities } from "./pages/opportunities";
 import { Products } from "./pages/products";
 import { AddProduct } from "./pages/add-product";
 import { ProductDetailAdmin } from "./pages/product-detail-admin";
@@ -22,6 +23,15 @@ import { CreateOpportunity } from "./pages/create-opportunity";
 import { AdminOpportunityDetail } from "./pages/admin-opportunity-detail";
 import { Cart } from "./pages/cart";
 import { CheckoutPage } from "./pages/checkout-page";
+import { StoreSelection } from "./pages/store-selection";
+import { Stores } from "./pages/stores";
+import { AddStore } from "./pages/add-store";
+import { Subscriptions } from "./pages/subscriptions";
+import { SubscriptionCheckout } from "./pages/subscription-checkout";
+import { SubscriptionSuccess } from "./pages/subscription-success";
+import { Wallet } from "./pages/wallet";
+import { WithdrawalMethods } from "./pages/withdrawal-methods";
+import { AddWithdrawalMethod } from "./pages/add-withdrawal-method";
 
 export const router = createBrowserRouter([
   // Public routes (accueil et marketplace accessibles sans connexion)
@@ -71,6 +81,10 @@ export const router = createBrowserRouter([
   {
     path: "/profile-selection",
     element: <ProfileSelection />,
+  },
+  {
+    path: "/store-selection",
+    element: <StoreSelection />,
   },
   // Dashboard routes (avec sidebar pour utilisateurs connectés)
   {
@@ -136,6 +150,46 @@ export const router = createBrowserRouter([
       {
         path: "products/:id",
         element: <ProductDetailAdmin />,
+      },
+      {
+        path: "stores",
+        element: <Stores />,
+      },
+      {
+        path: "stores/add",
+        element: <AddStore />,
+      },
+      {
+        path: "stores/edit/:id",
+        element: <AddStore />,
+      },
+      {
+        path: "subscriptions",
+        element: <Subscriptions />,
+      },
+      {
+        path: "subscriptions/checkout/:plan",
+        element: <SubscriptionCheckout />,
+      },
+      {
+        path: "subscriptions/success",
+        element: <SubscriptionSuccess />,
+      },
+      {
+        path: "wallet",
+        element: <Wallet />,
+      },
+      {
+        path: "withdrawal-methods",
+        element: <WithdrawalMethods />,
+      },
+      {
+        path: "withdrawal-methods/add",
+        element: <AddWithdrawalMethod />,
+      },
+      {
+        path: "withdrawal-methods/edit/:id",
+        element: <AddWithdrawalMethod />,
       },
     ],
   },

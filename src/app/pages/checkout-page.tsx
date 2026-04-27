@@ -2,12 +2,9 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { CreditCard, Smartphone, Building, Check, ShoppingBag, AlertCircle } from "lucide-react";
 import { useCart } from "../lib/cart-context";
-import { useUser } from "../lib/user-context";
-import panierService from "../service/panier.service";
 
 export function CheckoutPage() {
   const { items, getTotalPrice, clearCart } = useCart();
-  const { user } = useUser();
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState("mobile");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -41,26 +38,12 @@ export function CheckoutPage() {
     e.preventDefault();
     setIsProcessing(true);
 
-    try {
-      // Sauvegarder le panier au backend
-      await panierService.create({
-        utilisateurId: user?.id || 1, // utiliser l'utilisateur connecté
-        produitId: items.map(item => parseInt(item.id)),
-        quantites: items.map(item => item.quantity),
-        statut: 'en_cours'
-      });
-
-      // Simuler le paiement et finaliser
-      setTimeout(() => {
-        setIsProcessing(false);
-        setOrderComplete(true);
-        clearCart();
-      }, 2000);
-    } catch (error) {
-      console.error('Erreur lors de la commande:', error);
+    // Simuler un paiement
+    setTimeout(() => {
       setIsProcessing(false);
-      // TODO: afficher une erreur
-    }
+      setOrderComplete(true);
+      clearCart();
+    }, 2000);
   };
 
   // Rediriger si le panier est vide
@@ -235,9 +218,9 @@ export function CheckoutPage() {
                     name="country"
                     value={formData.country}
                     onChange={handleChange}
-                    title="Sélectionnez votre pays"
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    className="w-full px-4 py-3 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
                     <option value="Sénégal">Sénégal</option>
                     <option value="Côte d'Ivoire">Côte d'Ivoire</option>
                     <option value="Mali">Mali</option>

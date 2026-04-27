@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, Upload, X, Save } from "lucide-react";
+import { ArrowLeft, Upload, X, Save, Image as ImageIcon } from "lucide-react";
 import { products } from "../lib/mock-data";
-import { produitService } from "../service/produit.service";
 
 export function AddProduct() {
   const navigate = useNavigate();
@@ -13,14 +12,11 @@ export function AddProduct() {
   const existingProduct = isEdit ? products.find(p => p.id === id) : null;
 
   const [formData, setFormData] = useState({
-    nom: existingProduct?.name || "",
+    name: existingProduct?.name || "",
     description: existingProduct?.description || "",
     category: existingProduct?.category || "Électronique",
-    prix: existingProduct?.price || "",
+    price: existingProduct?.price || "",
     stock: existingProduct?.stock || "",
-    // image: existingProduct?.image || "",
-    // images_secondaires: existingProduct?.images_secondaires || "",
-    // statut: existingProduct?.status || "En stock",
     availability: existingProduct?.availability || "En stock",
   });
 
@@ -56,47 +52,9 @@ export function AddProduct() {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Simuler l'enregistrement
-    if (!formData.nom || !formData.description || !formData.prix || !formData.stock) {
-      alert("Veuillez remplir tous les champs obligatoires.");
-      return;
-    }
-    if (images.length === 0) {
-      alert("Veuillez ajouter au moins une image pour le produit.");
-      return;
-    }
-    if (isNaN(Number(formData.prix)) || Number(formData.prix) <= 0) {
-      alert("Veuillez entrer un prix valide.");
-      return;
-    }
-    if (isNaN(Number(formData.stock)) || Number(formData.stock) < 0) {
-      alert("Veuillez entrer une quantité en stock valide.");
-      return;
-    }
-    if (formData.availability === "Stock limité" && Number(formData.stock) > 10) {
-      alert("Pour les produits en stock limité, la quantité doit être de 10 ou moins.");
-      return;
-    }
-    if (formData.availability === "Sur commande" && Number(formData.stock) !== 0) {
-      alert("Pour les produits sur commande, la quantité en stock doit être de 0.");
-      return;
-    }
-    if (isEdit) {
-      console.log("Produit mis à jour:", { ...formData, images });
-    } else {
-      if (formData) {
-        const produitPayload = {
-          ...formData,
-          prix: Number(formData.prix),
-          stock: Number(formData.stock),
-        };
-        const res = await produitService.create(produitPayload, images[0]); // Envoi de la première image comme image principale
-        console.log("Produit créé avec succès:", res); 
-      }
-      console.log("Nouveau produit ajouté:", { ...formData, images });
-    }
     console.log("Produit sauvegardé:", { ...formData, images });
     navigate("/dashboard/products");
   };
@@ -106,11 +64,9 @@ export function AddProduct() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
-          type="button"
           onClick={() => navigate("/dashboard/products")}
           className="p-2 text-gray-600 hover:text-primary transition-colors border-2 border-gray-200 hover:border-primary"
-          title="Retour à la liste des produits"
-          aria-label="Retour à la liste des produits">
+        >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
@@ -145,8 +101,6 @@ export function AddProduct() {
                     type="button"
                     onClick={() => removeImage(index)}
                     className="absolute top-2 right-2 p-1.5 bg-red-500 text-white hover:bg-red-600 transition-colors border-2 border-red-600"
-                    title={`Supprimer l'image ${index + 1}`}
-                    aria-label={`Supprimer l'image ${index + 1}`}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -195,8 +149,8 @@ export function AddProduct() {
               </label>
               <input
                 type="text"
-                name="nom"
-                value={formData.nom}
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
                 placeholder="Ex: Samsung Galaxy S24"
                 className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
@@ -232,7 +186,6 @@ export function AddProduct() {
                   value={formData.category}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                  aria-label="Sélectionner une catégorie"
                   required
                 >
                   {categories.map((cat) => (
@@ -250,8 +203,8 @@ export function AddProduct() {
                 </label>
                 <input
                   type="number"
-                  name="prix"
-                  value={formData.prix}
+                  name="price"
+                  value={formData.price}
                   onChange={handleChange}
                   placeholder="150000"
                   min="0"
@@ -290,7 +243,6 @@ export function AddProduct() {
                   value={formData.availability}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                  aria-label="Sélectionner la disponibilité"
                   required
                 >
                   <option value="En stock">En stock</option>

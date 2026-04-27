@@ -4,7 +4,9 @@ import { isEntrepreneur } from "../lib/user-context";
 
 export function Dashboard() {
   // Afficher le bon dashboard selon le type d'utilisateur
-  if (isEntrepreneur()) { return <EntrepreneurDashboard />;}
+  if (isEntrepreneur()) {
+    return <EntrepreneurDashboard />;
+  }
   
   return <MerchantDashboard />;
 }

@@ -1,8 +1,12 @@
-import { User, Mail, Phone, MapPin, Store, Camera, Save, X } from "lucide-react";
+import { User, Mail, Phone, MapPin, Store, Camera, Save, X, CreditCard, Crown } from "lucide-react";
 import { useState } from "react";
+import { useSubscription, planDetails } from "../lib/subscription-context";
+import { Link } from "react-router";
+import { isMerchant } from "../lib/user-context";
 
 export function Profile() {
   const userType = localStorage.getItem("userType") || "merchant";
+  const { subscription } = useSubscription();
   
   // State pour les infos utilisateur
   const [isEditing, setIsEditing] = useState(false);
@@ -122,6 +126,83 @@ export function Profile() {
           <p className="text-sm text-blue-700">
             💡 Mode édition activé. Modifiez vos informations ci-dessous puis cliquez sur "Enregistrer".
           </p>
+        </div>
+      )}
+
+      {/* Subscription Card - Only for merchants */}
+      {isMerchant() && subscription && (
+        <div className="bg-white shadow-md border-4 border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary border-2 border-secondary flex items-center justify-center">
+                <Crown className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Mon Abonnement</h2>
+                <p className="text-sm text-gray-600">Gérez votre plan d'abonnement</p>
+              </div>
+            </div>
+            <Link
+              to="/dashboard/subscriptions"
+              className="px-4 py-2 bg-primary text-white hover:bg-blue-700 transition-colors font-medium border-2 border-primary"
+            >
+              Changer de plan
+            </Link>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Plan actuel */}
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-4 border-primary p-6">
+              <p className="text-sm text-gray-600 mb-1">Plan actuel</p>
+              <p className="text-2xl font-bold text-primary mb-2">
+                {planDetails[subscription.plan].name}
+              </p>
+              <p className="text-sm text-gray-700">
+                {new Intl.NumberFormat("fr-FR", {
+                  style: "currency",
+                  currency: "XOF",
+                  minimumFractionDigits: 0,
+                }).format(planDetails[subscription.plan].price)} / mois
+              </p>
+            </div>
+
+            {/* Prochaine facturation */}
+            <div className="bg-gradient-to-br from-blue-50 to-green-50 border-4 border-secondary p-6">
+              <p className="text-sm text-gray-600 mb-1">Prochaine facturation</p>
+              <p className="text-2xl font-bold text-secondary mb-2">
+                {new Date(subscription.endDate).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "long",
+                })}
+              </p>
+              <p className="text-sm text-gray-700">
+                {subscription.autoRenew ? "Renouvellement auto" : "Pas de renouvellement"}
+              </p>
+            </div>
+
+            {/* Limites */}
+            <div className="bg-gradient-to-br from-blue-50 to-orange-50 border-4 border-orange-200 p-6">
+              <p className="text-sm text-gray-600 mb-3">Vos limites</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-700">Boutiques</span>
+                  <span className="font-bold text-gray-900">
+                    {planDetails[subscription.plan].maxStores === 999
+                      ? "Illimité"
+                      : planDetails[subscription.plan].maxStores}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-700">Produits</span>
+                  <span className="font-bold text-gray-900">
+                    {planDetails[subscription.plan].maxProducts === 99999
+                      ? "Illimité"
+                      : planDetails[subscription.plan].maxProducts}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

@@ -1,21 +1,26 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { 
-  Home, 
-  BarChart3, 
-  Briefcase, 
-  MessageCircle, 
-  User, 
+import {
+  Home,
+  BarChart3,
+  Briefcase,
+  MessageCircle,
+  User,
   ShoppingBag,
   Package,
   LogOut,
   Menu,
   X,
   Bell,
-  CheckCheck
+  CheckCheck,
+  Store,
+  ChevronDown,
+  Crown,
+  Wallet
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { useUser } from "../lib/user-context";
+import { currentUserType, isMerchant, isEntrepreneur } from "../lib/user-context";
 import { useNotifications } from "../lib/notification-context";
+import { useStore } from "../lib/store-context";
 
 export function DashboardLayout() {
   const location = useLocation();
@@ -24,7 +29,7 @@ export function DashboardLayout() {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const { notifications, markAsRead, markAllAsRead, getUnreadCount } = useNotifications();
-  const { user } = useUser();
+  const { activeStore } = useStore();
 
   // Fermer le dropdown si on clique à l'extérieur
   useEffect(() => {
@@ -85,10 +90,13 @@ export function DashboardLayout() {
   // Navigation pour les commerçants
   const merchantNavItems = [
     { path: "/dashboard", label: "Tableau de bord", icon: Home },
+    { path: "/dashboard/stores", label: "Mes Boutiques", icon: Store },
     { path: "/dashboard/products", label: "Mes Produits", icon: Package },
     { path: "/dashboard/marketplace", label: "Marketplace", icon: ShoppingBag },
+    { path: "/dashboard/wallet", label: "Portefeuille", icon: Wallet },
     { path: "/dashboard/analytics", label: "Analyses", icon: BarChart3 },
     { path: "/dashboard/opportunities", label: "Opportunités", icon: Briefcase },
+    { path: "/dashboard/subscriptions", label: "Abonnements", icon: Crown },
     { path: "/dashboard/messages", label: "Messages", icon: MessageCircle },
     { path: "/dashboard/profile", label: "Profil", icon: User },
   ];
@@ -103,7 +111,7 @@ export function DashboardLayout() {
   ];
 
   // Sélectionner les items selon le type d'utilisateur
-  const navItems = user?.role === 'COMMERCANT' ? merchantNavItems : entrepreneurNavItems;
+  const navItems = isMerchant() ? merchantNavItems : entrepreneurNavItems;
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -333,6 +341,53 @@ export function DashboardLayout() {
               <span className="text-2xl font-semibold text-primary">Orion</span>
             </div>
 
+            {/* Active Store - For Merchants */}
+            {isMerchant() && activeStore && (
+              <div className="px-4 py-4 border-b-4 border-gray-200">
+                <Link
+                  to="/store-selection"
+                  className="w-full bg-gradient-to-r from-primary to-secondary border-2 border-primary p-3 text-white hover:opacity-90 transition-opacity flex items-center justify-between gap-2"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-8 h-8 bg-white/20 border-2 border-white/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {activeStore.logo ? (
+                        <img
+                          src={activeStore.logo}
+                          alt={activeStore.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Store className="w-4 h-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs opacity-90">Boutique active</p>
+                      <p className="font-bold text-sm truncate">
+                        {activeStore.name}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                </Link>
+              </div>
+            )}
+
+            {/* No Active Store - For Merchants */}
+            {isMerchant() && !activeStore && (
+              <div className="px-4 py-4 border-b-4 border-gray-200">
+                <Link
+                  to="/store-selection"
+                  className="w-full bg-orange-100 border-2 border-orange-300 p-3 text-orange-800 hover:bg-orange-200 transition-colors flex items-center gap-2"
+                >
+                  <Store className="w-4 h-4 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-sm">Sélectionner une boutique</p>
+                    <p className="text-xs">Aucune boutique active</p>
+                  </div>
+                </Link>
+              </div>
+            )}
+
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto py-6 px-4">
               <div className="space-y-1">
@@ -362,11 +417,11 @@ export function DashboardLayout() {
             <div className="border-t-4 border-gray-200 p-4">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary border-2 border-secondary flex items-center justify-center text-white font-medium flex-shrink-0">
-                  {user?.role === 'COMMERCANT' ? "CM" : "EN"}
+                  {isMerchant() ? "CM" : "EN"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">
-                    {user?.role === 'COMMERCANT' ? "Commerçant" : "Entrepreneur"}
+                    {isMerchant() ? "Commerçant" : "Entrepreneur"}
                   </p>
                   <p className="text-sm text-gray-500 truncate">Dakar, Sénégal</p>
                 </div>

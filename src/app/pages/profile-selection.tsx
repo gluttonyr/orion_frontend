@@ -5,9 +5,15 @@ export function ProfileSelection() {
   const navigate = useNavigate();
 
   const handleSelect = (type: string) => {
-    // Store profile type and navigate to dashboard
+    // Store profile type and navigate
     localStorage.setItem("userType", type);
-    navigate("/dashboard");
+
+    // Si c'est un commerçant, rediriger vers la sélection de boutique
+    if (type === "merchant") {
+      navigate("/store-selection");
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   return (

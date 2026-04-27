@@ -1,8 +1,24 @@
-import { Link } from "react-router";
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, Clock, ArrowRight, Star } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, Clock, ArrowRight, Star, Store as StoreIcon, Crown, Wallet } from "lucide-react";
 import { dashboardStats, recentSales, missions } from "../lib/mock-data";
+import { useStore } from "../lib/store-context";
+import { useSubscription, planDetails } from "../lib/subscription-context";
+import { useWallet } from "../lib/wallet-context";
+import { useEffect } from "react";
 
 export function MerchantDashboard() {
+  const navigate = useNavigate();
+  const { activeStore } = useStore();
+  const { subscription } = useSubscription();
+  const { totalRevenue, availableBalance, pendingBalance } = useWallet();
+
+  // Rediriger vers la sélection de boutique si aucune boutique n'est active
+  useEffect(() => {
+    if (!activeStore) {
+      navigate("/store-selection");
+    }
+  }, [activeStore, navigate]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
@@ -11,13 +27,123 @@ export function MerchantDashboard() {
     }).format(amount);
   };
 
+  // Si pas de boutique active, ne rien afficher (redirection en cours)
+  if (!activeStore) {
+    return null;
+  }
+
   return (
     <div className="space-y-6 pb-20 md:pb-6">
+      {/* Active Store Banner */}
+      <div className="bg-gradient-to-r from-primary to-secondary border-4 border-primary p-6">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 text-white">
+            <div className="w-12 h-12 bg-white/20 border-2 border-white/40 flex items-center justify-center overflow-hidden">
+              {activeStore.logo ? (
+                <img
+                  src={activeStore.logo}
+                  alt={activeStore.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <StoreIcon className="w-6 h-6" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm opacity-90">Vous gérez actuellement</p>
+              <p className="font-bold text-xl">{activeStore.name}</p>
+              <p className="text-xs opacity-80">{activeStore.location}</p>
+            </div>
+          </div>
+          <Link
+            to="/store-selection"
+            className="px-4 py-2 bg-white text-primary hover:bg-gray-100 font-medium border-2 border-white transition-all"
+          >
+            Changer de boutique
+          </Link>
+        </div>
+      </div>
+
+      {/* Quick Info Cards */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Subscription Card */}
+        {subscription && (
+          <Link
+            to="/dashboard/subscriptions"
+            className="bg-white border-4 border-gray-200 p-6 hover:border-primary hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary border-2 border-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Crown className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Mon Abonnement</p>
+                  <p className="font-bold text-xl text-gray-900">
+                    {planDetails[subscription.plan].name}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Expire le</p>
+                <p className="font-medium text-gray-900">
+                  {new Date(subscription.endDate).toLocaleDateString("fr-FR")}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Prix</p>
+                <p className="font-medium text-primary">
+                  {formatCurrency(planDetails[subscription.plan].price)}/mois
+                </p>
+              </div>
+            </div>
+          </Link>
+        )}
+
+        {/* Wallet Card */}
+        <Link
+          to="/dashboard/wallet"
+          className="bg-white border-4 border-gray-200 p-6 hover:border-secondary hover:shadow-lg transition-all group"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-secondary to-green-600 border-2 border-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Wallet className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Mon Portefeuille</p>
+                <p className="font-bold text-xl text-gray-900">
+                  {formatCurrency(availableBalance)}
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-secondary transition-colors" />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">En attente</p>
+              <p className="font-medium text-orange-600">
+                {formatCurrency(pendingBalance)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Total</p>
+              <p className="font-medium text-secondary">
+                {formatCurrency(totalRevenue)}
+              </p>
+            </div>
+          </div>
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
-          <p className="text-gray-600 mt-1">Bienvenue sur votre espace Orion</p>
+          <h1 className="text-3xl font-bold text-gray-900">Statistiques</h1>
+          <p className="text-gray-600 mt-1">Vue d'ensemble de votre activité</p>
         </div>
         <Link
           to="/dashboard/marketplace"
