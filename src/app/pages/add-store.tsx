@@ -20,6 +20,7 @@ export function AddStore() {
     logo: "",
     active: true,
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (isEditing && existingStore) {
@@ -35,30 +36,32 @@ export function AddStore() {
   }, [isEditing, existingStore]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.[0] || null;
+    setSelectedFile(file);
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, logo: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      const objectUrl = URL.createObjectURL(file);
+      setFormData({ ...formData, logo: objectUrl });
     }
   };
 
   const removeLogo = () => {
+    if (formData.logo && formData.logo.startsWith('blob:')) {
+      try { URL.revokeObjectURL(formData.logo); } catch {}
+    }
+    setSelectedFile(null);
     setFormData({ ...formData, logo: "" });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (isEditing && id) {
-      updateStore(id, formData);
+      await updateStore(id, formData);
     } else {
-      addStore(formData);
+      await addStore({ ...formData, file: selectedFile });
     }
 
     navigate("/dashboard/stores");

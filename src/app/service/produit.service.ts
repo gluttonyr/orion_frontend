@@ -53,12 +53,16 @@ class ProduitService {
   async update(
     id: number,
     userData: Partial<produits>,
+    imageFile?: File | string
   ) {
     const formData = new FormData();
 
     Object.keys(userData).forEach((key) => {
       formData.append(key, (userData as any)[key]);
     });
+    if (imageFile) {
+      formData.append("image", imageFile);
+    }
 
     const res = await this.api.patch(`/${id}`, formData, {
       headers: {

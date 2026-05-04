@@ -1,25 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { Plus, Search, Edit, Trash2, Package, TrendingUp, AlertCircle, Eye, Store as StoreIcon } from "lucide-react";
-import { products } from "../lib/mock-data";
+
+import type { produits } from "../model/model";
 import { useStore } from "../lib/store-context";
+import { produitService } from "../service/produit.service";
 
 export function Products() {
   const navigate = useNavigate();
   const { activeStore } = useStore();
+
+  const [produitsList, setProduitsList] = useState<produits[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [productToDelete, setProductToDelete] = useState<number | null>(null);
 
-  // Filtrer les produits par boutique active et recherche
-  // Pour la démo, on affiche les produits associés à la boutique active
-  const merchantProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    // Associer les produits aux boutiques (démo: produits 1-3 à boutique 1, 4-6 à boutique 2, autres partagés)
-    const productStoreId = product.id <= 3 ? "1" : product.id <= 6 ? "2" : activeStore?.id || "1";
-    const matchesStore = !activeStore || productStoreId === activeStore.id;
-    return matchesSearch && matchesStore;
-  });
+  // Chargement des produits depuis le backend
+  useEffect(() => {
+    const fetchProduits = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await produitService.getAll();
+        setProduitsList(data);
+      } catch (err) {
+        console.error("Erreur lors du chargement des produits:", err);
+        setError("Impossible de charger les produits. Veuillez réessayer.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduits();
+  }, []);
+
+  // Filtrer les produits par recherche
+  const filteredProduits = produitsList.filter((product) =>
+    product.nom.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {
@@ -30,19 +50,27 @@ export function Products() {
   };
 
   // Statistiques
-  const totalProducts = merchantProducts.length;
-  const totalValue = merchantProducts.reduce((sum, p) => sum + (p.price * p.stock), 0);
-  const lowStock = merchantProducts.filter(p => p.stock < 10).length;
+  const totalProducts = filteredProduits.length;
+  const totalValue = filteredProduits.reduce((sum, p) => sum + p.price * p.stock, 0);
+  const lowStock = filteredProduits.filter((p) => p.stock < 10).length;
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: number) => {
     setProductToDelete(id);
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
-    console.log("Produit supprimé:", productToDelete);
-    setShowDeleteModal(false);
-    setProductToDelete(null);
+  const confirmDelete = async () => {
+    if (productToDelete === null) return;
+    try {
+      await produitService.delete(productToDelete);
+      setProduitsList((prev) => prev.filter((p) => p.id !== productToDelete));
+    } catch (err) {
+      console.error("Erreur lors de la suppression:", err);
+      setError("Impossible de supprimer le produit. Veuillez réessayer.");
+    } finally {
+      setShowDeleteModal(false);
+      setProductToDelete(null);
+    }
   };
 
   return (
@@ -69,6 +97,20 @@ export function Products() {
           <span>Ajouter un produit</span>
         </Link>
       </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-50 border-2 border-red-200 text-red-700 px-5 py-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <p className="text-sm font-medium">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="ml-auto text-red-500 hover:text-red-700 font-bold"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Statistics Cards */}
       <div className="grid sm:grid-cols-3 gap-6">
@@ -127,106 +169,119 @@ export function Products() {
 
       {/* Products Table */}
       <div className="bg-white shadow-md border-4 border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b-4 border-gray-200">
-              <tr>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[250px]">
-                  Produit
-                </th>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[120px]">
-                  Catégorie
-                </th>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[120px]">
-                  Prix
-                </th>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[100px]">
-                  Stock
-                </th>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[120px]">
-                  Statut
-                </th>
-                <th className="px-4 md:px-6 py-4 text-right text-sm font-semibold text-gray-900 min-w-[140px]">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y-2 divide-gray-200">
-              {merchantProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 md:px-6 py-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="w-14 h-14 border-2 border-gray-200 object-cover flex-shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-gray-900 break-words line-clamp-2">
-                          {product.name}
-                        </p>
-                        <p className="text-sm text-gray-500 line-clamp-1 break-words">
-                          {product.description}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 md:px-6 py-4">
-                    <span className="inline-block px-3 py-1 bg-blue-100 text-primary text-sm font-medium border-2 border-blue-200 whitespace-nowrap">
-                      {product.category}
-                    </span>
-                  </td>
-                  <td className="px-4 md:px-6 py-4">
-                    <p className="font-semibold text-gray-900 whitespace-nowrap">
-                      {formatCurrency(product.price)}
-                    </p>
-                  </td>
-                  <td className="px-4 md:px-6 py-4">
-                    <p className={`font-medium whitespace-nowrap ${product.stock < 10 ? 'text-orange-600' : 'text-gray-900'}`}>
-                      {product.stock} unités
-                    </p>
-                  </td>
-                  <td className="px-4 md:px-6 py-4">
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 text-sm font-medium border-2 whitespace-nowrap ${
-                      product.availability === "En stock"
-                        ? "bg-green-100 text-green-700 border-green-200"
-                        : "bg-orange-100 text-orange-700 border-orange-200"
-                    }`}>
-                      {product.availability}
-                    </span>
-                  </td>
-                  <td className="px-4 md:px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => navigate(`/dashboard/products/${product.id}`)}
-                        className="p-2 text-gray-600 hover:text-primary hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
-                        title="Voir les détails"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => navigate(`/dashboard/products/edit/${product.id}`)}
-                        className="p-2 text-gray-600 hover:text-primary hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
-                        title="Modifier"
-                      >
-                        <Edit className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors border-2 border-transparent hover:border-red-200"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </td>
+        {loading ? (
+          <div className="text-center py-16 px-4">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-500 font-medium">Chargement des produits...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b-4 border-gray-200">
+                <tr>
+                  <th className="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[250px]">
+                    Produit
+                  </th>
+                  <th className="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[120px]">
+                    Prix
+                  </th>
+                  <th className="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[100px]">
+                    Stock
+                  </th>
+                  <th className="px-4 md:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[120px]">
+                    Statut
+                  </th>
+                  <th className="px-4 md:px-6 py-4 text-right text-sm font-semibold text-gray-900 min-w-[140px]">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y-2 divide-gray-200">
+                {filteredProduits.map((product) => (
+                  <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 md:px-6 py-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {product.image ? (
+                          <img
+                            src={`http://localhost:3000/uploads/${product.image}`}
+                            alt={product.nom}
+                            className="w-14 h-14 border-2 border-gray-200 object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 border-2 border-gray-200 bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <Package className="w-6 h-6 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-gray-900 break-words line-clamp-2">
+                            {product.nom}
+                          </p>
+                          <p className="text-sm text-gray-500 line-clamp-1 break-words">
+                            {product.description}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 md:px-6 py-4">
+                      <p className="font-semibold text-gray-900 whitespace-nowrap">
+                        {formatCurrency(product.price)}
+                      </p>
+                    </td>
+                    <td className="px-4 md:px-6 py-4">
+                      <p
+                        className={`font-medium whitespace-nowrap ${
+                          product.stock < 10 ? "text-orange-600" : "text-gray-900"
+                        }`}
+                      >
+                        {product.stock} unités
+                      </p>
+                    </td>
+                    <td className="px-4 md:px-6 py-4">
+                      <span
+                        className={`inline-flex items-center gap-1 px-3 py-1 text-sm font-medium border-2 whitespace-nowrap ${
+                          product.statut === "En stock"
+                            ? "bg-green-100 text-green-700 border-green-200"
+                            : product.statut === "Stock limité"
+                            ? "bg-orange-100 text-orange-700 border-orange-200"
+                            : "bg-gray-100 text-gray-700 border-gray-200"
+                        }`}
+                      >
+                        {product.statut}
+                      </span>
+                    </td>
+                    <td className="px-4 md:px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => navigate(`/dashboard/products/${product.id}`)}
+                          className="p-2 text-gray-600 hover:text-primary hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
+                          title="Voir les détails"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/dashboard/products/edit/${product.id}`)}
+                          className="p-2 text-gray-600 hover:text-primary hover:bg-blue-50 transition-colors border-2 border-transparent hover:border-blue-200"
+                          title="Modifier"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product.id)}
+                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors border-2 border-transparent hover:border-red-200"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-        {merchantProducts.length === 0 && (
+        {!loading && filteredProduits.length === 0 && (
           <div className="text-center py-12 px-4">
             <div className="w-16 h-16 bg-gray-100 border-4 border-gray-200 flex items-center justify-center mx-auto mb-4">
               <Package className="w-8 h-8 text-gray-400" />

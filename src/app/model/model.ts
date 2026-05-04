@@ -22,7 +22,7 @@ export interface produits {
   id: number;
   nom: string;
   description: string;
-  price: number;
+  prix: number;
   stock: number;
   image: string;
   images_secondaires?: string[];
@@ -89,4 +89,23 @@ export interface Panier {
   quantite: number[];
   dateCommande: Date;
   statut: string;
+}
+
+export interface Boutique {
+  id: number;
+  nom: string;
+  // Champs alignés avec le backend pour la boutique
+  description?: string;
+  category?: string;
+  location?: string;
+  logo?: string;
+  active: boolean;
+  // Limite de 30 produits par boutique côté backend, ici on expose le compteur
+  nombreProduits: number;
+  // Selon les réponses de l'API, vous pouvez recevoir la liste d'objets produits
+  // ou uniquement leurs identifiants. Laissez les deux en option pour plus de souplesse.
+  produits?: produits[];
+  produitIds?: number[];
+  proprietaireId?: number;
+  dateCreation: Date;
 }
