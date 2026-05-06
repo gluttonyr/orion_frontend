@@ -3,13 +3,14 @@ import { Store, Building2, Plus, MapPin, Tag } from "lucide-react";
 import { useStore } from "../lib/store-context";
 import { isMerchant } from "../lib/user-context";
 import { useEffect } from "react";
+import { useImage } from "../lib/image-context";
 
 export function StoreSelection() {
   const navigate = useNavigate();
   const { stores, setActiveStore } = useStore();
+  const { getBoutiqueImageUrl } = useImage();
 
   useEffect(() => {
-    // Si l'utilisateur n'est pas un commerçant, rediriger
     if (!isMerchant()) {
       navigate("/dashboard");
     }
@@ -54,7 +55,7 @@ export function StoreSelection() {
                 <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary border-2 border-secondary flex items-center justify-center text-white flex-shrink-0 group-hover:scale-110 transition-transform overflow-hidden">
                   {store.logo ? (
                     <img
-                      src={store.logo}
+                      src={getBoutiqueImageUrl(store.logo)}
                       alt={store.name}
                       className="w-full h-full object-cover"
                     />

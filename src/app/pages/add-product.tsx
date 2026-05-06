@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, Upload, X, Save, Package } from "lucide-react";
+import { ArrowLeft, Upload, X, Save, Package, Tag } from "lucide-react";
 
-import type { produits } from "../model/model";
+import type { produits, Categorie } from "../model/model";
 import { produitService } from "../service/produit.service";
+import { categorieService } from "../service/categorie.service";
 
 export function AddProduct() {
   const navigate = useNavigate();
@@ -14,17 +15,37 @@ export function AddProduct() {
   const [fetchLoading, setFetchLoading] = useState(isEdit);
   const [error, setError] = useState<string | null>(null);
 
+  const [categories, setCategories] = useState<Categorie[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
   const [formData, setFormData] = useState<Partial<produits>>({
     nom: "",
     description: "",
     prix: 0,
     stock: 0,
     statut: "En stock",
+    categorie: undefined,
   });
 
   // Image principale (File ou URL existante)
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+
+  // Charger les catégories depuis le backend
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const data = await categorieService.getAll();
+        setCategories(data);
+      } catch (err) {
+        console.error("Erreur lors du chargement des catégories:", err);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Charger le produit existant en mode édition
   useEffect(() => {
@@ -40,6 +61,7 @@ export function AddProduct() {
           prix: data.prix,
           stock: data.stock,
           statut: data.statut,
+          categorie: data.categorie,
         });
         if (data.image) {
           setImagePreview(`http://localhost:3000/uploads/${data.image}`);
@@ -65,6 +87,16 @@ export function AddProduct() {
     }));
   };
 
+  // Handler spécifique pour la catégorie (on stocke l'objet Categorie complet)
+  const handleCategorieChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = Number(e.target.value);
+    const selectedCategorie = categories.find((c) => c.id === selectedId);
+    setFormData((prev) => ({
+      ...prev,
+      categorie: selectedCategorie,
+    }));
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -87,14 +119,12 @@ export function AddProduct() {
 
     try {
       if (isEdit && id) {
-        // Mise à jour : envoie l'image seulement si une nouvelle a été choisie
         await produitService.update(
           Number(id),
           formData,
           imageFile ?? undefined
         );
       } else {
-        // Création
         await produitService.create(formData, imageFile ?? undefined);
       }
       navigate("/dashboard/products");
@@ -141,8 +171,10 @@ export function AddProduct() {
 
       {/* Error Banner */}
       {error && (
-        <div className="bg-red-50 border-2 border-red-200 text-red-700 px-5 py-4 text-sm font-medium">
+        <div className="bg-red-50 border-2 border-red-200 text-red-700 px-5 py-4 text-sm font-medium flex items-center gap-3">
+          <X className="w-4 h-4 flex-shrink-0" />
           {error}
+          <button onClick={() => setError(null)} className="ml-auto font-bold">✕</button>
         </div>
       )}
 
@@ -263,23 +295,65 @@ export function AddProduct() {
               </div>
             </div>
 
-            {/* Statut */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Statut *
-              </label>
-              <select
-                name="statut"
-                value={formData.statut}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                required
-              >
-                <option value="En stock">En stock</option>
-                <option value="Stock limité">Stock limité</option>
-                <option value="Sur commande">Sur commande</option>
-                <option value="Rupture de stock">Rupture de stock</option>
-              </select>
+            {/* Catégorie & Statut */}
+            <div className="grid sm:grid-cols-2 gap-5">
+              {/* Catégorie */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="flex items-center gap-1">
+                    <Tag className="w-4 h-4" />
+                    Catégorie *
+                  </span>
+                </label>
+                {categoriesLoading ? (
+                  <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 flex items-center gap-2 text-gray-400">
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-primary rounded-full animate-spin" />
+                    <span className="text-sm">Chargement...</span>
+                  </div>
+                ) : (
+                  <select
+                    name="categorie"
+                    value={formData.categorie?.id ?? ""}
+                    onChange={handleCategorieChange}
+                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    required
+                  >
+                    <option value="" disabled>
+                      Sélectionner une catégorie
+                    </option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.libellé}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {!categoriesLoading && categories.length === 0 && (
+                  <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                    <Package className="w-3 h-3" />
+                    Aucune catégorie disponible. Créez-en une d'abord.
+                  </p>
+                )}
+              </div>
+
+              {/* Statut */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Statut *
+                </label>
+                <select
+                  name="statut"
+                  value={formData.statut}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                  required
+                >
+                  <option value="En stock">En stock</option>
+                  <option value="Stock limité">Stock limité</option>
+                  <option value="Sur commande">Sur commande</option>
+                  <option value="Rupture de stock">Rupture de stock</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -295,7 +369,7 @@ export function AddProduct() {
           </button>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || categoriesLoading}
             className="px-6 py-3 bg-primary text-white hover:bg-blue-700 transition-colors font-medium shadow-md border-2 border-primary flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? (

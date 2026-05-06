@@ -5,6 +5,7 @@ import { Plus, Search, Edit, Trash2, Package, TrendingUp, AlertCircle, Eye, Stor
 import type { produits } from "../model/model";
 import { useStore } from "../lib/store-context";
 import { produitService } from "../service/produit.service";
+import { useImage } from "../lib/image-context";
 
 export function Products() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export function Products() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<number | null>(null);
+  const { getBoutiqueImageUrl } = useImage();
 
   // Chargement des produits depuis le backend
   useEffect(() => {
@@ -51,7 +53,7 @@ export function Products() {
 
   // Statistiques
   const totalProducts = filteredProduits.length;
-  const totalValue = filteredProduits.reduce((sum, p) => sum + p.price * p.stock, 0);
+  const totalValue = filteredProduits.reduce((sum, p) => sum + p.prix * p.stock, 0);
   const lowStock = filteredProduits.filter((p) => p.stock < 10).length;
 
   const handleDelete = (id: number) => {
@@ -203,7 +205,7 @@ export function Products() {
                       <div className="flex items-center gap-3 min-w-0">
                         {product.image ? (
                           <img
-                            src={`http://localhost:3000/uploads/${product.image}`}
+                            src={getBoutiqueImageUrl(product.image)}
                             alt={product.nom}
                             className="w-14 h-14 border-2 border-gray-200 object-cover flex-shrink-0"
                           />

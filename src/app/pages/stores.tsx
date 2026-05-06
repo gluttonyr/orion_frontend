@@ -14,10 +14,12 @@ import {
 } from "lucide-react";
 import { useStore } from "../lib/store-context";
 import { useSubscription, planDetails } from "../lib/subscription-context";
+import { useImage } from "../lib/image-context";
 
 export function Stores() {
   const { stores, activeStore, deleteStore, updateStore } = useStore();
   const { subscription } = useSubscription();
+  const { getBoutiqueImageUrl } = useImage();
   const navigate = useNavigate();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -148,7 +150,7 @@ export function Stores() {
                 >
                   {store.logo ? (
                     <img
-                      src={store.logo}
+                      src={getBoutiqueImageUrl(store.logo)}
                       alt={store.name}
                       className="w-full h-full object-cover"
                     />

@@ -27,6 +27,7 @@ export interface produits {
   image: string;
   images_secondaires?: string[];
   statut: string;
+  categorie: Categorie;
 }
 
 export interface Commande {
@@ -37,11 +38,13 @@ export interface Commande {
   dateCommande: Date;
 }
 
+
 export interface Categorie {
   id: number;
   libellé: string;
   description: string;
 }
+
 
 export interface Demande {
   id: number;
