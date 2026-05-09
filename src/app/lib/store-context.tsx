@@ -2,7 +2,6 @@ import {
   createContext,
   useContext,
   useState,
-  
   useEffect,
   useCallback,
   type ReactNode,
@@ -10,6 +9,7 @@ import {
 
 import type { Boutique } from "../model/model";
 import { boutiqueService } from "../service/boutique.service";
+import { API_BASE_URL } from "../service/api.config";
 
 // On garde le type Store tel quel pour ne pas casser les composants existants
 export interface Store {
@@ -46,24 +46,24 @@ function toStore(b: Boutique): Store {
     description: b.description ?? "",
     category: b.category ?? "",
     location: b.location ?? "",
-    logo: b.logo ? (b.logo.startsWith('/') ? `http://localhost:3000${b.logo}` : b.logo) : undefined,
+    logo: b.logo ? (b.logo.startsWith('/') ? `${API_BASE_URL}${b.logo}` : b.logo) : undefined,
     createdAt: new Date(b.dateCreation),
     active: b.active ?? true,
   };
 }
 
 // Convertit un Store (frontend) → Partial<Boutique> (backend)
-function toBoutique(s: Partial<Store> & { proprietaireId?: number }): Partial<Boutique> {
-  return {
-    nom: s.name,
-    description: s.description,
-    category: s.category,
-    location: s.location,
-    logo: s.logo,
-    active: s.active,
-    proprietaireId: s.proprietaireId,
-  };
-}
+// function toBoutique(s: Partial<Store> & { proprietaireId?: number }): Partial<Boutique> {
+//   return {
+//     nom: s.name,
+//     description: s.description,
+//     category: s.category,
+//     location: s.location,
+//     logo: s.logo,
+//     active: s.active,
+//     proprietaireId: s.proprietaireId,
+//   };
+// }
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -88,16 +88,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setActiveStoreState(found ?? null);
         if (!found) localStorage.removeItem("orion-active-store");
       }
-    } catch {
-      setError("Impossible de charger les boutiques.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError("Impossible de charger les boutiques.");
+    } finally { setLoading(false);}
   }, []);
 
-  useEffect(() => {
-    refreshStores();
-  }, [refreshStores]);
+  useEffect(() => { refreshStores();}, [refreshStores]);
 
   // ── Boutique active ──────────────────────────────────────────────────────
   const setActiveStore = useCallback((store: Store) => {
@@ -113,11 +108,9 @@ const addStore = useCallback(
       file?: File | null;
     }
   ) => {
-
     setError(null);
 
     try {
-
       const fd = new FormData();
 
       const boutiquePayload = {
@@ -128,17 +121,10 @@ const addStore = useCallback(
         active: storeData.active,
       };
 
-      fd.append(
-        "data",
-        JSON.stringify(boutiquePayload),
-      );
+      fd.append("data", JSON.stringify(boutiquePayload),);
+      if (storeData.file) {fd.append("logo", storeData.file);}
 
-      if (storeData.file) {
-        fd.append("logo", storeData.file);
-      }
-
-      const created =
-        await boutiqueService.create(fd);
+      const created = await boutiqueService.create(fd);
 
       setStores((prev) => [
         ...prev,
@@ -146,11 +132,7 @@ const addStore = useCallback(
       ]);
 
     } catch {
-
-      setError(
-        "Erreur lors de la création de la boutique.",
-      );
-
+      setError("Erreur lors de la création de la boutique.",);
       throw new Error("create_failed");
     }
   },
@@ -167,11 +149,8 @@ const updateStore = useCallback(
       file?: File | null;
     }
   ) => {
-
     setError(null);
-
     try {
-
       const fd = new FormData();
 
       const boutiquePayload = {
@@ -182,46 +161,24 @@ const updateStore = useCallback(
         active: updates.active,
       };
 
-      fd.append(
-        "data",
-        JSON.stringify(boutiquePayload),
-      );
+      fd.append("data", JSON.stringify(boutiquePayload),);
 
-      if (updates.file) {
-        fd.append("logo", updates.file);
-      }
+      if (updates.file) { fd.append("logo", updates.file);}
 
-      const updated =
-        await boutiqueService.update(
-          Number(id),
-          fd,
-        );
+      const updated = await boutiqueService.update(Number(id), fd,);
 
       const mapped = toStore(updated);
 
       setStores((prev) =>
-        prev.map((s) =>
-          s.id === id
-            ? { ...s, ...mapped }
-            : s
-        )
+        prev.map((s) => s.id === id ? { ...s, ...mapped } : s)
       );
 
       if (activeStore?.id === id) {
-
-        setActiveStoreState((prev) =>
-          prev
-            ? { ...prev, ...mapped }
-            : null
-        );
+        setActiveStoreState((prev) => prev ? { ...prev, ...mapped } : null);
       }
 
     } catch {
-
-      setError(
-        "Erreur lors de la mise à jour de la boutique.",
-      );
-
+      setError("Erreur lors de la mise à jour de la boutique.",);
       throw new Error("update_failed");
     }
   },
@@ -259,9 +216,7 @@ const updateStore = useCallback(
         updateStore,
         deleteStore,
         refreshStores,
-      }}
-    >
-      {children}
+      }}>{children}
     </StoreContext.Provider>
   );
 }

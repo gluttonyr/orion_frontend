@@ -4,6 +4,43 @@ export enum UserRole {
   ADMIN = 'ADMIN'
 }
 
+export enum TypeMission {
+  AUTRE = 'autre',
+  EMPLOI = 'emploi',
+  SERVICE = 'service',
+  MISSION = 'mission',
+  FORMATION = 'formation',
+  FREELANCE = 'freelance',
+  LIVRAISON = 'livraison',
+}
+
+export enum TypePaiement {
+  FIXE = 'fixe',
+  HORAIRE = 'horaire',
+  JOURNALIER = 'journalier',
+  MENSUEL = 'mensuel',
+  PROJET = 'projet',
+}
+
+export enum StatutMission {
+  OUVERTE = 'ouverte',
+  EN_COURS = 'en_cours',
+  TERMINEE = 'terminée',
+  ANNULEE = 'annulée',
+}
+
+export enum StatutCandidature {
+  EN_ATTENTE = 'en_attente',
+  ACCEPTE = 'accepté',
+  REFUSE = 'refusé',
+}
+
+export enum Categories {
+  ELECTRONIQUE = "ELECTRONIQUE",
+  VETEMENTS = "VETEMENTS",
+  MAISON = "MAISON"
+}
+
 export interface Utilisateur{
   id: number;
   nom: string;
@@ -38,51 +75,66 @@ export interface Commande {
   dateCommande: Date;
 }
 
-
 export interface Categorie {
   id: number;
   libellé: string;
   description: string;
 }
 
-
 export interface Demande {
   id: number;
-  statue: string;
+  utilisateurId: number;
+  type: string;
+  description: string;
+  statut: string;
   date_envoi: Date;
 }
 
 export interface Discussion {
   id: number;
+  participants?: Utilisateur[];
+  messages?: Message[];
   date_debut: Date;
-  statue: string;
+  statut: string;
 }
 
 export interface Message {
   id: number;
-  heure: Date;
+  discussionId: number;
+  utilisateurId: number;
   contenu: string;
-  date_debut: Date;
+  date_envoi: Date;
   type_message: string;
   statue: string;
 }
 
 export interface Mission {
   id: number;
-  nom: string;
-  duree: string;
-  prix_total: number;
+  commercantId: number;
+  titre: string;
+  localisation: string;
+  type: string;
+  statut: string;
+  descriptionCourte: string;
   description: string;
-  date_debut: string;
-  date_fin: string;
-  statue: string;
+  montant: number;
+  frequencePaiement: TypePaiement;
+  dureeMission: number;
+  datePublication: any;
+  dateLimiteCandidature: any;
+  requis: string;
+  candidatures?: Record<number, { user: number; statut: StatutCandidature }> | StatutCandidature.EN_ATTENTE;
 }
 
 export interface Vente {
   id: number;
+  utilisateurId: number;
+  produits?: produits[];
+  quantites: number[];
   date_achat: string;
   prix_total: number;
   reference: string;
+  statut: string;
 }
 
 export interface Panier {
@@ -111,4 +163,18 @@ export interface Boutique {
   produitIds?: number[];
   proprietaireId?: number;
   dateCreation: Date;
+}
+
+export interface Plan {
+  id: number;
+  titre: string;
+  type: string;
+  prix: number;
+  avantages: string;
+  description: string;
+  nombreBoutiques: number;
+  nombreProduits: number;
+  dureeEnMois: number;
+  dateCreation: Date;
+  dateExpiration: Date;
 }

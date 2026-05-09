@@ -84,8 +84,7 @@ export function AddStore() {
       <div className="mb-6">
         <button
           onClick={() => navigate("/dashboard/stores")}
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-primary mb-4 transition-colors"
-        >
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-primary mb-4 transition-colors">
           <ArrowLeft className="w-5 h-5" />
           Retour aux boutiques
         </button>
@@ -112,13 +111,12 @@ export function AddStore() {
                 <img
                   src={formData.logo}
                   alt="Logo boutique"
-                  className="w-full h-full object-cover"
-                />
+                  className="w-full h-full object-cover"/>
                 <button
                   type="button"
+                  title="Supprimer le logo"
                   onClick={removeLogo}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white flex items-center justify-center hover:bg-red-700 transition-colors"
-                >
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white flex items-center justify-center hover:bg-red-700 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -130,12 +128,10 @@ export function AddStore() {
                   accept="image/*"
                   onChange={handleLogoUpload}
                   className="hidden"
-                  id="logo-upload"
-                />
+                  id="logo-upload"/>
                 <label
                   htmlFor="logo-upload"
-                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-primary hover:text-primary transition-all font-medium"
-                >
+                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-primary hover:text-primary transition-all font-medium">
                   <Upload className="w-5 h-5" />
                   Télécharger un logo
                 </label>
@@ -159,8 +155,7 @@ export function AddStore() {
                 setFormData({ ...formData, name: e.target.value })
               }
               placeholder="ex: Boutique Central Market"
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"
-            />
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"/>
           </div>
 
           {/* Description */}
@@ -170,13 +165,10 @@ export function AddStore() {
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Décrivez votre boutique..."
               rows={3}
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors resize-none"
-            />
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors resize-none"/>
           </div>
 
           {/* Category */}
@@ -185,18 +177,15 @@ export function AddStore() {
               Catégorie *
             </label>
             <select
+              title="Sélectionnez une catégorie"
               required
               value={formData.category}
               onChange={(e) =>
-                setFormData({ ...formData, category: e.target.value })
-              }
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors bg-white"
-            >
+                setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors bg-white">
               <option value="">Sélectionnez une catégorie</option>
               {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
+                <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
           </div>
@@ -204,18 +193,14 @@ export function AddStore() {
           {/* Location */}
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">
-              Localisation *
-            </label>
+              Localisation *</label>
             <input
               type="text"
               required
               value={formData.location}
-              onChange={(e) =>
-                setFormData({ ...formData, location: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               placeholder="ex: Dakar Central"
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"
-            />
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"/>
           </div>
 
           {/* Active Status */}
@@ -225,29 +210,24 @@ export function AddStore() {
               id="active"
               checked={formData.active}
               onChange={(e) =>
-                setFormData({ ...formData, active: e.target.checked })
-              }
-              className="w-5 h-5 border-2 border-gray-300 text-primary focus:ring-2 focus:ring-primary"
-            />
+                setFormData({ ...formData, active: e.target.checked })}
+              className="w-5 h-5 border-2 border-gray-300 text-primary focus:ring-2 focus:ring-primary"/>
             <label htmlFor="active" className="text-sm font-medium text-gray-900">
-              Boutique active
-            </label>
+              Boutique active</label>
           </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white font-medium transition-all shadow-md hover:shadow-lg border-2 border-primary active:scale-95"
-            >
+              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white font-medium transition-all shadow-md hover:shadow-lg border-2 border-primary active:scale-95">
               <Store className="w-5 h-5" />
               {isEditing ? "Mettre à jour" : "Créer la boutique"}
             </button>
             <button
               type="button"
               onClick={() => navigate("/dashboard/stores")}
-              className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 font-medium transition-all active:scale-95"
-            >
+              className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 font-medium transition-all active:scale-95">
               Annuler
             </button>
           </div>

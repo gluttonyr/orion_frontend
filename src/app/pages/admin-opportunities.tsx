@@ -1,60 +1,69 @@
 import { Link } from "react-router";
-import { Plus, Edit2, Trash2, Eye, Users, DollarSign, Calendar, MapPin } from "lucide-react";
-import { useState } from "react";
+import { Plus, Edit2, Trash2, Eye, Users, DollarSign, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useUser } from "../lib/user-context.tsx";
+import { mission } from "../service/mission.service";
 
-// Mock data
-const myOpportunities = [
-  {
-    id: "1",
-    title: "Développeur Web Front-End",
-    type: "Emploi",
-    amount: 500000,
-    paymentFrequency: "Mois",
-    location: "Dakar, Sénégal",
-    duration: "6 mois",
-    deadline: "30 Avril 2026",
-    status: "Ouvert",
-    applicants: 12,
-    accepted: 1,
-    totalPaid: 1500000,
-    createdAt: "15 Mars 2026",
-  },
-  {
-    id: "2",
-    title: "Designer UI/UX",
-    type: "Mission",
-    amount: 350000,
-    paymentFrequency: "Mois",
-    location: "Dakar, Sénégal",
-    duration: "3 mois",
-    deadline: "20 Avril 2026",
-    status: "Ouvert",
-    applicants: 8,
-    accepted: 0,
-    totalPaid: 0,
-    createdAt: "10 Mars 2026",
-  },
-  {
-    id: "3",
-    title: "Community Manager",
-    type: "Freelance",
-    amount: 200000,
-    paymentFrequency: "Mois",
-    location: "À distance",
-    duration: "12 mois",
-    deadline: "25 Mars 2026",
-    status: "Fermé",
-    applicants: 25,
-    accepted: 2,
-    totalPaid: 800000,
-    createdAt: "1 Mars 2026",
-  },
-];
+interface AdminOpportunity {
+  id: string;
+  title: string;
+  type: string;
+  amount: number;
+  paymentFrequency: string;
+  location: string;
+  duration: string;
+  deadline: string;
+  status: string;
+  applicants: number;
+  accepted: number;
+  totalPaid: number;
+  createdAt: string;
+  commercantId?: number;
+}
 
 export function AdminOpportunities() {
-  const [opportunities, setOpportunities] = useState(myOpportunities);
+  const [opportunities, setOpportunities] = useState<AdminOpportunity[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [opportunityToDelete, setOpportunityToDelete] = useState<string | null>(null);
+  const { user } = useUser();
+
+  useEffect(() => {
+    console.log("Chargement des opportunités administrateur...");
+    mission
+      .getAll()
+      .then((missions) => {
+        console.log("Missions récupérées :", missions);
+        const formatted = missions.map((missionData) => ({
+          id: missionData.id.toString(),
+          title: missionData.titre,
+          type: missionData.type || "Mission",
+          amount: Number(missionData.montant || 0),
+          paymentFrequency: missionData.frequencePaiement || "Projet",
+          location: missionData.localisation || "À distance",
+          duration: `${missionData.dureeMission || 0} mois`,
+          deadline: missionData.dateLimiteCandidature
+            ? new Date(missionData.dateLimiteCandidature).toLocaleDateString("fr-FR")
+            : "À définir",
+          status: missionData.statut || "Ouvert",
+          applicants: 0,
+          accepted: 0,
+          totalPaid: 0,
+          createdAt: missionData.datePublication
+            ? new Date(missionData.datePublication).toLocaleDateString("fr-FR")
+            : "N/A",
+          commercantId: (missionData as any).commercantId || (missionData as any).commercant?.id,
+        }));
+
+        // const filtered = user
+        //   ? formatted.filter((opp) => opp.commercantId === user.id)
+        //   : formatted;
+
+        setOpportunities(formatted);
+      })
+      .catch((error) => {
+        console.error("Erreur chargement opportunités administrateur :", error);
+      });
+  }, [user]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {

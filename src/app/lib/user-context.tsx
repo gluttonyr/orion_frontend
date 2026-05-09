@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import utilisateurService from "../service/utilisateur.service";
+import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
+import { userService } from "../service/utilisateur.service";
 import type { Utilisateur } from "../model/model";
 
 interface UserContextType {
@@ -17,11 +17,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Vérifier si l'utilisateur est déjà connecté (token dans localStorage)
     const token = localStorage.getItem('token');
     if (token) {
-      // TODO: valider le token et récupérer l'utilisateur
-      setIsLoading(false);
+      userService
+        .getCurrent(token)
+        .then((currentUser) => setUser(currentUser))
+        .catch((error) => {
+          console.error('Erreur de récupération de l’utilisateur courant :', error);
+          localStorage.removeItem('token');
+        })
+        .finally(() => setIsLoading(false));
     } else {
       setIsLoading(false);
     }
@@ -29,10 +34,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await utilisateurService.login(email, password);
-      if (response.user) {
+      const response = await userService.login(email, password);
+      if (response.user && response.access_token) {
         setUser(response.user);
-        localStorage.setItem('token', response.token || '');
+        localStorage.setItem('token', response.access_token);
         return true;
       }
       return false;
@@ -69,3 +74,22 @@ export function useUser() {
   }
   return context;
 }
+
+// find the logged user role
+export const getUserRole = async (): Promise<string | null> => {
+  try {
+    const user = await userService.getCurrent();
+    console.log(user)
+
+    if (user?.role) {
+      console.log("Role: ", user.role);
+      return user.role;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Erreur de récupération du rôle de l’utilisateur :", error);
+
+    return null;
+  }
+};

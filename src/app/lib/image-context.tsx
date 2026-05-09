@@ -1,6 +1,5 @@
 import { createContext, useContext, useCallback } from "react";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { API_BASE_URL } from "../service/api.config";
 
 interface ImageContextType {
   getImageUrl: (filename: string) => string;

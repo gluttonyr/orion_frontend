@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router";
 import { ArrowLeft, Edit2, Users, Check, X, DollarSign, CreditCard, Eye } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { mission } from "../service/mission.service";
 
 // Mock data
 const applicants = [
@@ -45,27 +46,64 @@ const applicants = [
   },
 ];
 
+interface AdminOpportunityDetailType {
+  id: string;
+  title: string;
+  type: string;
+  amount: number;
+  paymentFrequency: string;
+  location: string;
+  duration: string;
+  deadline: string;
+  status: string;
+  description: string;
+  createdAt: string;
+}
+
 export function AdminOpportunityDetail() {
   const { id } = useParams();
   const [applicantsList, setApplicantsList] = useState(applicants);
   const [selectedApplicant, setSelectedApplicant] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [opportunity, setOpportunity] = useState<AdminOpportunityDetailType | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock opportunity data
-  const opportunity = {
-    id: "1",
-    title: "Développeur Web Front-End",
-    type: "Emploi",
-    amount: 500000,
-    paymentFrequency: "Mois",
-    location: "Dakar, Sénégal",
-    duration: "6 mois",
-    deadline: "30 Avril 2026",
-    status: "Ouvert",
-    description: "Nous recherchons un développeur web expérimenté en React et TypeScript.",
-    createdAt: "15 Mars 2026",
-  };
+  useEffect(() => {
+    const loadOpportunity = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const missionData = await mission.getById(Number(id));
+        setOpportunity({
+          id: missionData.id.toString(),
+          title: missionData.titre,
+          type: missionData.type || "Mission",
+          amount: Number(missionData.montant || 0),
+          paymentFrequency: missionData.frequencePaiement || "Projet",
+          location: missionData.localisation || "À distance",
+          duration: `${missionData.dureeMission || 0} mois`,
+          deadline: missionData.dateLimiteCandidature
+            ? new Date(missionData.dateLimiteCandidature).toLocaleDateString("fr-FR")
+            : "À définir",
+          status: missionData.statut || "Ouvert",
+          description: missionData.descriptionCourte || missionData.description || "",
+          createdAt: missionData.datePublication
+            ? new Date(missionData.datePublication).toLocaleDateString("fr-FR")
+            : "N/A",
+        });
+      } catch (error) {
+        console.error("Erreur chargement de l'opportunité :", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOpportunity();
+  }, [id]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {
@@ -115,6 +153,18 @@ export function AdminOpportunityDetail() {
   const pendingCount = applicantsList.filter((a) => a.status === "pending").length;
   const acceptedCount = applicantsList.filter((a) => a.status === "accepted").length;
   const rejectedCount = applicantsList.filter((a) => a.status === "rejected").length;
+
+  if (loading) {
+    return <div className="p-10 text-center">Chargement...</div>;
+  }
+
+  if (!opportunity) {
+    return (
+      <div className="p-10 text-center">
+        <p className="text-gray-600">Opportunité introuvable.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">

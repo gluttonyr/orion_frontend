@@ -1,18 +1,9 @@
-import axios from "axios";
-import type { AxiosInstance } from "axios";
+import { createApi } from "./api.config";
 import type { produits } from "../model/model";
 
+const api = createApi("produits");
 
 class ProduitService {
-  private api: AxiosInstance;
-
-  constructor() {
-    this.api = axios.create({
-      baseURL: "http://localhost:3000/produits",
-    });
-  }
-
-  // =======================
   async create(produitData: Partial<produits>, imageFile?: File | string) {
     const formData = new FormData();
     Object.keys(produitData).forEach((key) => {
@@ -22,7 +13,7 @@ class ProduitService {
     if (imageFile) {
       formData.append("image", imageFile);
     }
-    const res = await this.api.post("/", formData, {
+    const res = await api.post("/", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -34,7 +25,7 @@ class ProduitService {
   // GET ALL PRODUITS
   // =======================
   async getAll(): Promise<produits[]> {
-    const res = await this.api.get("/");
+    const res = await api.get("/");
     console.log("Get all produits response:", res.data);
     return res.data;
   }
@@ -43,7 +34,7 @@ class ProduitService {
   // GET ONE PRODUITS
   // =======================
   async getById(id: number): Promise<produits> {
-    const res = await this.api.get(`/${id}`);
+    const res = await api.get(`/${id}`);
     return res.data;
   }
 
@@ -64,7 +55,7 @@ class ProduitService {
       formData.append("image", imageFile);
     }
 
-    const res = await this.api.patch(`/${id}`, formData, {
+    const res = await api.patch(`/${id}`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -77,7 +68,7 @@ class ProduitService {
   // DELETE PRODUITS
   // =======================
   async delete(id: number) {
-    const res = await this.api.delete(`/${id}`);
+    const res = await api.delete(`/${id}`);
     return res.data;
   }
 }

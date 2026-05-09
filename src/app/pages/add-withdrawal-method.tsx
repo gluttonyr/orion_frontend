@@ -101,6 +101,7 @@ export function AddWithdrawalMethod() {
                   className="w-full h-full object-contain p-2"
                 />
                 <button
+                  title="remove logo"
                   type="button"
                   onClick={removeLogo}
                   className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white flex items-center justify-center hover:bg-red-700 transition-colors"

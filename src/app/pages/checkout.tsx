@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { ArrowLeft, CreditCard, Wallet, Smartphone, Shield, Check } from "lucide-react";
-import { cartItems } from "../lib/mock-data";
+import { useCart } from "../lib/cart-context";
 
 export function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState("mobile");
@@ -11,6 +11,7 @@ export function Checkout() {
     phone: "",
     address: "",
   });
+  const { items: cartItems } = useCart();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {

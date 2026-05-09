@@ -19,9 +19,16 @@ export function Login() {
           }
           
           if (email && password) {
-            const user = await userService.login(email, password);
-            if (user){ toast.success("conexion avec succes")
-            } else{ toast .error("email ou mots de passe incorect")}
+            const response = await userService.login(email, password);
+            if (response?.access_token) {
+              localStorage.setItem('token', response.access_token);
+            }
+            if (response?.user) {
+              toast.success("Connexion réussie");
+            } else {
+              toast.error("Email ou mot de passe incorrect");
+              return;
+            }
           }
    
           navigate("/dashboard");

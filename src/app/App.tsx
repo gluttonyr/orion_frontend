@@ -7,8 +7,10 @@ import { SubscriptionProvider } from "./lib/subscription-context";
 import { WalletProvider } from "./lib/wallet-context";
 import { WithdrawalMethodsProvider } from "./lib/withdrawal-methods-context";
 import { ImageProvider } from "./lib/image-context";
+import { UserProvider } from "./lib/user-context";
 export default function App() {
   return (
+    <UserProvider>
     <ImageProvider>
       <NotificationProvider>
         <SubscriptionProvider>
@@ -24,5 +26,6 @@ export default function App() {
         </SubscriptionProvider>
       </NotificationProvider>
     </ImageProvider>
+    </UserProvider>
   );
 }

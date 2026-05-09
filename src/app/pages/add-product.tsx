@@ -5,6 +5,7 @@ import { ArrowLeft, Upload, X, Save, Package, Tag } from "lucide-react";
 import type { produits, Categorie } from "../model/model";
 import { produitService } from "../service/produit.service";
 import { categorieService } from "../service/categorie.service";
+import { API_BASE_URL } from "../service/api.config";
 
 export function AddProduct() {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export function AddProduct() {
           categorie: data.categorie,
         });
         if (data.image) {
-          setImagePreview(`http://localhost:3000/uploads/${data.image}`);
+          setImagePreview(`${API_BASE_URL}/upload/${data.image}`);
         }
       } catch (err) {
         console.error("Erreur lors du chargement du produit:", err);
@@ -140,7 +141,7 @@ export function AddProduct() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"/>
           <p className="text-gray-500 font-medium">Chargement du produit...</p>
         </div>
       </div>
@@ -152,10 +153,11 @@ export function AddProduct() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
+          type="button"
+          title="Retour à la liste des produits"
           onClick={() => navigate("/dashboard/products")}
-          className="p-2 text-gray-600 hover:text-primary transition-colors border-2 border-gray-200 hover:border-primary"
-        >
-          <ArrowLeft className="w-5 h-5" />
+          className="p-2 text-gray-600 hover:text-primary transition-colors border-2 border-gray-200 hover:border-primary">
+          <ArrowLeft className="w-5 h-5"/>
         </button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
@@ -172,7 +174,7 @@ export function AddProduct() {
       {/* Error Banner */}
       {error && (
         <div className="bg-red-50 border-2 border-red-200 text-red-700 px-5 py-4 text-sm font-medium flex items-center gap-3">
-          <X className="w-4 h-4 flex-shrink-0" />
+          <X className="w-4 h-4 flex-shrink-0"/>
           {error}
           <button onClick={() => setError(null)} className="ml-auto font-bold">✕</button>
         </div>
@@ -191,14 +193,13 @@ export function AddProduct() {
               <img
                 src={imagePreview}
                 alt="Aperçu"
-                className="w-48 h-48 object-cover border-4 border-gray-200"
-              />
+                className="w-48 h-48 object-cover border-4 border-gray-200"/>
               <button
                 type="button"
+                title="Supprimer l'image"
                 onClick={removeImage}
-                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white hover:bg-red-600 transition-colors border-2 border-red-600"
-              >
-                <X className="w-4 h-4" />
+                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white hover:bg-red-600 transition-colors border-2 border-red-600">
+                <X className="w-4 h-4"/>
               </button>
               <div className="absolute bottom-2 left-2 px-2 py-1 bg-primary text-white text-xs font-medium border-2 border-primary">
                 Image principale
@@ -207,7 +208,7 @@ export function AddProduct() {
           ) : (
             <label className="block cursor-pointer max-w-xs">
               <div className="border-4 border-dashed border-gray-300 hover:border-primary transition-colors p-8 text-center bg-gray-50">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3"/>
                 <p className="text-gray-700 font-medium mb-1">
                   Cliquez pour télécharger
                 </p>
@@ -217,8 +218,7 @@ export function AddProduct() {
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
-                className="hidden"
-              />
+                className="hidden"/>
             </label>
           )}
         </div>
@@ -240,8 +240,7 @@ export function AddProduct() {
                 onChange={handleChange}
                 placeholder="Ex: Samsung Galaxy S24"
                 className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                required
-              />
+                required/>
             </div>
 
             {/* Description */}
@@ -256,8 +255,7 @@ export function AddProduct() {
                 placeholder="Décrivez votre produit en détail..."
                 rows={4}
                 className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
-                required
-              />
+                required/>
             </div>
 
             {/* Prix & Stock */}
@@ -274,8 +272,7 @@ export function AddProduct() {
                   placeholder="150000"
                   min="0"
                   className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                  required
-                />
+                  required/>
               </div>
 
               <div>
@@ -290,8 +287,7 @@ export function AddProduct() {
                   placeholder="50"
                   min="0"
                   className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                  required
-                />
+                  required/>
               </div>
             </div>
 
@@ -301,23 +297,23 @@ export function AddProduct() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <span className="flex items-center gap-1">
-                    <Tag className="w-4 h-4" />
+                    <Tag className="w-4 h-4"/>
                     Catégorie *
                   </span>
                 </label>
                 {categoriesLoading ? (
                   <div className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 flex items-center gap-2 text-gray-400">
-                    <div className="w-4 h-4 border-2 border-gray-300 border-t-primary rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-primary rounded-full animate-spin"/>
                     <span className="text-sm">Chargement...</span>
                   </div>
                 ) : (
                   <select
                     name="categorie"
+                    title="categories"
                     value={formData.categorie?.id ?? ""}
                     onChange={handleCategorieChange}
                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                    required
-                  >
+                    required>
                     <option value="" disabled>
                       Sélectionner une catégorie
                     </option>
@@ -330,7 +326,7 @@ export function AddProduct() {
                 )}
                 {!categoriesLoading && categories.length === 0 && (
                   <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
-                    <Package className="w-3 h-3" />
+                    <Package className="w-3 h-3"/>
                     Aucune catégorie disponible. Créez-en une d'abord.
                   </p>
                 )}
@@ -343,11 +339,11 @@ export function AddProduct() {
                 </label>
                 <select
                   name="statut"
+                  title="statut"
                   value={formData.statut}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                  required
-                >
+                  required>
                   <option value="En stock">En stock</option>
                   <option value="Stock limité">Stock limité</option>
                   <option value="Sur commande">Sur commande</option>
@@ -363,20 +359,17 @@ export function AddProduct() {
           <button
             type="button"
             onClick={() => navigate("/dashboard/products")}
-            className="px-6 py-3 bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50 transition-colors font-medium"
-          >
+            className="px-6 py-3 bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50 transition-colors font-medium">
             Annuler
           </button>
           <button
             type="submit"
             disabled={loading || categoriesLoading}
-            className="px-6 py-3 bg-primary text-white hover:bg-blue-700 transition-colors font-medium shadow-md border-2 border-primary flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
+            className="px-6 py-3 bg-primary text-white hover:bg-blue-700 transition-colors font-medium shadow-md border-2 border-primary flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
             {loading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
             ) : (
-              <Save className="w-5 h-5" />
-            )}
+              <Save className="w-5 h-5"/>)}
             <span>{isEdit ? "Enregistrer les modifications" : "Ajouter le produit"}</span>
           </button>
         </div>

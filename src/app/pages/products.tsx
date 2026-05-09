@@ -226,15 +226,14 @@ export function Products() {
                     </td>
                     <td className="px-4 md:px-6 py-4">
                       <p className="font-semibold text-gray-900 whitespace-nowrap">
-                        {formatCurrency(product.price)}
+                        {formatCurrency(product.prix)}
                       </p>
                     </td>
                     <td className="px-4 md:px-6 py-4">
                       <p
                         className={`font-medium whitespace-nowrap ${
                           product.stock < 10 ? "text-orange-600" : "text-gray-900"
-                        }`}
-                      >
+                        }`}>
                         {product.stock} unités
                       </p>
                     </td>

@@ -1,16 +1,50 @@
 import { Search, Filter, Calendar, Building2, Award, ExternalLink } from "lucide-react";
-import { opportunities } from "../lib/mock-data";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { mission } from "../service/mission.service";
+
+interface OpportunityItem {
+  id: string;
+  title: string;
+  description: string;
+  provider: string;
+  deadline: string;
+  type: string;
+  status: string;
+}
 
 export function Opportunities() {
+  const [opportunities, setOpportunities] = useState<OpportunityItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("Tous");
 
   const types = ["Tous", "Financement", "Formation", "Réseau"];
 
+  useEffect(() => {
+    console.log("Chargement des opportunités...");
+    mission
+      .getAll()
+      .then((missions) => {
+        console.log("Missions récupérées :", missions);
+        const formatted = missions.map((missionData) => ({
+          id: missionData.id.toString(),
+          title: missionData.titre,
+          description: missionData.descriptionCourte || missionData.description || "",
+          provider: "Partenaire",
+          deadline: missionData.dateLimiteCandidature
+            ? new Date(missionData.dateLimiteCandidature).toLocaleDateString("fr-FR")
+            : "À définir",
+          type: missionData.type || "Autre",
+          status: missionData.statut || "Ouvert",
+        }));
+        setOpportunities(formatted);
+      })
+      .catch((error) => {
+        console.error("Erreur chargement opportunités :", error);
+      });
+  }, []);
+
   const filteredOpportunities = opportunities.filter((opp) => {
-    const matchesSearch = opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         opp.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = opp.title.toLowerCase().includes(searchQuery.toLowerCase()) || opp.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = selectedType === "Tous" || opp.type === selectedType;
     return matchesSearch && matchesType;
   });

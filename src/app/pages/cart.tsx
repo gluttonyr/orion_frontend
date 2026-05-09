@@ -27,8 +27,7 @@ export function Cart() {
           <p className="text-gray-600 mb-8">Découvrez nos produits et commencez vos achats !</p>
           <Link
             to="/marketplace"
-            className="inline-flex items-center gap-2 px-8 py-3 bg-primary text-white font-medium hover:bg-blue-700 transition-all border-2 border-primary"
-          >
+            className="inline-flex items-center gap-2 px-8 py-3 bg-primary text-white font-medium hover:bg-blue-700 transition-all border-2 border-primary">
             Voir le marketplace
             <ArrowRight className="w-5 h-5" />
           </Link>
@@ -51,8 +50,7 @@ export function Cart() {
           {items.map((item) => (
             <div
               key={item.id}
-              className="bg-white border-4 border-gray-200 p-4 sm:p-6 hover:border-primary transition-colors"
-            >
+              className="bg-white border-4 border-gray-200 p-4 sm:p-6 hover:border-primary transition-colors">
               <div className="flex gap-4">
                 {/* Product Image */}
                 <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 border-2 border-gray-200 flex-shrink-0 overflow-hidden">
@@ -73,8 +71,7 @@ export function Cart() {
                     <button
                       onClick={() => removeFromCart(item.id)}
                       className="text-red-600 hover:text-red-700 p-2 border-2 border-transparent hover:border-red-200 transition-all"
-                      title="Supprimer"
-                    >
+                      title="Supprimer">
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
@@ -83,16 +80,16 @@ export function Cart() {
                     {/* Quantity Controls */}
                     <div className="flex items-center gap-2">
                       <button
+                        title="decrease quantity"
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="w-8 h-8 bg-gray-100 border-2 border-gray-200 hover:border-primary hover:bg-gray-200 transition-all flex items-center justify-center"
-                      >
+                        className="w-8 h-8 bg-gray-100 border-2 border-gray-200 hover:border-primary hover:bg-gray-200 transition-all flex items-center justify-center">
                         <Minus className="w-4 h-4" />
                       </button>
                       <span className="w-12 text-center font-semibold text-gray-900">{item.quantity}</span>
                       <button
+                        title="increase quantity"
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="w-8 h-8 bg-gray-100 border-2 border-gray-200 hover:border-primary hover:bg-gray-200 transition-all flex items-center justify-center"
-                      >
+                        className="w-8 h-8 bg-gray-100 border-2 border-gray-200 hover:border-primary hover:bg-gray-200 transition-all flex items-center justify-center">
                         <Plus className="w-4 h-4" />
                       </button>
                     </div>
@@ -115,8 +112,7 @@ export function Cart() {
           {/* Clear Cart Button */}
           <button
             onClick={clearCart}
-            className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 border-2 border-red-200 hover:border-red-300 transition-all"
-          >
+            className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 border-2 border-red-200 hover:border-red-300 transition-all">
             <Trash2 className="w-4 h-4" />
             Vider le panier
           </button>
@@ -148,16 +144,14 @@ export function Cart() {
 
             <button
               onClick={handleCheckout}
-              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-secondary text-white font-semibold hover:bg-green-600 transition-all border-2 border-secondary mb-4"
-            >
+              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-secondary text-white font-semibold hover:bg-green-600 transition-all border-2 border-secondary mb-4">
               Passer au paiement
               <ArrowRight className="w-5 h-5" />
             </button>
 
             <Link
               to="/marketplace"
-              className="block text-center px-6 py-3 text-primary hover:bg-gray-50 border-2 border-gray-200 hover:border-primary transition-all font-medium"
-            >
+              className="block text-center px-6 py-3 text-primary hover:bg-gray-50 border-2 border-gray-200 hover:border-primary transition-all font-medium">
               Continuer mes achats
             </Link>
 

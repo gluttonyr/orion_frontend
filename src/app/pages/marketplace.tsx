@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router";
-import { Search, SlidersHorizontal, Star, ShoppingCart, Sparkles, AlertCircle } from "lucide-react";
+import { Search, SlidersHorizontal, ShoppingCart, AlertCircle } from "lucide-react";
 import { produitService } from "../service/produit.service";
 import { useImage } from "../lib/image-context";
 import type { produits } from "../model/model";
@@ -149,10 +149,10 @@ useEffect(() => {
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-600 font-medium">Trier par:</span>
           <select
+            title="Sort by"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary"
-          >
+            className="px-4 py-2 bg-gray-50 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary">
             <option value="popular">Popularité</option>
             <option value="price-asc">Prix croissant</option>
             <option value="price-desc">Prix décroissant</option>

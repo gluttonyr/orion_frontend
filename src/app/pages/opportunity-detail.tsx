@@ -1,6 +1,9 @@
 import { useParams, Link } from "react-router";
 import { ArrowLeft, Building2, MapPin, DollarSign, Clock, Calendar, Users, Send, CheckCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { mission } from "../service/mission.service";
+import { userService } from "../service/utilisateur.service";
+import type { Mission } from "../model/model"; "../model/model";
 
 export function OpportunityDetail() {
   const { id } = useParams();
@@ -15,24 +18,45 @@ export function OpportunityDetail() {
       timestamp: "Il y a 2h",
     },
   ]);
+  const [opportunity, setOpportunity] = useState<Mission | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [applicants, setApplicants] = useState(0);
 
-  // Mock data - en production, charger depuis l'API
-  const opportunity = {
-    id: "1",
-    title: "Développeur Web Front-End",
-    description: "Nous recherchons un développeur web expérimenté en React et TypeScript pour rejoindre notre équipe et travailler sur des projets innovants pour des clients africains.",
-    fullDescription: "En tant que développeur front-end, vous serez responsable de la création d'interfaces utilisateur modernes et réactives. Vous travaillerez en étroite collaboration avec notre équipe de design et notre équipe back-end pour créer des expériences utilisateur exceptionnelles.\n\nResponsabilités:\n- Développer des interfaces utilisateur avec React et TypeScript\n- Collaborer avec l'équipe de design\n- Optimiser les performances\n- Maintenir le code existant\n\nCompétences requises:\n- 3+ ans d'expérience en React\n- Maîtrise de TypeScript\n- Connaissance de Tailwind CSS\n- Expérience avec Git",
-    company: "TechAfrique Solutions",
-    location: "Dakar, Sénégal",
-    type: "Emploi",
-    amount: 500000,
-    duration: "6 mois",
-    paymentFrequency: "Mois",
-    deadline: "30 Avril 2026",
-    status: "Ouvert",
-    postedBy: "1",
-    applicants: 12,
-  };
+  useEffect(() => {
+    const loadOpportunity = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const missionData = await mission.getById(Number(id));
+        const userData = await userService.getById(Number(missionData.commercantId));
+        setOpportunity({
+          commercantId: missionData.commercantId | Number(userData.id),
+          id: missionData.id,
+          titre: missionData.titre,
+          localisation: missionData.localisation,
+          type: missionData.type,
+          statut: missionData.statut,
+          montant: missionData.montant,
+          frequencePaiement: missionData.frequencePaiement,
+          dureeMission: missionData.dureeMission,
+          datePublication: missionData.datePublication,
+          dateLimiteCandidature: missionData.dateLimiteCandidature,
+          descriptionCourte: missionData.descriptionCourte,
+          description: missionData.description,
+          requis: missionData.requis,
+          candidatures: missionData.candidatures || {},
+        });
+        const applicants = Object.keys(missionData.candidatures || {}).length;
+        setApplicants(applicants);
+      } catch (error) { console.error("Erreur chargement de l'opportunité :", error);
+      } finally { setLoading(false);}
+    };
+
+    loadOpportunity();
+  }, [id]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {
@@ -58,9 +82,19 @@ export function OpportunityDetail() {
     }
   };
 
-  const handleApply = () => {
-    setHasApplied(true);
-  };
+  const handleApply = () => { setHasApplied(true);};
+
+  if (loading) {
+    return <div className="p-10 text-center">Chargement...</div>;
+  }
+
+  if (!opportunity) {
+    return (
+      <div className="p-10 text-center">
+        <p className="text-gray-600">Opportunité introuvable.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-8">
@@ -69,8 +103,7 @@ export function OpportunityDetail() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <Link
             to="/opportunities"
-            className="inline-flex items-center gap-2 text-primary hover:text-blue-700 font-medium mb-4 border-b-2 border-transparent hover:border-primary transition-all"
-          >
+            className="inline-flex items-center gap-2 text-primary hover:text-blue-700 font-medium mb-4 border-b-2 border-transparent hover:border-primary transition-all">
             <ArrowLeft className="w-5 h-5" />
             <span>Retour aux opportunités</span>
           </Link>
@@ -85,10 +118,10 @@ export function OpportunityDetail() {
             <div className="bg-white shadow-md border-4 border-gray-100 p-6 md:p-8">
               <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2 break-words">{opportunity.title}</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2 break-words">{opportunity.titre}</h1>
                   <div className="flex items-center gap-2 text-gray-600">
                     <Building2 className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-medium break-words">{opportunity.company}</span>
+                    <span className="font-medium break-words">{opportunity.commercantId}</span>
                   </div>
                 </div>
                 <span className="px-4 py-2 bg-blue-100 text-blue-700 font-medium border-2 border-blue-200">
@@ -101,7 +134,7 @@ export function OpportunityDetail() {
                   <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
                   <div>
                     <p className="text-sm text-gray-600">Localisation</p>
-                    <p className="font-semibold text-gray-900 break-words">{opportunity.location}</p>
+                    <p className="font-semibold text-gray-900 break-words">{opportunity.localisation}</p>
                   </div>
                 </div>
 
@@ -110,7 +143,7 @@ export function OpportunityDetail() {
                   <div>
                     <p className="text-sm text-gray-600">Rémunération</p>
                     <p className="font-semibold text-gray-900 break-words">
-                      {formatCurrency(opportunity.amount)} / {opportunity.paymentFrequency}
+                      {formatCurrency(opportunity.montant)} / {opportunity.frequencePaiement}
                     </p>
                   </div>
                 </div>
@@ -119,7 +152,7 @@ export function OpportunityDetail() {
                   <Clock className="w-5 h-5 text-orange-600 flex-shrink-0" />
                   <div>
                     <p className="text-sm text-gray-600">Durée</p>
-                    <p className="font-semibold text-gray-900">{opportunity.duration}</p>
+                    <p className="font-semibold text-gray-900">{opportunity.dureeMission}</p>
                   </div>
                 </div>
 
@@ -127,14 +160,14 @@ export function OpportunityDetail() {
                   <Calendar className="w-5 h-5 text-purple-600 flex-shrink-0" />
                   <div>
                     <p className="text-sm text-gray-600">Date limite</p>
-                    <p className="font-semibold text-gray-900">{opportunity.deadline}</p>
+                    <p className="font-semibold text-gray-900">{opportunity.dateLimiteCandidature}</p>
                   </div>
                 </div>
               </div>
 
               <div className="prose max-w-none">
                 <h2 className="text-xl font-semibold text-gray-900 mb-3">Description complète</h2>
-                <div className="text-gray-600 whitespace-pre-line break-words">{opportunity.fullDescription}</div>
+                <div className="text-gray-600 whitespace-pre-line break-words">{opportunity.description}</div>
               </div>
             </div>
 
@@ -152,8 +185,7 @@ export function OpportunityDetail() {
                 {chatMessages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-                  >
+                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[80%] ${msg.sender === "user" ? "order-2" : "order-1"}`}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-medium text-gray-900">{msg.senderName}</span>
@@ -164,8 +196,7 @@ export function OpportunityDetail() {
                           msg.sender === "user"
                             ? "bg-primary text-white border-primary"
                             : "bg-gray-100 text-gray-900 border-gray-200"
-                        }`}
-                      >
+                        }`}>
                         {msg.text}
                       </div>
                     </div>
@@ -186,8 +217,7 @@ export function OpportunityDetail() {
                   />
                   <button
                     onClick={handleSendMessage}
-                    className="px-6 py-3 bg-primary text-white hover:bg-blue-700 transition-colors font-medium border-2 border-primary flex items-center gap-2"
-                  >
+                    className="px-6 py-3 bg-primary text-white hover:bg-blue-700 transition-colors font-medium border-2 border-primary flex items-center gap-2">
                     <Send className="w-5 h-5" />
                     <span className="hidden sm:inline">Envoyer</span>
                   </button>
@@ -202,7 +232,7 @@ export function OpportunityDetail() {
             <div className="bg-white shadow-md border-4 border-gray-100 p-6 sticky top-6">
               <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
                 <Users className="w-5 h-5 flex-shrink-0" />
-                <span>{opportunity.applicants} candidatures</span>
+                <span>{applicants} candidatures</span>
               </div>
 
               {hasApplied ? (
@@ -217,8 +247,7 @@ export function OpportunityDetail() {
                 <>
                   <button
                     onClick={handleApply}
-                    className="w-full px-6 py-4 bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg transition-all font-semibold text-lg border-2 border-primary mb-3"
-                  >
+                    className="w-full px-6 py-4 bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg transition-all font-semibold text-lg border-2 border-primary mb-3">
                     Postuler maintenant
                   </button>
                   <p className="text-xs text-gray-500 text-center">
@@ -234,7 +263,7 @@ export function OpportunityDetail() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-600">Nom</p>
-                  <p className="font-medium text-gray-900 break-words">{opportunity.company}</p>
+                  <p className="font-medium text-gray-900 break-words">{opportunity.commercantId}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Secteur</p>

@@ -1,10 +1,10 @@
 import { MerchantAnalytics } from "./merchant-analytics";
 import { EntrepreneurAnalytics } from "./entrepreneur-analytics";
-import { isEntrepreneur } from "../lib/user-context";
+import { isUser } from "../lib/user-role";
 
 export function Analytics() {
   // Afficher les bonnes analytics selon le type d'utilisateur
-  if (isEntrepreneur()) {
+  if (isUser) {
     return <EntrepreneurAnalytics />;
   }
   

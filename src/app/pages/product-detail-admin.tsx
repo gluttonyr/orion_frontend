@@ -18,8 +18,7 @@ export function ProductDetailAdmin() {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Produit introuvable</h2>
         <button
           onClick={() => navigate("/dashboard/products")}
-          className="mt-4 px-6 py-3 bg-primary text-white hover:bg-blue-700 transition-colors border-2 border-primary"
-        >
+          className="mt-4 px-6 py-3 bg-primary text-white hover:bg-blue-700 transition-colors border-2 border-primary">
           Retour aux produits
         </button>
       </div>
@@ -54,9 +53,9 @@ export function ProductDetailAdmin() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button
+            title="Retour aux produits"
             onClick={() => navigate("/dashboard/products")}
-            className="p-2 text-gray-600 hover:text-primary transition-colors border-2 border-gray-200 hover:border-primary"
-          >
+            className="p-2 text-gray-600 hover:text-primary transition-colors border-2 border-gray-200 hover:border-primary">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
@@ -70,15 +69,13 @@ export function ProductDetailAdmin() {
         <div className="flex gap-3">
           <button
             onClick={() => navigate(`/dashboard/products/edit/${product.id}`)}
-            className="flex items-center gap-2 px-4 py-3 bg-primary text-white hover:bg-blue-700 transition-colors font-medium shadow-md border-2 border-primary"
-          >
+            className="flex items-center gap-2 px-4 py-3 bg-primary text-white hover:bg-blue-700 transition-colors font-medium shadow-md border-2 border-primary">
             <Edit className="w-5 h-5" />
             <span className="hidden sm:inline">Modifier</span>
           </button>
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="flex items-center gap-2 px-4 py-3 bg-red-500 text-white hover:bg-red-600 transition-colors font-medium shadow-md border-2 border-red-600"
-          >
+            className="flex items-center gap-2 px-4 py-3 bg-red-500 text-white hover:bg-red-600 transition-colors font-medium shadow-md border-2 border-red-600">
             <Trash2 className="w-5 h-5" />
             <span className="hidden sm:inline">Supprimer</span>
           </button>
@@ -93,20 +90,19 @@ export function ProductDetailAdmin() {
             <img
               src={product.images[currentImageIndex]}
               alt={product.name}
-              className="w-full h-64 md:h-96 object-cover border-4 border-gray-200"
-            />
+              className="w-full h-64 md:h-96 object-cover border-4 border-gray-200"/>
             {product.images.length > 1 && (
               <>
                 <button
                   onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/90 hover:bg-white text-gray-800 border-2 border-gray-300"
-                >
+                  title="Image précédente"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/90 hover:bg-white text-gray-800 border-2 border-gray-300">
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/90 hover:bg-white text-gray-800 border-2 border-gray-300"
-                >
+                  title="Image suivante"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/90 hover:bg-white text-gray-800 border-2 border-gray-300">
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </>
@@ -124,13 +120,11 @@ export function ProductDetailAdmin() {
                     currentImageIndex === index
                       ? "border-primary"
                       : "border-gray-200 hover:border-gray-300"
-                  } transition-colors`}
-                >
+                  } transition-colors`}>
                   <img
                     src={image}
                     alt={`${product.name} ${index + 1}`}
-                    className="w-full h-20 object-cover"
-                  />
+                    className="w-full h-20 object-cover"/>
                 </button>
               ))}
             </div>
@@ -200,8 +194,7 @@ export function ProductDetailAdmin() {
                           i < Math.floor(product.rating)
                             ? "fill-yellow-400 text-yellow-400"
                             : "text-gray-300"
-                        }`}
-                      />
+                        }`}/>
                     ))}
                   </div>
                   <span className="text-gray-700 font-medium">
@@ -253,14 +246,12 @@ export function ProductDetailAdmin() {
             <div className="flex gap-3 flex-col sm:flex-row">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-4 py-3 bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50 transition-colors font-medium"
-              >
+                className="flex-1 px-4 py-3 bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50 transition-colors font-medium">
                 Annuler
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 px-4 py-3 bg-red-500 text-white hover:bg-red-600 transition-colors font-medium border-2 border-red-600"
-              >
+                className="flex-1 px-4 py-3 bg-red-500 text-white hover:bg-red-600 transition-colors font-medium border-2 border-red-600">
                 Supprimer définitivement
               </button>
             </div>

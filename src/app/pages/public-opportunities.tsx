@@ -1,94 +1,61 @@
 import { Link } from "react-router";
 import { Search, Filter, Calendar, Building2, Award, MapPin, DollarSign, Clock } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { mission } from "../service/mission.service";
 
-// Mock data pour les opportunités publiques
-const publicOpportunities = [
-  {
-    id: "1",
-    title: "Développeur Web Front-End",
-    description: "Nous recherchons un développeur web expérimenté en React et TypeScript pour rejoindre notre équipe.",
-    company: "TechAfrique Solutions",
-    location: "Dakar, Sénégal",
-    type: "Emploi",
-    amount: 500000,
-    duration: "6 mois",
-    paymentFrequency: "Mois",
-    deadline: "30 Avril 2026",
-    status: "Ouvert",
-    postedBy: "1",
-    applicants: 12,
-  },
-  {
-    id: "2",
-    title: "Mission Marketing Digital",
-    description: "Besoin d'un expert en marketing digital pour gérer nos campagnes sur les réseaux sociaux.",
-    company: "BizGrow Agency",
-    location: "Abidjan, Côte d'Ivoire",
-    type: "Mission",
-    amount: 250000,
-    duration: "3 mois",
-    paymentFrequency: "Mois",
-    deadline: "15 Avril 2026",
-    status: "Ouvert",
-    postedBy: "2",
-    applicants: 8,
-  },
-  {
-    id: "3",
-    title: "Consultant E-commerce",
-    description: "Accompagnement pour le lancement d'une boutique en ligne de produits artisanaux.",
-    company: "Artisan Market",
-    location: "Lomé, Togo",
-    type: "Consultation",
-    amount: 150000,
-    duration: "1 mois",
-    paymentFrequency: "Projet",
-    deadline: "20 Avril 2026",
-    status: "Places limitées",
-    postedBy: "3",
-    applicants: 15,
-  },
-  {
-    id: "4",
-    title: "Graphiste Freelance",
-    description: "Création de visuels pour nos produits et campagnes marketing.",
-    company: "Creative Hub",
-    location: "Accra, Ghana",
-    type: "Freelance",
-    amount: 200000,
-    duration: "2 mois",
-    paymentFrequency: "Mois",
-    deadline: "10 Mai 2026",
-    status: "Ouvert",
-    postedBy: "4",
-    applicants: 20,
-  },
-  {
-    id: "5",
-    title: "Formateur en Comptabilité",
-    description: "Formation pour jeunes entrepreneurs sur la gestion comptable de base.",
-    company: "EduBiz Africa",
-    location: "Cotonou, Bénin",
-    type: "Formation",
-    amount: 100000,
-    duration: "2 semaines",
-    paymentFrequency: "Semaine",
-    deadline: "25 Avril 2026",
-    status: "Ouvert",
-    postedBy: "5",
-    applicants: 5,
-  },
-];
+interface PublicOpportunity {
+  id: string;
+  title: string;
+  description: string;
+  company: string;
+  location: string;
+  type: string;
+  amount: number;
+  duration: string;
+  paymentFrequency: string;
+  deadline: string;
+  status: string;
+  postedBy: string;
+  applicants: number;
+}
 
 export function PublicOpportunities() {
+  const [publicOpportunities, setPublicOpportunities] = useState<PublicOpportunity[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("Tous");
 
   const types = ["Tous", "Emploi", "Mission", "Freelance", "Consultation", "Formation"];
 
+  useEffect(() => {
+    mission
+      .getAll()
+      .then((missions) => {
+        const formatted = missions.map((missionData) => ({
+          id: missionData.id.toString(),
+          title: missionData.titre,
+          description: missionData.descriptionCourte || missionData.description || "",
+          company: missionData.commercant?.nom || "Partenaire",
+          location: missionData.localisation || "À distance",
+          type: missionData.type || "Autre",
+          amount: Number(missionData.montant || 0),
+          duration: `${missionData.dureeMission || 1} mois`,
+          paymentFrequency: missionData.frequencePaiement || "Projet",
+          deadline: missionData.dateLimiteCandidature
+            ? new Date(missionData.dateLimiteCandidature).toLocaleDateString("fr-FR")
+            : "N/A",
+          status: missionData.statut || "Ouvert",
+          postedBy: missionData.commercant?.id?.toString() || "0",
+          applicants: 0,
+        }));
+        setPublicOpportunities(formatted);
+      })
+      .catch((error) => {
+        console.error("Erreur chargement opportunités :", error);
+      });
+  }, []);
+
   const filteredOpportunities = publicOpportunities.filter((opp) => {
-    const matchesSearch = 
+    const matchesSearch =
       opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       opp.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       opp.company.toLowerCase().includes(searchQuery.toLowerCase());

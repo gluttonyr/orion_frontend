@@ -1,28 +1,105 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Send, MoreVertical, Check, CheckCheck } from "lucide-react";
-import { conversations, messages } from "../lib/mock-data";
+import { discussionService } from "../service/discussion.service";
+import { messageService } from "../service/message.service";
+import { useUser } from "../lib/user-context.tsx";
+
+interface ConversationItem {
+  id: string;
+  userName: string;
+  avatar: string;
+  unread: number;
+  lastMessage: string;
+  timestamp: string;
+}
+
+interface ChatMessage {
+  id: string;
+  conversationId: string;
+  sender: "user" | "merchant";
+  senderName: string;
+  text: string;
+  timestamp: string;
+  isOwn: boolean;
+}
 
 export function Messages() {
-  const [selectedConversation, setSelectedConversation] = useState(conversations[0]);
+  const { user } = useUser();
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<ConversationItem | null>(null);
   const [messageText, setMessageText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [messagesList, setMessagesList] = useState(messages);
+  const [messagesList, setMessagesList] = useState<ChatMessage[]>([]);
+
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const [discussionData, messageData] = await Promise.all([
+          discussionService.getAll(),
+          messageService.getAll(),
+        ]);
+
+        const formattedConversations = discussionData.map((discussion) => {
+          const participant = discussion.participants?.find((participant) => participant.id !== user?.id) || discussion.participants?.[0];
+          const lastMessage = messageData.filter((msg) => msg.discussionId === discussion.id).slice(-1)[0];
+
+          return {
+            id: discussion.id.toString(),
+            userName: participant ? `${participant.prenom || ""} ${participant.nom || ""}`.trim() : `Conversation ${discussion.id}`,
+            avatar: participant?.prenom?.charAt(0)?.toUpperCase() || "C",
+            unread: 0,
+            lastMessage: lastMessage?.contenu || "Aucun message",
+            timestamp: lastMessage?.date_envoi
+              ? new Date(lastMessage.date_envoi).toLocaleDateString("fr-FR")
+              : "",
+          };
+        });
+
+        const formattedMessages = messageData.map((message) => {
+          const isOwn = user ? message.utilisateurId === user.id : false;
+          return {
+            id: message.id.toString(),
+            conversationId: message.discussionId.toString(),
+            sender: isOwn ? "user" : "merchant",
+            senderName: isOwn ? "Vous" : "Interlocuteur",
+            text: message.contenu,
+            timestamp: message.date_envoi
+              ? new Date(message.date_envoi).toLocaleTimeString("fr-FR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "",
+            isOwn,
+          };
+        });
+
+        setConversations(formattedConversations);
+        setMessagesList(formattedMessages);
+        setSelectedConversation(formattedConversations[0] || null);
+      } catch (error) {
+        console.error("Erreur chargement des discussions :", error);
+      }
+    };
+
+    loadMessages();
+  }, [user]);
 
   const filteredConversations = conversations.filter((conv) =>
     conv.userName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const conversationMessages = messagesList.filter(
-    (msg) => msg.conversationId === selectedConversation.id
-  );
+  const conversationMessages = selectedConversation
+    ? messagesList.filter((msg) => msg.conversationId === selectedConversation.id)
+    : [];
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (messageText.trim()) {
+    if (messageText.trim() && selectedConversation) {
       const newMessage = {
         id: Date.now().toString(),
         conversationId: selectedConversation.id,
-        sender: "Vous",
+        sender: "user" as const,
+        senderName: "Vous",
         text: messageText,
         timestamp: "À l'instant",
         isOwn: true,
@@ -62,7 +139,7 @@ export function Messages() {
                   key={conversation.id}
                   onClick={() => setSelectedConversation(conversation)}
                   className={`w-full p-4 border-b-2 border-gray-100 hover:bg-gray-50 transition-colors text-left ${
-                    selectedConversation.id === conversation.id ? "bg-gray-50" : ""
+                    selectedConversation?.id === conversation.id ? "bg-gray-50" : ""
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -95,14 +172,14 @@ export function Messages() {
             <div className="p-4 border-b-4 border-gray-200 flex items-center justify-between bg-white">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gray-300 border-2 border-gray-300 flex items-center justify-center text-gray-700 font-semibold">
-                  {selectedConversation.avatar}
+                  {selectedConversation?.avatar ?? "C"}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">{selectedConversation.userName}</h3>
+                  <h3 className="font-semibold text-gray-900">{selectedConversation?.userName ?? "Aucune conversation"}</h3>
                   <p className="text-xs text-gray-500">En ligne</p>
                 </div>
               </div>
-              <button className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors">
+              <button title="Options" className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors">
                 <MoreVertical className="w-5 h-5 text-gray-600" />
               </button>
             </div>
@@ -147,6 +224,7 @@ export function Messages() {
                 />
                 <button
                   type="submit"
+                  title="Envoyer un message"
                   disabled={!messageText.trim()}
                   className="w-12 h-12 bg-primary text-white hover:bg-blue-700 transition-colors flex items-center justify-center border-2 border-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >

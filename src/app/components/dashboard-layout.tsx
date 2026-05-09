@@ -1,24 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import {
-  Home,
-  BarChart3,
-  Briefcase,
-  MessageCircle,
-  User,
-  ShoppingBag,
-  Package,
-  LogOut,
-  Menu,
-  X,
-  Bell,
-  CheckCheck,
-  Store,
-  ChevronDown,
-  Crown,
-  Wallet
-} from "lucide-react";
+import { Home, BarChart3, Briefcase, MessageCircle, User, ShoppingBag, Package, LogOut, Menu, X, Bell, CheckCheck, Store, ChevronDown, Crown, Wallet } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { currentUserType, isMerchant, isEntrepreneur } from "../lib/user-context";
+import { isUser ,isCommercant} from "../lib/user-role";
 import { useNotifications } from "../lib/notification-context";
 import { useStore } from "../lib/store-context";
 
@@ -111,7 +94,8 @@ export function DashboardLayout() {
   ];
 
   // Sélectionner les items selon le type d'utilisateur
-  const navItems = isMerchant() ? merchantNavItems : entrepreneurNavItems;
+  const navItems = isUser ?  entrepreneurNavItems : merchantNavItems ;
+  console.log(isCommercant)
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -342,7 +326,7 @@ export function DashboardLayout() {
             </div>
 
             {/* Active Store - For Merchants */}
-            {isMerchant() && activeStore && (
+            {isUser && activeStore && (
               <div className="px-4 py-4 border-b-4 border-gray-200">
                 <Link
                   to="/store-selection"
@@ -373,7 +357,7 @@ export function DashboardLayout() {
             )}
 
             {/* No Active Store - For Merchants */}
-            {isMerchant() && !activeStore && (
+            {isUser && !activeStore && (
               <div className="px-4 py-4 border-b-4 border-gray-200">
                 <Link
                   to="/store-selection"
@@ -417,11 +401,11 @@ export function DashboardLayout() {
             <div className="border-t-4 border-gray-200 p-4">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary border-2 border-secondary flex items-center justify-center text-white font-medium flex-shrink-0">
-                  {isMerchant() ? "CM" : "EN"}
+                  {isUser ? "CM" : "EN"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">
-                    {isMerchant() ? "Commerçant" : "Entrepreneur"}
+                    {isCommercant ? "Commerçant" : "Entrepreneur"}
                   </p>
                   <p className="text-sm text-gray-500 truncate">Dakar, Sénégal</p>
                 </div>

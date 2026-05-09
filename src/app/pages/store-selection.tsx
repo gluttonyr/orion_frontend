@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import { Store, Building2, Plus, MapPin, Tag } from "lucide-react";
 import { useStore } from "../lib/store-context";
-import { isMerchant } from "../lib/user-context";
+import { isUser } from "../lib/user-role";
 import { useEffect } from "react";
 import { useImage } from "../lib/image-context";
 
@@ -10,20 +10,16 @@ export function StoreSelection() {
   const { stores, setActiveStore } = useStore();
   const { getBoutiqueImageUrl } = useImage();
 
-  useEffect(() => {
-    if (!isMerchant()) {
-      navigate("/dashboard");
-    }
-  }, [navigate]);
+  // useEffect(() => {
+  //   if (!isUser) { navigate("/dashboard");}
+  // }, [navigate]);
 
   const handleSelectStore = (store: typeof stores[0]) => {
     setActiveStore(store);
     navigate("/dashboard");
   };
 
-  const handleCreateStore = () => {
-    navigate("/dashboard/stores/add");
-  };
+  const handleCreateStore = () => { navigate("/dashboard/stores/add");};
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

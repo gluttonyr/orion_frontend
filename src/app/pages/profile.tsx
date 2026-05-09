@@ -1,8 +1,8 @@
-import { User, Mail, Phone, MapPin, Store, Camera, Save, X, CreditCard, Crown } from "lucide-react";
+import { User, Mail, Phone, MapPin, Store, Camera, Save, X, Crown } from "lucide-react";
 import { useState } from "react";
 import { useSubscription, planDetails } from "../lib/subscription-context";
 import { Link } from "react-router";
-import { isMerchant } from "../lib/user-context";
+import { isUser } from "../lib/user-role";
 
 export function Profile() {
   const userType = localStorage.getItem("userType") || "merchant";
@@ -92,6 +92,7 @@ export function Profile() {
                 <Camera className="w-5 h-5" />
                 <input
                   type="file"
+                  title="file"
                   accept="image/*"
                   onChange={handleImageChange}
                   className="hidden"
@@ -130,7 +131,7 @@ export function Profile() {
       )}
 
       {/* Subscription Card - Only for merchants */}
-      {isMerchant() && subscription && (
+      {isUser && subscription && (
         <div className="bg-white shadow-md border-4 border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -219,6 +220,7 @@ export function Profile() {
                 <input
                   type="text"
                   name="fullName"
+                  title="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -237,6 +239,7 @@ export function Profile() {
                 <input
                   type="email"
                   name="email"
+                  title="email"
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -255,6 +258,7 @@ export function Profile() {
                 <input
                   type="tel"
                   name="phone"
+                  title="phone"
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -273,6 +277,7 @@ export function Profile() {
                 <input
                   type="text"
                   name="location"
+                  title="location"
                   value={formData.location}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -299,6 +304,7 @@ export function Profile() {
                   <input
                     type="text"
                     name="storeName"
+                    title="storeName"
                     value={formData.storeName}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -323,7 +329,7 @@ export function Profile() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 {isEditing ? (
                   <textarea
-                    name="description"
+                    title="description"
                     value={formData.description}
                     onChange={handleChange}
                     rows={4}
