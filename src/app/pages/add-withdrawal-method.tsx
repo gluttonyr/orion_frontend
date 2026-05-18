@@ -70,8 +70,7 @@ export function AddWithdrawalMethod() {
       <div className="mb-6">
         <button
           onClick={() => navigate("/dashboard/withdrawal-methods")}
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-primary mb-4 transition-colors"
-        >
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-primary mb-4 transition-colors">
           <ArrowLeft className="w-5 h-5" />
           Retour aux moyens de retrait
         </button>
@@ -98,14 +97,12 @@ export function AddWithdrawalMethod() {
                 <img
                   src={formData.logo}
                   alt="Logo"
-                  className="w-full h-full object-contain p-2"
-                />
+                  className="w-full h-full object-contain p-2"/>
                 <button
                   title="remove logo"
                   type="button"
                   onClick={removeLogo}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white flex items-center justify-center hover:bg-red-700 transition-colors"
-                >
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white flex items-center justify-center hover:bg-red-700 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -117,12 +114,10 @@ export function AddWithdrawalMethod() {
                   accept="image/*"
                   onChange={handleLogoUpload}
                   className="hidden"
-                  id="logo-upload"
-                />
+                  id="logo-upload"/>
                 <label
                   htmlFor="logo-upload"
-                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-primary hover:text-primary transition-all font-medium"
-                >
+                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-primary hover:text-primary transition-all font-medium">
                   <Upload className="w-5 h-5" />
                   Télécharger un logo
                 </label>
@@ -146,8 +141,7 @@ export function AddWithdrawalMethod() {
                 setFormData({ ...formData, name: e.target.value })
               }
               placeholder="ex: Orange Money, Wave, TMoney"
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"
-            />
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"/>
           </div>
 
           {/* Description */}
@@ -162,8 +156,7 @@ export function AddWithdrawalMethod() {
               }
               placeholder="Décrivez brièvement ce moyen de retrait..."
               rows={2}
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors resize-none"
-            />
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors resize-none"/>
           </div>
 
           {/* Account Number */}
@@ -178,8 +171,7 @@ export function AddWithdrawalMethod() {
                 setFormData({ ...formData, accountNumber: e.target.value })
               }
               placeholder="ex: +221 77 123 45 67"
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"
-            />
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"/>
           </div>
 
           {/* Account Name */}
@@ -194,8 +186,7 @@ export function AddWithdrawalMethod() {
                 setFormData({ ...formData, accountName: e.target.value })
               }
               placeholder="ex: Amadou Diallo"
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"
-            />
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"/>
           </div>
 
           {/* Active Status */}
@@ -207,8 +198,7 @@ export function AddWithdrawalMethod() {
               onChange={(e) =>
                 setFormData({ ...formData, active: e.target.checked })
               }
-              className="w-5 h-5 border-2 border-gray-300 text-primary focus:ring-2 focus:ring-primary"
-            />
+              className="w-5 h-5 border-2 border-gray-300 text-primary focus:ring-2 focus:ring-primary"/>
             <label htmlFor="active" className="text-sm font-medium text-gray-900">
               Moyen de retrait actif
             </label>
@@ -218,16 +208,14 @@ export function AddWithdrawalMethod() {
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white font-medium transition-all shadow-md hover:shadow-lg border-2 border-primary active:scale-95"
-            >
+              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white font-medium transition-all shadow-md hover:shadow-lg border-2 border-primary active:scale-95">
               <CreditCard className="w-5 h-5" />
               {isEditing ? "Mettre à jour" : "Ajouter le moyen"}
             </button>
             <button
               type="button"
               onClick={() => navigate("/dashboard/withdrawal-methods")}
-              className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 font-medium transition-all active:scale-95"
-            >
+              className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 font-medium transition-all active:scale-95">
               Annuler
             </button>
           </div>

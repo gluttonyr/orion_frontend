@@ -42,7 +42,7 @@ export function MerchantDashboard() {
               {activeStore.logo ? (
                 <img
                   src={activeStore.logo}
-                  alt={activeStore.name}
+                  alt={activeStore.nom}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -51,7 +51,7 @@ export function MerchantDashboard() {
             </div>
             <div>
               <p className="text-sm opacity-90">Vous gérez actuellement</p>
-              <p className="font-bold text-xl">{activeStore.name}</p>
+              <p className="font-bold text-xl">{activeStore.nom}</p>
               <p className="text-xs opacity-80">{activeStore.location}</p>
             </div>
           </div>
@@ -79,9 +79,9 @@ export function MerchantDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Mon Abonnement</p>
-                  <p className="font-bold text-xl text-gray-900">
+                  {/* <p className="font-bold text-xl text-gray-900">
                     {planDetails[subscription.plan].name}
-                  </p>
+                  </p> */}
                 </div>
               </div>
               <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors" />
@@ -95,9 +95,9 @@ export function MerchantDashboard() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-600">Prix</p>
-                <p className="font-medium text-primary">
+                {/* <p className="font-medium text-primary">
                   {formatCurrency(planDetails[subscription.plan].price)}/mois
-                </p>
+                </p> */}
               </div>
             </div>
           </Link>

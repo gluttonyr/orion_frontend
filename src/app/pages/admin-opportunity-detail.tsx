@@ -1,109 +1,115 @@
 import { useParams, Link } from "react-router";
-import { ArrowLeft, Edit2, Users, Check, X, DollarSign, CreditCard, Eye } from "lucide-react";
+import { ArrowLeft, Edit2, Users, Check, X, CreditCard, Eye } from "lucide-react";
 import { useState, useEffect } from "react";
 import { mission } from "../service/mission.service";
+import { userService } from "../service/utilisateur.service";
+import { type Mission, StatutCandidature, type Candidature, statutPayementCandidat } from "../model/model";
 
 // Mock data
-const applicants = [
+const paymentHis = [
   {
-    id: "1",
-    name: "Amadou Diallo",
-    email: "amadou.diallo@email.com",
-    phone: "+221 77 123 4567",
-    location: "Dakar, Sénégal",
-    experience: "5 ans",
-    appliedAt: "20 Mars 2026",
-    status: "pending",
+    date: new Date("2024-05-25"),
+    montant: 150000,
+    statut: statutPayementCandidat.EFFECTUE
+  },
+  {
+    date: new Date("2024-06-24"),
+    montant: 120000,
+    statut: statutPayementCandidat.EN_ATTENTE
+  },
+]
+
+const applicantsExample = [
+  {
+    userId: 1,
+    statut: StatutCandidature.EN_ATTENTE,
+    dateCandidature: new Date("2024-05-01"),
+    experience: 5,
+    paymentHistory: paymentHis,
+    totalPaid: paymentHis.reduce((total, payment) => total + payment.montant, 0),
     message: "Bonjour, je suis très intéressé par cette opportunité. J'ai 5 ans d'expérience en développement React.",
-  },
-  {
-    id: "2",
-    name: "Fatou Ndiaye",
-    email: "fatou.ndiaye@email.com",
-    phone: "+221 76 234 5678",
-    location: "Thiès, Sénégal",
-    experience: "3 ans",
-    appliedAt: "21 Mars 2026",
-    status: "accepted",
-    message: "Je serais ravie de rejoindre votre équipe. Mon portfolio est disponible sur demande.",
-    totalPaid: 1500000,
-    paymentHistory: [
-      { date: "1 Avril 2026", amount: 500000, status: "Payé" },
-      { date: "1 Mars 2026", amount: 500000, status: "Payé" },
-      { date: "1 Février 2026", amount: 500000, status: "Payé" },
-    ],
-  },
-  {
-    id: "3",
-    name: "Moussa Sow",
-    email: "moussa.sow@email.com",
-    phone: "+221 70 345 6789",
-    location: "Dakar, Sénégal",
-    experience: "7 ans",
-    appliedAt: "22 Mars 2026",
-    status: "rejected",
-    message: "Expérimenté en React, TypeScript et Next.js. Disponible immédiatement.",
   },
 ];
 
-interface AdminOpportunityDetailType {
-  id: string;
-  title: string;
-  type: string;
-  amount: number;
-  paymentFrequency: string;
-  location: string;
-  duration: string;
-  deadline: string;
-  status: string;
-  description: string;
-  createdAt: string;
-}
-
 export function AdminOpportunityDetail() {
   const { id } = useParams();
-  const [applicantsList, setApplicantsList] = useState(applicants);
+
   const [selectedApplicant, setSelectedApplicant] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
-  const [opportunity, setOpportunity] = useState<AdminOpportunityDetailType | null>(null);
+  const [opportunity, setOpportunity] = useState<Mission | null>(null);
+  const [applicantsList, setApplicantsList] = useState<Candidature[]>();
   const [loading, setLoading] = useState(true);
+  const [usersMap, setUsersMap] = useState<Record<number, any>>({});
+  // const [user, setUser] = useState<any>();
 
-  useEffect(() => {
-    const loadOpportunity = async () => {
-      if (!id) {
-        setLoading(false);
-        return;
+
+  // const getUsers = async (id: number) => {
+  //   const u = await userService.getById(id);
+  //   setUser( {
+  //     name: u.prenom + " " + u.nom,
+  //     email: u.email,
+  //     phone: u.contact,
+  //     localisation: u.localisation
+  //   })
+  // }
+ useEffect(() => {
+  const loadOpportunity = async () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const missionData = await mission.getById(Number(id));
+
+      setOpportunity({
+        id: missionData.id,
+        commercantId: missionData.commercantId,
+        titre: missionData.titre,
+        localisation: missionData.localisation,
+        type: missionData.type,
+        statut: missionData.statut,
+        descriptionCourte: missionData.descriptionCourte,
+        description: missionData.description,
+        montant: missionData.montant,
+        frequencePaiement: missionData.frequencePaiement,
+        dureeMission: missionData.dureeMission,
+        datePublication: missionData.datePublication,
+        dateLimiteCandidature: missionData.dateLimiteCandidature,
+        requis: missionData.requis,
+        candidatures: missionData.candidatures
+      });
+
+      const candidatures = missionData.candidatures || applicantsExample;
+
+      setApplicantsList(candidatures);
+
+      // Charger les utilisateurs
+      const usersData: Record<number, any> = {};
+
+      for (const app of candidatures) {
+        const u = await userService.getById(app.userId);
+
+        usersData[app.userId] = {
+          name: u.prenom + " " + u.nom,
+          email: u.email,
+          phone: u.contact,
+          localisation: u.localisation
+        };
       }
 
-      try {
-        const missionData = await mission.getById(Number(id));
-        setOpportunity({
-          id: missionData.id.toString(),
-          title: missionData.titre,
-          type: missionData.type || "Mission",
-          amount: Number(missionData.montant || 0),
-          paymentFrequency: missionData.frequencePaiement || "Projet",
-          location: missionData.localisation || "À distance",
-          duration: `${missionData.dureeMission || 0} mois`,
-          deadline: missionData.dateLimiteCandidature
-            ? new Date(missionData.dateLimiteCandidature).toLocaleDateString("fr-FR")
-            : "À définir",
-          status: missionData.statut || "Ouvert",
-          description: missionData.descriptionCourte || missionData.description || "",
-          createdAt: missionData.datePublication
-            ? new Date(missionData.datePublication).toLocaleDateString("fr-FR")
-            : "N/A",
-        });
-      } catch (error) {
-        console.error("Erreur chargement de l'opportunité :", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setUsersMap(usersData);
 
-    loadOpportunity();
-  }, [id]);
+    } catch (error) {
+      console.error("Erreur chargement :", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadOpportunity();
+}, [id]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {
@@ -115,17 +121,13 @@ export function AdminOpportunityDetail() {
 
   const handleAccept = (applicantId: string) => {
     setApplicantsList(
-      applicantsList.map((app) =>
-        app.id === applicantId ? { ...app, status: "accepted" } : app
-      )
+      applicantsList?.map((app) => (app.userId.toString() === applicantId ? { ...app, statut: StatutCandidature.ACCEPTE } : app))
     );
   };
 
-  const handleReject = (applicantId: string) => {
-    setApplicantsList(
-      applicantsList.map((app) =>
-        app.id === applicantId ? { ...app, status: "rejected" } : app
-      )
+  const handleReject = async (applicantId: string) => {
+    setApplicantsList( 
+      applicantsList?.map((app) => (app.userId.toString() === applicantId ? { ...app, statut: StatutCandidature.REFUSE } : app))
     );
   };
 
@@ -139,32 +141,20 @@ export function AdminOpportunityDetail() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "accepted":
-        return <span className="px-3 py-1 bg-green-100 text-green-700 border-2 border-green-200 text-sm font-medium">Accepté</span>;
-      case "rejected":
-        return <span className="px-3 py-1 bg-red-100 text-red-700 border-2 border-red-200 text-sm font-medium">Rejeté</span>;
-      default:
-        return <span className="px-3 py-1 bg-orange-100 text-orange-700 border-2 border-orange-200 text-sm font-medium">En attente</span>;
+  const getStatusBadge = (statut: string) => {
+    switch (statut) {
+      case StatutCandidature.ACCEPTE: return <span className="px-3 py-1 bg-green-100 text-green-700 border-2 border-green-200 text-sm font-medium">Accepté</span>;
+      case StatutCandidature.REFUSE: return <span className="px-3 py-1 bg-red-100 text-red-700 border-2 border-red-200 text-sm font-medium">Rejeté</span>;
+      default: return <span className="px-3 py-1 bg-orange-100 text-orange-700 border-2 border-orange-200 text-sm font-medium">En attente</span>;
     }
   };
 
-  const pendingCount = applicantsList.filter((a) => a.status === "pending").length;
-  const acceptedCount = applicantsList.filter((a) => a.status === "accepted").length;
-  const rejectedCount = applicantsList.filter((a) => a.status === "rejected").length;
+  const pendingCount = applicantsList?.filter((a) => a.statut === StatutCandidature.EN_ATTENTE).length || 0;
+  const acceptedCount = applicantsList?.filter((a) => a.statut === StatutCandidature.ACCEPTE).length || 0;
+  const rejectedCount = applicantsList?.filter((a) => a.statut === StatutCandidature.REFUSE).length || 0;
 
-  if (loading) {
-    return <div className="p-10 text-center">Chargement...</div>;
-  }
-
-  if (!opportunity) {
-    return (
-      <div className="p-10 text-center">
-        <p className="text-gray-600">Opportunité introuvable.</p>
-      </div>
-    );
-  }
+  if (loading) { return <div className="p-10 text-center">Chargement...</div>;}
+  if (!opportunity) { return (<div className="p-10 text-center"><p className="text-gray-600">Opportunité introuvable.</p></div>);}
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
@@ -179,7 +169,7 @@ export function AdminOpportunityDetail() {
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900 break-words">{opportunity.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 break-words">{opportunity.titre}</h1>
             <p className="text-gray-600 mt-1">Gérez les candidatures pour cette opportunité</p>
           </div>
           <Link
@@ -202,26 +192,28 @@ export function AdminOpportunityDetail() {
           </div>
           <div className="p-4 bg-gray-50 border-2 border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Rémunération</p>
+            {opportunity.montant &&
             <p className="font-semibold text-gray-900 break-words">
-              {formatCurrency(opportunity.amount)} / {opportunity.paymentFrequency}
+              {formatCurrency(opportunity.montant)} / {opportunity.frequencePaiement}
             </p>
+            }
           </div>
           <div className="p-4 bg-gray-50 border-2 border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Durée</p>
-            <p className="font-semibold text-gray-900">{opportunity.duration}</p>
+            <p className="font-semibold text-gray-900">{opportunity.dureeMission}</p>
           </div>
           <div className="p-4 bg-gray-50 border-2 border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Localisation</p>
-            <p className="font-semibold text-gray-900 break-words">{opportunity.location}</p>
+            <p className="font-semibold text-gray-900 break-words">{opportunity.localisation}</p>
           </div>
           <div className="p-4 bg-gray-50 border-2 border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Date limite</p>
-            <p className="font-semibold text-gray-900">{opportunity.deadline}</p>
+            <p className="font-semibold text-gray-900">{opportunity.dateLimiteCandidature}</p>
           </div>
           <div className="p-4 bg-gray-50 border-2 border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Statut</p>
             <span className="inline-block px-3 py-1 bg-green-100 text-green-700 border-2 border-green-200 font-medium">
-              {opportunity.status}
+              {opportunity.statut}
             </span>
           </div>
         </div>
@@ -266,25 +258,28 @@ export function AdminOpportunityDetail() {
           <h2 className="text-xl font-semibold text-gray-900">Liste des candidats</h2>
         </div>
 
+        {applicantsList === undefined && (
+          <div className="p-10 text-center">Chargement des candidatures...</div>
+        )}
         <div className="divide-y-4 divide-gray-100">
-          {applicantsList.map((applicant) => (
-            <div key={applicant.id} className="p-6">
+          {applicantsList?.map((applicant) => (
+            <div key={applicant.userId} className="p-6">
               <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                 {/* Applicant Info */}
                 <div className="flex-1 space-y-4">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 break-words">{applicant.name}</h3>
-                      <p className="text-sm text-gray-600 break-words">{applicant.email}</p>
-                      <p className="text-sm text-gray-600">{applicant.phone}</p>
+                      <h3 className="text-lg font-semibold text-gray-900 break-words">{usersMap[applicant.userId]?.name}</h3>
+                      <p className="text-sm text-gray-600 break-words">{usersMap[applicant.userId]?.email}</p>
+                      <p className="text-sm text-gray-600">{usersMap[applicant.userId]?.phone}</p>
                     </div>
-                    {getStatusBadge(applicant.status)}
+                    {getStatusBadge(applicant.statut)}
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="text-gray-600">Localisation: </span>
-                      <span className="font-medium text-gray-900 break-words">{applicant.location}</span>
+                      <span className="font-medium text-gray-900 break-words">{usersMap[applicant.userId]?.localisation}</span>
                     </div>
                     <div>
                       <span className="text-gray-600">Expérience: </span>
@@ -292,7 +287,7 @@ export function AdminOpportunityDetail() {
                     </div>
                     <div>
                       <span className="text-gray-600">Postulé le: </span>
-                      <span className="font-medium text-gray-900">{applicant.appliedAt}</span>
+                      <span className="font-medium text-gray-900">{applicant.dateCandidature.getDate()}</span>
                     </div>
                   </div>
 
@@ -302,7 +297,7 @@ export function AdminOpportunityDetail() {
                   </div>
 
                   {/* Payment History for Accepted Applicants */}
-                  {applicant.status === "accepted" && applicant.paymentHistory && (
+                  {applicant.statut === StatutCandidature.ACCEPTE && applicant.paymentHistory && (
                     <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 border-4 border-green-100">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-gray-900">Historique des paiements</h4>
@@ -314,10 +309,10 @@ export function AdminOpportunityDetail() {
                         {applicant.paymentHistory.map((payment, index) => (
                           <div key={index} className="flex items-center justify-between p-3 bg-white border-2 border-green-200">
                             <div>
-                              <p className="font-medium text-gray-900">{payment.date}</p>
-                              <p className="text-sm text-gray-600">{payment.status}</p>
+                              <p className="font-medium text-gray-900">{payment.date.toLocaleDateString()}</p>
+                              <p className="text-sm text-gray-600">{payment.statut}</p>
                             </div>
-                            <p className="font-semibold text-gray-900">{formatCurrency(payment.amount)}</p>
+                            <p className="font-semibold text-gray-900">{formatCurrency(payment.montant)}</p>
                           </div>
                         ))}
                       </div>
@@ -327,17 +322,17 @@ export function AdminOpportunityDetail() {
 
                 {/* Actions */}
                 <div className="lg:w-48 flex flex-col gap-3">
-                  {applicant.status === "pending" && (
+                  {applicant.statut === StatutCandidature.EN_ATTENTE && (
                     <>
                       <button
-                        onClick={() => handleAccept(applicant.id)}
+                        onClick={() => handleAccept(applicant.userId.toString())}
                         className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 transition-colors font-medium border-2 border-green-600"
                       >
                         <Check className="w-5 h-5" />
                         <span>Accepter</span>
                       </button>
                       <button
-                        onClick={() => handleReject(applicant.id)}
+                        onClick={() => handleReject(applicant.userId.toString())}
                         className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white hover:bg-red-700 transition-colors font-medium border-2 border-red-600"
                       >
                         <X className="w-5 h-5" />
@@ -346,10 +341,10 @@ export function AdminOpportunityDetail() {
                     </>
                   )}
 
-                  {applicant.status === "accepted" && (
+                  {applicant.statut === StatutCandidature.ACCEPTE && (
                     <button
                       onClick={() => {
-                        setSelectedApplicant(applicant.id);
+                        setSelectedApplicant(applicant.userId.toString());
                         setShowPaymentModal(true);
                       }}
                       className="flex items-center justify-center gap-2 px-4 py-2 bg-secondary text-white hover:bg-green-600 transition-colors font-medium border-2 border-secondary"
@@ -359,7 +354,7 @@ export function AdminOpportunityDetail() {
                     </button>
                   )}
 
-                  <button className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors font-medium">
+                  <button type="button" className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors font-medium">
                     <Eye className="w-5 h-5" />
                     <span>Voir profil</span>
                   </button>
@@ -369,7 +364,7 @@ export function AdminOpportunityDetail() {
           ))}
         </div>
 
-        {applicantsList.length === 0 && (
+        {applicantsList?.length === 0 && (
           <div className="p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 border-2 border-gray-200 flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8 text-gray-400" />

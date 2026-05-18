@@ -12,7 +12,6 @@ import { Checkout } from "./pages/checkout";
 import { Analytics } from "./pages/analytics";
 import { Messages } from "./pages/messages";
 import { Profile } from "./pages/profile";
-import { Opportunities } from "./pages/opportunities";
 import { Products } from "./pages/products";
 import { AddProduct } from "./pages/add-product";
 import { ProductDetailAdmin } from "./pages/product-detail-admin";

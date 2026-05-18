@@ -27,9 +27,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('token');
         })
         .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    } else { setIsLoading(false);}
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -69,9 +67,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
 export function useUser() {
   const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider");
-  }
+  if (context === undefined) { throw new Error("useUser must be used within a UserProvider");}
   return context;
 }
 
@@ -89,7 +85,5 @@ export const getUserRole = async (): Promise<string | null> => {
     return null;
   } catch (error) {
     console.error("Erreur de récupération du rôle de l’utilisateur :", error);
-
-    return null;
-  }
+    return null;}
 };

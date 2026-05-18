@@ -1,30 +1,14 @@
 import { Link } from "react-router";
-import { Plus, Edit2, Trash2, Eye, Users, DollarSign, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Plus, Edit2, Trash2, Eye, Users, DollarSign, MapPin } from "lucide-react";
+import { StatutCandidature, StatutMission, TypePaiement, type Mission } from "../model/model.ts";
 import { useUser } from "../lib/user-context.tsx";
 import { mission } from "../service/mission.service";
 
-interface AdminOpportunity {
-  id: string;
-  title: string;
-  type: string;
-  amount: number;
-  paymentFrequency: string;
-  location: string;
-  duration: string;
-  deadline: string;
-  status: string;
-  applicants: number;
-  accepted: number;
-  totalPaid: number;
-  createdAt: string;
-  commercantId?: number;
-}
-
 export function AdminOpportunities() {
-  const [opportunities, setOpportunities] = useState<AdminOpportunity[]>([]);
+  const [opportunities, setOpportunities] = useState<Mission[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [opportunityToDelete, setOpportunityToDelete] = useState<string | null>(null);
+  const [opportunityToDelete, setOpportunityToDelete] = useState<number | null>(null);
   const { user } = useUser();
 
   useEffect(() => {
@@ -34,21 +18,23 @@ export function AdminOpportunities() {
       .then((missions) => {
         console.log("Missions récupérées :", missions);
         const formatted = missions.map((missionData) => ({
-          id: missionData.id.toString(),
+          id: missionData.id,
           title: missionData.titre,
           type: missionData.type || "Mission",
-          amount: Number(missionData.montant || 0),
-          paymentFrequency: missionData.frequencePaiement || "Projet",
-          location: missionData.localisation || "À distance",
-          duration: `${missionData.dureeMission || 0} mois`,
-          deadline: missionData.dateLimiteCandidature
+          montant: Number(missionData.montant || 0),
+          descriptionCourte: missionData.descriptionCourte,
+          description: missionData.description,
+          frequencePaiement: missionData.frequencePaiement || TypePaiement.FIXE,
+          localisation: missionData.localisation || "Lome",
+          dureeMission: missionData.dureeMission || 1,
+          dateLimitCandidature: missionData.dateLimiteCandidature
             ? new Date(missionData.dateLimiteCandidature).toLocaleDateString("fr-FR")
             : "À définir",
-          status: missionData.statut || "Ouvert",
-          applicants: 0,
-          accepted: 0,
+          statut: missionData.statut || StatutMission.OUVERTE,
+          candidatures: missionData.candidatures,
+          requis: missionData.requis,
           totalPaid: 0,
-          createdAt: missionData.datePublication
+          datePublication: missionData.datePublication
             ? new Date(missionData.datePublication).toLocaleDateString("fr-FR")
             : "N/A",
           commercantId: (missionData as any).commercantId || (missionData as any).commercant?.id,
@@ -60,23 +46,12 @@ export function AdminOpportunities() {
 
         setOpportunities(formatted);
       })
-      .catch((error) => {
-        console.error("Erreur chargement opportunités administrateur :", error);
-      });
+      .catch((error) => {console.error("Erreur chargement opportunités administrateur :", error);});
   }, [user]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "XOF",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatCurrency = (montant: number) => { return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", minimumFractionDigits: 0, }).format(montant); };
 
-  const handleDeleteClick = (id: string) => {
-    setOpportunityToDelete(id);
-    setShowDeleteModal(true);
-  };
+  const handleDeleteClick = (id: number) => { setOpportunityToDelete(id); setShowDeleteModal(true);};
 
   const handleDeleteConfirm = () => {
     if (opportunityToDelete) {
@@ -86,22 +61,28 @@ export function AdminOpportunities() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Ouvert":
+  const getStatusColor = (statut: string) => {
+    switch (statut) {
+      case StatutMission.OUVERTE:
         return "bg-green-100 text-green-700 border-green-200";
-      case "Fermé":
+      case StatutMission.ANNULEE:
         return "bg-red-100 text-red-700 border-red-200";
-      case "En pause":
+      case StatutMission.EN_COURS:
         return "bg-orange-100 text-orange-700 border-orange-200";
       default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
+        return "bg-blue-100 text-blue-700 border-blue-200";
     }
   };
 
-  const totalApplicants = opportunities.reduce((sum, opp) => sum + opp.applicants, 0);
-  const totalAccepted = opportunities.reduce((sum, opp) => sum + opp.accepted, 0);
-  const totalPaid = opportunities.reduce((sum, opp) => sum + opp.totalPaid, 0);
+  const totalApplicants = opportunities.reduce((sum, opp) => sum + (opp.candidatures?.length || 0), 0);
+  const totalAccepted = opportunities.reduce(
+    (sum, opp) =>
+      sum + (opp.candidatures?.filter((c) => c.statut === StatutCandidature.ACCEPTE).length || 0), 0);
+  const totalPaid = opportunities.reduce((sum, opp) => {
+    const candidature = opp.candidatures?.find((c) => c.userId === opp.commercantId);
+
+    return sum + (candidature?.totalPaid || 0);
+  }, 0);
 
   return (
     <div className="space-y-6 pb-20 md:pb-6">
@@ -113,8 +94,7 @@ export function AdminOpportunities() {
         </div>
         <Link
           to="/dashboard/opportunities/create"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-secondary text-white hover:bg-green-600 transition-colors shadow-md border-2 border-secondary font-medium"
-        >
+          className="inline-flex items-center gap-2 px-6 py-3 bg-secondary text-white hover:bg-green-600 transition-colors shadow-md border-2 border-secondary font-medium">
           <Plus className="w-5 h-5" />
           <span>Créer une opportunité</span>
         </Link>
@@ -186,10 +166,10 @@ export function AdminOpportunities() {
                 <tr key={opportunity.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div>
-                      <p className="font-medium text-gray-900 break-words max-w-xs">{opportunity.title}</p>
+                      <p className="font-medium text-gray-900 break-words max-w-xs">{opportunity.titre}</p>
                       <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
                         <MapPin className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{opportunity.location}</span>
+                        <span className="truncate">{opportunity.localisation}</span>
                       </div>
                     </div>
                   </td>
@@ -200,22 +180,27 @@ export function AdminOpportunities() {
                   </td>
                   <td className="px-6 py-4">
                     <div>
+                      {opportunity.montant &&
                       <p className="font-semibold text-gray-900 break-words">
-                        {formatCurrency(opportunity.amount)}
+                        {formatCurrency(opportunity.montant)}
                       </p>
-                      <p className="text-sm text-gray-500">/ {opportunity.paymentFrequency}</p>
+                      }
+                      <p className="text-sm text-gray-500">/ {opportunity.frequencePaiement}</p>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <p className="font-semibold text-gray-900">{opportunity.applicants}</p>
-                      <p className="text-sm text-green-600">{opportunity.accepted} accepté(s)</p>
+                      <p className="font-semibold text-gray-900">{opportunity.candidatures?.length}</p>
+                      <p className="text-sm text-green-600">
+                        {opportunity.candidatures?.filter((item) => item.statut === StatutCandidature.ACCEPTE).length || 0} accepté(s)
+                      </p>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 text-sm font-medium border-2 whitespace-nowrap ${getStatusColor(opportunity.status)}`}>
-                      {opportunity.status}
-                    </span>
+                    {opportunity.statut &&
+                    <span className={`px-3 py-1 text-sm font-medium border-2 whitespace-nowrap ${getStatusColor(opportunity.statut)}`}>
+                      {opportunity.statut}</span>
+                    }
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">

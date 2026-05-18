@@ -23,9 +23,11 @@ export function Stores() {
   const navigate = useNavigate();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const canAddStore = subscription
-    ? stores.length < planDetails[subscription.plan].maxStores
-    : false;
+  // const canAddStore = subscription
+  //   ? stores.length < planDetails[subscription.plan].maxStores
+  //   : false;
+
+  const canAddStore = true
 
   const handleDelete = (id: string) => {
     if (deleteConfirm === id) {
@@ -51,11 +53,11 @@ export function Stores() {
           </h1>
           <p className="text-gray-600">
             Gérez toutes vos boutiques en un seul endroit
-            {subscription && (
+            {/* {subscription && (
               <span className="ml-2 text-sm">
-                ({stores.length}/{planDetails[subscription.plan].maxStores === 999 ? "∞" : planDetails[subscription.plan].maxStores})
+                ({stores.length}/{planDetails[subscription.plan]?.maxStores === 999 ? "∞" : planDetails[subscription.plan]?.maxStores})
               </span>
-            )}
+            )} */}
           </p>
         </div>
         {canAddStore ? (

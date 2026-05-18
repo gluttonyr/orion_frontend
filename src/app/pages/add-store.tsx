@@ -13,7 +13,7 @@ export function AddStore() {
   const existingStore = stores.find((s) => s.id === id);
 
   const [formData, setFormData] = useState({
-    name: "",
+    nom: "",
     description: "",
     category: "",
     location: "",
@@ -25,7 +25,7 @@ export function AddStore() {
   useEffect(() => {
     if (isEditing && existingStore) {
       setFormData({
-        name: existingStore.name,
+        nom: existingStore.nom,
         description: existingStore.description,
         category: existingStore.category,
         location: existingStore.location,
@@ -150,9 +150,9 @@ export function AddStore() {
             <input
               type="text"
               required
-              value={formData.name}
+              value={formData.nom}
               onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
+                setFormData({ ...formData, nom: e.target.value })
               }
               placeholder="ex: Boutique Central Market"
               className="w-full px-4 py-3 border-2 border-gray-300 focus:border-primary focus:outline-none transition-colors"/>

@@ -35,4 +35,5 @@ class PlanService {
   }
 }
 
-export default new PlanService();
+const planService = new PlanService()
+export default planService;

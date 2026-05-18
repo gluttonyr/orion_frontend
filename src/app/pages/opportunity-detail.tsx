@@ -84,9 +84,7 @@ export function OpportunityDetail() {
 
   const handleApply = () => { setHasApplied(true);};
 
-  if (loading) {
-    return <div className="p-10 text-center">Chargement...</div>;
-  }
+  if (loading) { return <div className="p-10 text-center">Chargement...</div>;}
 
   if (!opportunity) {
     return (

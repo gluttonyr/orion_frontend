@@ -1,23 +1,15 @@
 import { Link } from "react-router";
 import { CheckCircle, ArrowRight, Download } from "lucide-react";
-import { useSubscription, planDetails } from "../lib/subscription-context";
+import { useSubscription } from "../lib/subscription-context";
 
 export function SubscriptionSuccess() {
   const { subscription } = useSubscription();
 
-  if (!subscription) {
-    return null;
-  }
+  if (!subscription) { return null;}
 
-  const plan = planDetails[subscription.plan];
+  const plan = subscription.type;
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "XOF",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => { return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", minimumFractionDigits: 0, }).format(amount); };
 
   return (
     <div className="max-w-2xl mx-auto text-center pb-20 md:pb-6">
@@ -41,35 +33,41 @@ export function SubscriptionSuccess() {
             <span className="text-white font-bold">O</span>
           </div>
           <div className="text-left">
-            <p className="text-sm text-gray-600">Orion - Abonnement {plan.name}</p>
+            <p className="text-sm text-gray-600">Orion - Abonnement {plan}</p>
+            {subscription.prix &&
             <p className="font-bold text-gray-900">
-              {formatCurrency(plan.price)} / mois
+              {formatCurrency(subscription.prix)} / mois
             </p>
+            }
           </div>
         </div>
 
         <div className="space-y-3 text-left">
           <div className="flex justify-between py-2">
             <span className="text-gray-600">Date d'activation</span>
+            {subscription.dateActivation &&
             <span className="font-medium text-gray-900">
-              {new Date(subscription.startDate).toLocaleDateString("fr-FR")}
+              {new Date(subscription.dateActivation).toLocaleDateString("fr-FR")}
             </span>
+            }
           </div>
           <div className="flex justify-between py-2">
             <span className="text-gray-600">Prochain paiement</span>
+            {subscription.dateExpiration &&
             <span className="font-medium text-gray-900">
-              {new Date(subscription.endDate).toLocaleDateString("fr-FR")}
+              {new Date(subscription.dateExpiration).toLocaleDateString("fr-FR")}
             </span>
+            }
           </div>
           <div className="flex justify-between py-2">
             <span className="text-gray-600">Renouvellement automatique</span>
             <span className="font-medium text-gray-900">
-              {subscription.autoRenew ? "Activé" : "Désactivé"}
+              {subscription.renouvelement ? "Activé" : "Désactivé"}
             </span>
           </div>
         </div>
 
-        <button className="w-full mt-6 px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-primary hover:text-primary font-medium transition-all flex items-center justify-center gap-2">
+        <button type="button" className="w-full mt-6 px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-primary hover:text-primary font-medium transition-all flex items-center justify-center gap-2">
           <Download className="w-5 h-5" />
           Télécharger le reçu
         </button>
@@ -87,9 +85,11 @@ export function SubscriptionSuccess() {
               <p className="font-medium text-gray-900 mb-1">
                 Créez vos boutiques
               </p>
+              {subscription.nombreBoutiques &&
               <p className="text-sm text-gray-700">
-                Vous pouvez maintenant créer jusqu'à {plan.maxStores === 999 ? "un nombre illimité de" : plan.maxStores} boutique{plan.maxStores > 1 ? "s" : ""}
+                Vous pouvez maintenant créer jusqu'à {subscription.nombreBoutiques === 999 ? "un nombre illimité de" : subscription.nombreBoutiques} boutique{subscription.nombreBoutiques > 1 ? "s" : ""}
               </p>
+              }
             </div>
           </li>
           <li className="flex items-start gap-3">
@@ -100,9 +100,11 @@ export function SubscriptionSuccess() {
               <p className="font-medium text-gray-900 mb-1">
                 Ajoutez vos produits
               </p>
+              {subscription.nombreProduits &&
               <p className="text-sm text-gray-700">
-                Gérez jusqu'à {plan.maxProducts === 99999 ? "un nombre illimité de" : plan.maxProducts} produit{plan.maxProducts > 1 ? "s" : ""} sur la marketplace
+                Gérez jusqu'à {subscription.nombreProduits === 99999 ? "un nombre illimité de" : subscription.nombreProduits} produit{subscription.nombreProduits > 1 ? "s" : ""} sur la marketplace
               </p>
+              }
             </div>
           </li>
           <li className="flex items-start gap-3">
@@ -125,16 +127,14 @@ export function SubscriptionSuccess() {
       <div className="flex flex-col sm:flex-row gap-4">
         <Link
           to="/dashboard"
-          className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white font-medium transition-all shadow-md hover:shadow-lg border-2 border-primary"
-        >
+          className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-blue-700 text-white font-medium transition-all shadow-md hover:shadow-lg border-2 border-primary">
           Aller au tableau de bord
           <ArrowRight className="w-5 h-5" />
         </Link>
         <Link
           to="/dashboard/stores"
           className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 hover:border-primary hover:text-primary font-medium transition-all"
-        >
-          Gérer mes boutiques
+        >Gérer mes boutiques
         </Link>
       </div>
     </div>

@@ -31,8 +31,8 @@ export enum StatutMission {
 
 export enum StatutCandidature {
   EN_ATTENTE = 'en_attente',
-  ACCEPTE = 'accepté',
-  REFUSE = 'refusé',
+  ACCEPTE = 'accepte',
+  REFUSE = 'refuse',
 }
 
 export enum Categories {
@@ -41,13 +41,51 @@ export enum Categories {
   MAISON = "MAISON"
 }
 
+export enum statutPayementCandidat {
+  EN_ATTENTE = 'en_attente',
+  EFFECTUE = 'effectue',
+  ANNULE = 'annule',
+}
+
+export enum TypePlan {
+  BASIQUE = 'BASIQUE',
+  PRO = 'PRO',
+  PREMIUM = 'PREMIUM',
+  BUSINESS = 'BUSINESS',
+}
+
+export enum MessageType {
+  TEXT = "text",
+  IMAGE = "image",
+  VIDEO = "video",
+  AUDIO = "audio",
+  FILE = "file",
+}
+
+export enum MessageStatus {
+  SENT = "sent",
+  DELIVERED = "delivered",
+  READ = "read",
+}
+
+export enum DiscussionType {
+  PRIVATE = 'private',
+  GROUP = 'group',
+}
+export enum DiscussionStatus {
+  ACTIVE = 'active',
+  ARCHIVED = 'archived',
+  BLOCKED = 'blocked',
+}
+
+
 export interface Utilisateur{
   id: number;
   nom: string;
   prenom: string;
   email: string;
-  date_naissance: string;
-  adresse: string;
+  date_naissance?: string;
+  adresse?: string;
   role: UserRole;
   password: string;
   specialite?: string;
@@ -55,16 +93,16 @@ export interface Utilisateur{
   contact?: string;
 }
 
-export interface produits {
+export interface Produits {
   id: number;
   nom: string;
   description: string;
-  prix: number;
-  stock: number;
-  image: string;
+  prix?: number;
+  stock?: number;
+  image?: string;
   images_secondaires?: string[];
-  statut: string;
-  categorie: Categorie;
+  statut?: string;
+  categorie?: Categorie;
 }
 
 export interface Commande {
@@ -92,89 +130,128 @@ export interface Demande {
 
 export interface Discussion {
   id: number;
-  participants?: Utilisateur[];
+  type?: string;
+  statut?: DiscussionStatus;
+  titre?: string;
+  photo?: string;
+  lastMessage?: string;
+  lastMessageDate?: Date;
   messages?: Message[];
-  date_debut: Date;
-  statut: string;
+  participants?: Discussion_Participant[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface Discussion_Participant {
+  id?: number;
+  discussion?: Discussion;
+  discussionId?: number;
+  utilisateur?: Utilisateur;
+  utilisateurId?: number;
+  lastReadMessageId?: number;
+  muted?: boolean;
+  archived?: boolean;
+  joinedAt?: Date;
 }
 
 export interface Message {
   id: number;
-  discussionId: number;
+  discussion?: Discussion;
+  discussionId?: number;
   utilisateurId: number;
-  contenu: string;
+  sender?: Utilisateur;
+  senderId?: string;
+  contenu?: string;
   date_envoi: Date;
-  type_message: string;
-  statue: string;
+  type?: MessageType;
+  statut?: MessageStatus;
+  mediaUrl?: string;
+  edited?: boolean;
+  deleted?: boolean;
+  createdAt?: Date;
+}
+
+export interface Candidature {
+  userId: number;
+  statut: StatutCandidature;
+  dateCandidature: Date;
+  experience: number;
+  paymentHistory: {
+    date: Date;
+    montant: number;
+    statut: statutPayementCandidat;
+  }[];
+  totalPaid: number;
+  message: string;
 }
 
 export interface Mission {
   id: number;
   commercantId: number;
-  titre: string;
-  localisation: string;
-  type: string;
-  statut: string;
-  descriptionCourte: string;
-  description: string;
-  montant: number;
-  frequencePaiement: TypePaiement;
-  dureeMission: number;
-  datePublication: any;
-  dateLimiteCandidature: any;
-  requis: string;
-  candidatures?: Record<number, { user: number; statut: StatutCandidature }> | StatutCandidature.EN_ATTENTE;
+  titre?: string;
+  localisation?: string;
+  type?: string;
+  statut?: StatutMission;
+  descriptionCourte?: string;
+  description?: string;
+  montant?: number;
+  frequencePaiement?: TypePaiement;
+  dureeMission?: number;
+  datePublication?: any;
+  dateLimiteCandidature?: any;
+  requis?: string;
+  candidatures?: Candidature[];
 }
 
 export interface Vente {
-  id: number;
-  utilisateurId: number;
-  produits?: produits[];
-  quantites: number[];
-  date_achat: string;
-  prix_total: number;
-  reference: string;
-  statut: string;
+  id?: number;
+  utilisateurId?: number;
+  produits?: Produits[];
+  quantites?: number[];
+  date_achat?: string;
+  prix_total?: number;
+  reference?: string;
+  statut?: string;
 }
 
 export interface Panier {
-  id: number;
-  utilisateurId: number;
-  produitId: number[];
-  quantite: number[];
-  dateCommande: Date;
-  statut: string;
+  id?: number;
+  utilisateurId?: number;
+  produitId?: number[];
+  quantite?: number[];
+  dateCommande?: Date;
+  statut?: string;
 }
 
 export interface Boutique {
   id: number;
   nom: string;
-  // Champs alignés avec le backend pour la boutique
   description?: string;
   category?: string;
   location?: string;
   logo?: string;
   active: boolean;
-  // Limite de 30 produits par boutique côté backend, ici on expose le compteur
-  nombreProduits: number;
-  // Selon les réponses de l'API, vous pouvez recevoir la liste d'objets produits
-  // ou uniquement leurs identifiants. Laissez les deux en option pour plus de souplesse.
-  produits?: produits[];
+  nombreProduits?: number;
+  produits?: Produits[];
   produitIds?: number[];
   proprietaireId?: number;
-  dateCreation: Date;
+  dateCreation?: Date | null;
 }
 
 export interface Plan {
-  id: number;
-  titre: string;
-  type: string;
-  prix: number;
-  avantages: string;
-  description: string;
-  nombreBoutiques: number;
-  nombreProduits: number;
-  dureeEnMois: number;
+  id?: number;
+  titre?: string;
+  type?: TypePlan;
+  prix?: number;
+  avantages?: string;
+  description?: string;
+  nombreBoutiques?: number;
+  nombreProduits?: number;
+  dureeEnMois?: number;
+  dateActivation?: Date | null;
   dateCreation: Date;
-  dateExpiration: Date;
+  dateExpiration?: Date | null;
+  active?: boolean;
+  renouvelement?: boolean;
+  commercant?: number
 }

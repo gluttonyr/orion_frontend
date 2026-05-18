@@ -18,8 +18,7 @@ export function DashboardLayout() {
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-        setNotificationOpen(false);
-      }
+        setNotificationOpen(false);}
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -46,14 +45,10 @@ export function DashboardLayout() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case "success":
-        return "✓";
-      case "warning":
-        return "⚠";
-      case "error":
-        return "✕";
-      default:
-        return "ℹ";
+      case "success": return "✓";
+      case "warning": return "⚠";
+      case "error": return "✕";
+      default: return "ℹ";
     }
   };
 
@@ -98,9 +93,7 @@ export function DashboardLayout() {
   console.log(isCommercant)
 
   const isActive = (path: string) => {
-    if (path === "/dashboard") {
-      return location.pathname === "/dashboard";
-    }
+    if (path === "/dashboard") { return location.pathname === "/dashboard";}
     return location.pathname.startsWith(path);
   };
 
@@ -218,9 +211,7 @@ export function DashboardLayout() {
         {/* Sidebar */}
         <aside
           className={`fixed lg:sticky top-0 left-0 z-40 h-screen bg-white border-r-4 border-gray-200 transition-transform lg:translate-x-0 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } w-64 lg:top-0`}
-        >
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"} w-64 lg:top-0`}>
           <div className="flex flex-col h-full">
             {/* Logo - Desktop with Notification */}
             <div className="hidden lg:flex items-center justify-between px-6 h-16 border-b-4 border-gray-200">
@@ -235,8 +226,7 @@ export function DashboardLayout() {
               <div className="relative" ref={notificationRef}>
                 <button
                   onClick={() => setNotificationOpen(!notificationOpen)}
-                  className="relative p-2 text-gray-600 hover:text-primary transition-colors border-2 border-transparent hover:border-primary"
-                >
+                  className="relative p-2 text-gray-600 hover:text-primary transition-colors border-2 border-transparent hover:border-primary">
                   <Bell className="w-5 h-5" />
                   {getUnreadCount() > 0 && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-secondary border-2 border-white flex items-center justify-center text-white text-xs font-bold">
@@ -337,7 +327,7 @@ export function DashboardLayout() {
                       {activeStore.logo ? (
                         <img
                           src={activeStore.logo}
-                          alt={activeStore.name}
+                          alt={activeStore.nom}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -347,7 +337,7 @@ export function DashboardLayout() {
                     <div className="min-w-0">
                       <p className="text-xs opacity-90">Boutique active</p>
                       <p className="font-bold text-sm truncate">
-                        {activeStore.name}
+                        {activeStore.nom}
                       </p>
                     </div>
                   </div>

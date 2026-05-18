@@ -1,61 +1,41 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from "react";
-
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode, } from "react";
 import type { Boutique } from "../model/model";
 import { boutiqueService } from "../service/boutique.service";
 import { API_BASE_URL } from "../service/api.config";
 
-// On garde le type Store tel quel pour ne pas casser les composants existants
-export interface Store {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  location: string;
-  logo?: string;
-  createdAt: Date;
-  active: boolean;
-}
-
 interface StoreContextType {
-  stores: Store[];
-  activeStore: Store | null;
+  stores: Boutique[];
+  activeStore: Boutique | null;
   loading: boolean;
   error: string | null;
-  setActiveStore: (store: Store) => void;
-  addStore: (store: Omit<Store, "id" | "createdAt"> & { file?: File | null }) => Promise<void>;
-  updateStore: (id: string, updates: Partial<Store>) => Promise<void>;
-  deleteStore: (id: string) => Promise<void>;
+  setActiveStore: (store: Boutique) => void;
+  addStore: (store: Omit<Boutique, "id" | "createdAt"> & { file?: File | null }) => Promise<void>;
+  updateStore: (id: number, updates: Partial<Boutique>) => Promise<void>;
+  deleteStore: (id: number) => Promise<void>;
   refreshStores: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 // ─── Adaptateurs ─────────────────────────────────────────────────────────────
-// Convertit un Boutique (backend) → Store (frontend)
-function toStore(b: Boutique): Store {
+// Convertit un Boutique (backend) → Boutique (frontend)
+function toStore(b: Boutique): Boutique {
   return {
-    id: String(b.id),
-    name: b.nom,
+    id: b.id,
+    nom: b.nom,
     description: b.description ?? "",
     category: b.category ?? "",
     location: b.location ?? "",
     logo: b.logo ? (b.logo.startsWith('/') ? `${API_BASE_URL}${b.logo}` : b.logo) : undefined,
-    createdAt: new Date(b.dateCreation),
+    dateCreation: b.dateCreation ? new Date(b.dateCreation) : null,
     active: b.active ?? true,
   };
 }
 
-// Convertit un Store (frontend) → Partial<Boutique> (backend)
-// function toBoutique(s: Partial<Store> & { proprietaireId?: number }): Partial<Boutique> {
+// Convertit un Boutique (frontend) → Partial<Boutique> (backend)
+// function toBoutique(s: Partial<Boutique> & { proprietaireId?: number }): Partial<Boutique> {
 //   return {
-//     nom: s.name,
+//     nom: s.nom,
 //     description: s.description,
 //     category: s.category,
 //     location: s.location,
@@ -65,10 +45,9 @@ function toStore(b: Boutique): Store {
 //   };
 // }
 // ─────────────────────────────────────────────────────────────────────────────
-
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [stores, setStores] = useState<Store[]>([]);
-  const [activeStore, setActiveStoreState] = useState<Store | null>(null);
+  const [stores, setStores] = useState<Boutique[]>([]);
+  const [activeStore, setActiveStoreState] = useState<Boutique | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,7 +63,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Restaurer la boutique active depuis localStorage si elle existe encore
       const savedActiveId = localStorage.getItem("orion-active-store");
       if (savedActiveId) {
-        const found = mapped.find((s) => s.id === savedActiveId);
+        const found = mapped.find((s) => s.id === Number(savedActiveId));
         setActiveStoreState(found ?? null);
         if (!found) localStorage.removeItem("orion-active-store");
       }
@@ -95,26 +74,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => { refreshStores();}, [refreshStores]);
 
   // ── Boutique active ──────────────────────────────────────────────────────
-  const setActiveStore = useCallback((store: Store) => {
+  const setActiveStore = useCallback((store: Boutique) => {
     setActiveStoreState(store);
-    localStorage.setItem("orion-active-store", store.id);
+    localStorage.setItem("orion-active-store", store.id.toString());
   }, []);
 
  
 
 const addStore = useCallback(
-  async (
-    storeData: Omit<Store, "id" | "createdAt"> & {
-      file?: File | null;
-    }
-  ) => {
+  async (storeData: Omit<Boutique, "id" | "createdAt"> & {file?: File | null;}) => {
     setError(null);
 
     try {
       const fd = new FormData();
 
       const boutiquePayload = {
-        nom: storeData.name,
+        nom: storeData.nom,
         description: storeData.description,
         category: storeData.category,
         location: storeData.location,
@@ -126,35 +101,21 @@ const addStore = useCallback(
 
       const created = await boutiqueService.create(fd);
 
-      setStores((prev) => [
-        ...prev,
-        toStore(created),
-      ]);
-
-    } catch {
-      setError("Erreur lors de la création de la boutique.",);
-      throw new Error("create_failed");
-    }
+      setStores((prev) => [...prev, toStore(created)]);
+    } catch { setError("Erreur lors de la création de la boutique."); throw new Error("create_failed");}
   },
   []
 );
 
 // ── Modifier ─────────────────────────────────────────────────────────────
-
-
 const updateStore = useCallback(
-  async (
-    id: string,
-    updates: Partial<Store> & {
-      file?: File | null;
-    }
-  ) => {
+  async (id: number, updates: Partial<Boutique> & {file?: File | null;}) => {
     setError(null);
     try {
       const fd = new FormData();
 
       const boutiquePayload = {
-        nom: updates.name,
+        nom: updates.nom,
         description: updates.description,
         category: updates.category,
         location: updates.location,
@@ -166,28 +127,20 @@ const updateStore = useCallback(
       if (updates.file) { fd.append("logo", updates.file);}
 
       const updated = await boutiqueService.update(Number(id), fd,);
-
       const mapped = toStore(updated);
 
-      setStores((prev) =>
-        prev.map((s) => s.id === id ? { ...s, ...mapped } : s)
-      );
+      setStores((prev) => prev.map((s) => s.id === id ? { ...s, ...mapped } : s));
 
-      if (activeStore?.id === id) {
-        setActiveStoreState((prev) => prev ? { ...prev, ...mapped } : null);
-      }
+      if (activeStore?.id === id) { setActiveStoreState((prev) => prev ? { ...prev, ...mapped } : null);}
 
-    } catch {
-      setError("Erreur lors de la mise à jour de la boutique.",);
-      throw new Error("update_failed");
-    }
+    } catch {setError("Erreur lors de la mise à jour de la boutique."); throw new Error("update_failed");}
   },
   [activeStore]
 );
 
   // ── Supprimer ────────────────────────────────────────────────────────────
   const deleteStore = useCallback(
-    async (id: string) => {
+    async (id: number) => {
       setError(null);
       try {
         await boutiqueService.delete(Number(id));
@@ -223,8 +176,6 @@ const updateStore = useCallback(
 
 export function useStore() {
   const context = useContext(StoreContext);
-  if (!context) {
-    throw new Error("useStore doit être utilisé dans un StoreProvider");
-  }
+  if (!context) {throw new Error("useStore doit être utilisé dans un StoreProvider");}
   return context;
 }

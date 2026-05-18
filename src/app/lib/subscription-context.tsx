@@ -1,144 +1,185 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, type ReactNode, useEffect,} from "react";
+import {TypePlan, type Plan,} from "../model/model";
+import planService from "../service/plan.service";
 
-export type SubscriptionPlan = "basique" | "pro" | "business";
-
-export interface Subscription {
-  plan: SubscriptionPlan;
-  startDate: Date;
-  endDate: Date;
-  active: boolean;
-  autoRenew: boolean;
-}
-
-export interface PlanLimits {
-  maxStores: number;
-  maxProducts: number;
-  features: string[];
-}
-
+// CONTEXT TYPE
 interface SubscriptionContextType {
-  subscription: Subscription | null;
-  getPlanLimits: (plan: SubscriptionPlan) => PlanLimits;
-  subscribeToPlan: (plan: SubscriptionPlan) => void;
+  subscription: Plan | null;
+  getPlanLimits: (plan: TypePlan) => Plan;
+  subscribeToPlan: (plan: TypePlan) => void;
   cancelSubscription: () => void;
   canCreateStore: () => boolean;
   canCreateProduct: () => boolean;
 }
 
+// CONTEXT
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
-// Plans et leurs limites
-export const planDetails: Record<SubscriptionPlan, PlanLimits & { price: number; name: string }> = {
-  basique: {
-    name: "Basique",
-    price: 5000,
-    maxStores: 1,
-    maxProducts: 50,
-    features: [
-      "1 boutique",
-      "Jusqu'à 50 produits",
-      "Marketplace accès",
-      "Analyses de base",
-      "Support par email",
-    ],
+// DEFAULT LOCAL PLANS
+export const planDetails: Plan[] = [
+  {
+    id: 1,
+    titre: "Plan Basique",
+    type: TypePlan.BASIQUE,
+    prix: 0,
+    avantages: "Accès Basique",
+    description: "",
+    nombreBoutiques: 1,
+    nombreProduits: 10,
+    dureeEnMois: 1,
+    dateActivation: null,
+    dateCreation: new Date(),
+    dateExpiration: null,
+    active: false,
+    renouvelement: false,
   },
-  pro: {
-    name: "Pro",
-    price: 15000,
-    maxStores: 3,
-    maxProducts: 500,
-    features: [
-      "3 boutiques",
-      "Jusqu'à 500 produits",
-      "Marketplace prioritaire",
-      "Analyses avancées",
-      "Gestion des opportunités",
-      "Support prioritaire",
-      "Promotion de produits",
-    ],
+  {
+    id: 2,
+    titre: "Plan Professionnel",
+    type: TypePlan.PRO,
+    prix: 15000,
+    avantages: "Pour les experts commerçants",
+    description: "",
+    nombreBoutiques: 3,
+    nombreProduits: 100,
+    dureeEnMois: 1,
+    dateActivation: null,
+    dateCreation: new Date(),
+    dateExpiration: null,
+    active: false,
+    renouvelement: false,
   },
-  business: {
-    name: "Business",
-    price: 35000,
-    maxStores: 999,
-    maxProducts: 99999,
-    features: [
-      "Boutiques illimitées",
-      "Produits illimités",
-      "Marketplace premium",
-      "Analyses complètes",
-      "API personnalisée",
-      "Multi-utilisateurs",
-      "Support 24/7",
-      "Gestionnaire de compte dédié",
-    ],
-  },
+];
+
+// GET PLANS API
+const getPlans = async (): Promise<Plan[]> => {
+  const planServ = await planService.getAll();
+
+  return planServ.map((p) => ({
+    id: p.id,
+    titre: p.titre,
+    type: p.type,
+    prix: p.prix,
+    avantages: p.avantages,
+    description: p.description,
+    nombreBoutiques: p.nombreBoutiques,
+    nombreProduits: p.nombreProduits,
+    dureeEnMois: p.dureeEnMois,
+    dateActivation: p.dateActivation,
+    dateCreation: p.dateCreation,
+    dateExpiration: p.dateExpiration,
+    active: p.active,
+    renouvelement: p.renouvelement,
+    commercant: p.commercant,
+  }));
 };
 
-export function SubscriptionProvider({ children }: { children: ReactNode }) {
-  const [subscription, setSubscription] = useState<Subscription | null>(() => {
-    const saved = localStorage.getItem("orion-subscription");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return {
-        ...parsed,
-        startDate: new Date(parsed.startDate),
-        endDate: new Date(parsed.endDate),
-      };
-    }
-    // Abonnement basique par défaut pour la démo
-    return {
-      plan: "basique",
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
-      active: true,
-      autoRenew: true,
-    };
-  });
+// PROVIDER
+export function SubscriptionProvider({children,}: {children: ReactNode;}) {
+  // ALL PLANS
+  const [plans, setPlans] = useState<Plan[]>([]);
 
+  // LOAD PLANS
   useEffect(() => {
-    if (subscription) {
-      localStorage.setItem("orion-subscription", JSON.stringify(subscription));
-    }
+    const loadPlans = async () => {
+      try {
+        const data = await getPlans();
+        setPlans(data);
+      } catch (error) { console.error("Erreur chargement plans :", error);}
+    };
+
+    loadPlans();
+  }, []);
+
+  // SUBSCRIPTION
+  const [subscription, setSubscription] = useState<Plan | null>(() => {
+      const saved = localStorage.getItem("orion-subscription");
+
+      if (saved) {
+        const parsed = JSON.parse(saved);
+
+        return {
+          ...parsed,
+          dateActivation:
+            parsed.dateActivation
+              ? new Date(parsed.dateActivation)
+              : null,
+          dateExpiration:
+            parsed.dateExpiration
+              ? new Date(parsed.dateExpiration)
+              : null,
+        };
+      }
+
+      // default plan
+      return {
+        ...planDetails[0],
+        dateActivation: new Date(),
+        dateExpiration: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        active: true,
+        renouvelement: true,
+      };
+    });
+
+  // SAVE LOCAL STORAGE
+  useEffect(() => { if (subscription) { localStorage.setItem("orion-subscription", JSON.stringify(subscription));}}, [subscription]);
+
+  // UPDATE API
+  useEffect(() => {
+    if (!subscription) return;
+
+    const updateSubscription =
+      async () => {
+        if (!subscription.id) return;
+        try { await planService.update(subscription.id, subscription);
+        } catch (error) { console.error("Erreur update abonnement :", error);}
+      };
+
+    updateSubscription();
   }, [subscription]);
 
-  const getPlanLimits = (plan: SubscriptionPlan): PlanLimits => {
-    return {
-      maxStores: planDetails[plan].maxStores,
-      maxProducts: planDetails[plan].maxProducts,
-      features: planDetails[plan].features,
-    };
+  // GET PLAN
+  const getPlanLimits = (plan: TypePlan): Plan => {
+    const selectedPlan =
+      plans.find((item) => item.type === plan) ||
+      planDetails.find((item) => item.type === plan);
+
+    if (!selectedPlan) { throw new Error(`Plan introuvable : ${plan}`);}
+
+    return selectedPlan;
   };
 
-  const subscribeToPlan = (plan: SubscriptionPlan) => {
-    const newSubscription: Subscription = {
-      plan,
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      active: true,
-      autoRenew: true,
-    };
+  // SUBSCRIBE
+  const subscribeToPlan = (plan: TypePlan) => {
+    const selectedPlan = getPlanLimits(plan);
+
+    if (!selectedPlan) return;
+    const duration = selectedPlan.dureeEnMois;
+
+    const newSubscription: Plan =
+      {
+        ...selectedPlan,
+        dateActivation: new Date(),
+        dateExpiration: new Date(Date.now() + Number(duration) * 30 * 24 * 60 * 60 * 1000),
+        active: true,
+        renouvelement: true,
+      };
+
     setSubscription(newSubscription);
   };
 
+  // CANCEL
   const cancelSubscription = () => {
-    if (subscription) {
-      setSubscription({ ...subscription, autoRenew: false });
-    }
+    if (!subscription) return;
+
+    setSubscription({...subscription, active: false, renouvelement: false,});
   };
 
-  const canCreateStore = (): boolean => {
-    if (!subscription || !subscription.active) return false;
-    // On devrait vérifier le nombre de boutiques actuelles vs la limite
-    return true;
-  };
+  // CHECKS
+  const canCreateStore = (): boolean => { return !!subscription?.active;};
+  const canCreateProduct = (): boolean => { return !!subscription?.active;};
 
-  const canCreateProduct = (): boolean => {
-    if (!subscription || !subscription.active) return false;
-    // On devrait vérifier le nombre de produits actuels vs la limite
-    return true;
-  };
-
+  // PROVIDER
   return (
     <SubscriptionContext.Provider
       value={{
@@ -148,17 +189,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         cancelSubscription,
         canCreateStore,
         canCreateProduct,
-      }}
-    >
-      {children}
+      }}>{children}
     </SubscriptionContext.Provider>
   );
 }
 
+// HOOK
 export function useSubscription() {
-  const context = useContext(SubscriptionContext);
-  if (!context) {
-    throw new Error("useSubscription doit être utilisé dans un SubscriptionProvider");
-  }
+  const context =
+    useContext(SubscriptionContext);
+
+  if (!context) { throw new Error("useSubscription doit être utilisé dans un SubscriptionProvider");}
+
   return context;
 }

@@ -52,7 +52,7 @@ export function StoreSelection() {
                   {store.logo ? (
                     <img
                       src={getBoutiqueImageUrl(store.logo)}
-                      alt={store.name}
+                      alt={store.nom}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -61,7 +61,7 @@ export function StoreSelection() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    {store.name}
+                    {store.nom}
                   </h3>
                   <p className="text-gray-600 text-sm mb-3">
                     {store.description}

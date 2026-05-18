@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, Upload, X, Save, Package, Tag } from "lucide-react";
 
-import type { produits, Categorie } from "../model/model";
+import type { Produits, Categorie } from "../model/model";
 import { produitService } from "../service/produit.service";
 import { categorieService } from "../service/categorie.service";
 import { API_BASE_URL } from "../service/api.config";
@@ -19,7 +19,7 @@ export function AddProduct() {
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
-  const [formData, setFormData] = useState<Partial<produits>>({
+  const [formData, setFormData] = useState<Partial<Produits>>({
     nom: "",
     description: "",
     prix: 0,
@@ -154,7 +154,7 @@ export function AddProduct() {
       <div className="flex items-center gap-4">
         <button
           type="button"
-          title="Retour à la liste des produits"
+          title="Retour à la liste des Produits"
           onClick={() => navigate("/dashboard/products")}
           className="p-2 text-gray-600 hover:text-primary transition-colors border-2 border-gray-200 hover:border-primary">
           <ArrowLeft className="w-5 h-5"/>
