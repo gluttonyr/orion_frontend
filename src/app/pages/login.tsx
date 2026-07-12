@@ -11,6 +11,7 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     // Simulate login
         try {
           if (!email || !password) {
@@ -19,13 +20,16 @@ export function Login() {
           }
           
           if (email && password) {
+            console.log("Attempting login with:", { email, password });
             const response = await userService.login(email, password);
+            console.log("Login response:", response);
             if (response?.access_token) {
               localStorage.setItem('token', response.access_token);
             }
             if (response?.user) {
               toast.success("Connexion réussie");
             } else {
+
               toast.error("Email ou mot de passe incorrect");
               return;
             }
@@ -33,6 +37,7 @@ export function Login() {
    
           navigate("/dashboard");
         } catch (err: any) {
+          console.error("Login error:", err);
           toast .error("email ou mots de passe incorect")
         } finally {
           setEmail(""); setPassword("");

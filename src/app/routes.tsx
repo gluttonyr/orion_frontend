@@ -8,7 +8,6 @@ import { ProfileSelection } from "./pages/profile-selection";
 import { Dashboard } from "./pages/dashboard";
 import { Marketplace } from "./pages/marketplace";
 import { ProductDetail } from "./pages/product-detail";
-import { Checkout } from "./pages/checkout";
 import { Analytics } from "./pages/analytics";
 import { Messages } from "./pages/messages";
 import { Profile } from "./pages/profile";
@@ -104,7 +103,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "checkout",
-        element: <Checkout />,
+        element: <CheckoutPage />,
       },
       {
         path: "analytics",

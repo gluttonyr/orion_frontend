@@ -3,9 +3,32 @@ import type { Vente } from "../model/model";
 
 const api = createApi("vente");
 
+export interface InitPaymentPayload {
+  utilisateurId: number;
+  produitIds: number[];
+  quantites: number[];
+  client: {
+    nom: string;
+    prenom: string;
+    email: string;
+    telephone: string;
+  };
+  returnPath?: string;
+}
+
+export interface InitPaymentResult {
+  payment_url: string;
+  transaction_id: string;
+}
+
 class VenteService {
   async create(venteData: Partial<Vente>) {
     const res = await api.post("/", venteData);
+    return res.data;
+  }
+
+  async initPayment(payload: InitPaymentPayload): Promise<InitPaymentResult> {
+    const res = await api.post("/init-payment", payload);
     return res.data;
   }
 

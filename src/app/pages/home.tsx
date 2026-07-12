@@ -3,6 +3,7 @@ import { ArrowRight, TrendingUp, Shield, Globe, ShoppingCart } from "lucide-reac
 import { useCart } from "../lib/cart-context";
 import { useState, useEffect } from "react";
 import { produitService } from "../service/produit.service";
+import { useImage } from "../lib/image-context";
 
 interface FeaturedProduct {
   id: string;
@@ -22,30 +23,37 @@ export function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<FeaturedProduct[]>([]);
   const { addToCart } = useCart();
   const [addedToCart, setAddedToCart] = useState<string | null>(null);
+  const { getBoutiqueImageUrl } = useImage();
 
   useEffect(() => {
     produitService
       .getAll()
       .then((data) => {
-        const products = data.map((product) => ({
-          id: product.id.toString(),
-          name: product.nom,
-          category: product.categorie?.libellé || "Autre",
-          availability: product.stock > 0 ? "En stock" : "Rupture",
-          rating: 4.5,
-          seller: product.categorie?.libellé || "Vendeur",
-          price: product.prix,
-          images: product.images_secondaires && product.images_secondaires.length > 0 ? product.images_secondaires : [product.image],
-          image: product.image,
-          description: product.description,
-          stock: product.stock,
-        }));
+        const products = data.map((product) => {
+          const rawImages =
+            Array.isArray(product.images_secondaires) && product.images_secondaires.length > 0
+              ? product.images_secondaires
+              : [product.image];
+          return {
+            id: product.id.toString(),
+            name: product.nom,
+            category: product.categorie?.libellé || "Autre",
+            availability: product.stock > 0 ? "En stock" : "Rupture",
+            rating: 4.5,
+            seller: product.categorie?.libellé || "Vendeur",
+            price: product.prix,
+            images: rawImages.map((img: string) => getBoutiqueImageUrl(img || "")),
+            image: getBoutiqueImageUrl(product.image || ""),
+            description: product.description,
+            stock: product.stock,
+          };
+        });
         setFeaturedProducts(products.slice(0, 6));
       })
       .catch((error) => {
         console.error("Erreur chargement produits :", error);
       });
-  }, []);
+  }, [getBoutiqueImageUrl]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {
@@ -163,19 +171,18 @@ export function Home() {
         {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {featuredProducts.map((product) => (
-            <div
+            <Link
               key={product.id}
-              className="bg-white border-4 border-gray-200 overflow-hidden hover:border-primary transition-all shadow-sm hover:shadow-lg group"
+              to={`/product/${product.id}`}
+              className="block bg-white border-4 border-gray-200 overflow-hidden hover:border-primary transition-all shadow-sm hover:shadow-lg group"
             >
-              <Link to={`/product/${product.id}`}>
-                <div className="aspect-square overflow-hidden bg-gray-100">
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-              </Link>
+              <div className="aspect-square overflow-hidden bg-gray-100">
+                <img
+                  src={product.images[0]}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <span className="text-xs px-2 py-1 bg-blue-100 text-primary font-medium border-2 border-blue-200">
@@ -183,11 +190,9 @@ export function Home() {
                   </span>
                   <span className="text-xs text-green-600 font-medium">{product.availability}</span>
                 </div>
-                <Link to={`/product/${product.id}`}>
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                    {product.name}
-                  </h3>
-                </Link>
+                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                  {product.name}
+                </h3>
                 <div className="flex items-center gap-1 mb-3">
                   <div className="flex">
                     {[...Array(5)].map((_, i) => (
@@ -206,6 +211,7 @@ export function Home() {
                 <button
                   onClick={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     handleAddToCart(product);
                   }}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-secondary text-white font-semibold hover:bg-green-600 transition-all border-2 border-secondary"
@@ -217,7 +223,7 @@ export function Home() {
                   <p className="mt-2 text-sm text-center font-medium text-secondary">✓ Ajouté au panier !</p>
                 )}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 

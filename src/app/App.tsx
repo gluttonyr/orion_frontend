@@ -8,6 +8,8 @@ import { WalletProvider } from "./lib/wallet-context";
 import { WithdrawalMethodsProvider } from "./lib/withdrawal-methods-context";
 import { ImageProvider } from "./lib/image-context";
 import { UserProvider } from "./lib/user-context";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 export default function App() {
   return (
     <UserProvider>
@@ -18,6 +20,7 @@ export default function App() {
             <WalletProvider>
               <StoreProvider>
                 <CartProvider>
+                   <ToastContainer />
                   <RouterProvider router={router} />
                 </CartProvider>
               </StoreProvider>

@@ -15,6 +15,7 @@ export function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
 
   const isDashboard = location.pathname.startsWith("/dashboard");
   const marketplaceUrl = isDashboard ? "/dashboard/marketplace" : "/";
@@ -26,6 +27,7 @@ export function ProductDetail() {
       try {
         setLoading(true);
         setError(null);
+        setSelectedImage(0);
         // Utilisez getById si disponible, sinon getAll + find
         const data = await produitService.getById(Number(id));
         setProduct(data);
@@ -43,45 +45,70 @@ export function ProductDetail() {
     new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", minimumFractionDigits: 0 }).format(amount);
 
   if (loading) return (
-    <div className="text-center py-16">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
       <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
       <p className="text-gray-500">Chargement du produit...</p>
     </div>
   );
 
   if (error || !product) return (
-    <div className="text-center py-12">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
       <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
       <h2 className="text-2xl font-semibold text-gray-900 mb-2">Produit non trouvé</h2>
       <Link to={marketplaceUrl} className="text-primary hover:text-blue-700">Retour au marketplace</Link>
     </div>
   );
 
-  const images = product.image ? [getBoutiqueImageUrl(product.image)] : [];
+  const secondaryImages = Array.isArray(product.images_secondaires) ? product.images_secondaires : [];
+  const images = [product.image, ...secondaryImages]
+    .filter((img): img is string => Boolean(img))
+    .map((img) => getBoutiqueImageUrl(img));
 
   return (
-    <div className="space-y-6 pb-20 md:pb-6">
-      <Link to={marketplaceUrl} className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 space-y-6 pb-20 md:pb-6">
+      <Link
+        to={marketplaceUrl}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-medium border-2 border-gray-200 hover:border-primary hover:text-primary shadow-sm transition-all"
+      >
         <ArrowLeft className="w-5 h-5" />
         <span>Retour au marketplace</span>
       </Link>
 
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-5 gap-8">
         {/* Image */}
-        <div className="bg-white shadow-md overflow-hidden border-4 border-gray-100">
-          <div className="aspect-square bg-gray-100">
-            {images.length > 0 ? (
-              <img src={images[0]} alt={product.nom} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Package className="w-24 h-24 text-gray-300" />
+        <div className="lg:col-span-2">
+          <div className="bg-white shadow-md overflow-hidden border-4 border-gray-100 lg:sticky lg:top-24">
+            <div className="h-72 sm:h-96 lg:h-[380px] bg-gray-100">
+              {images.length > 0 ? (
+                <img src={images[selectedImage]} alt={product.nom} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Package className="w-24 h-24 text-gray-300" />
+                </div>
+              )}
+            </div>
+            {images.length > 1 && (
+              <div className="flex gap-2 p-4 overflow-x-auto">
+                {images.map((img, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setSelectedImage(index)}
+                    aria-label={`Image ${index + 1}`}
+                    className={`w-16 h-16 flex-shrink-0 border-2 overflow-hidden transition-colors ${
+                      selectedImage === index ? "border-primary" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <img src={img} alt={`${product.nom} ${index + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
             )}
           </div>
         </div>
 
         {/* Info */}
-        <div className="space-y-6">
+        <div className="lg:col-span-3 space-y-6">
           <div className="bg-white shadow-md p-6 border-4 border-gray-100">
             <div className="flex items-start justify-between mb-4">
               <h1 className="text-3xl font-bold text-gray-900">{product.nom}</h1>
