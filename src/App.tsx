@@ -1,121 +1,96 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
-function App() {
-  const [count, setCount] = useState(0)
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import { AuthPage } from "./pages/AuthPages";
+import { OrionProvider, useOrion } from "./OrionContext";
+import { getMyStores } from "./lib/store-service";
+import {
+  CartPage,
+  CheckoutPage,
+  HomePage,
+  MarketplacePage,
+  OpportunityDetailPage,
+  OpportunitiesPage,
+  ProductPage,
+  ProfileSelectionPage,
+  PurchasesPage,
+  PublicLayout,
+  StoreSelectionPage,
+} from "./pages/PublicPages";
 
-      <div className="ticks"></div>
+const queryClient = new QueryClient();
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+function DashboardGate() {
+  const { session, activeStoreId } = useOrion();
+  const location = useLocation();
+  const [ownedStoreIds, setOwnedStoreIds] = useState<string[] | null>(null);
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  useEffect(() => {
+    let isMounted = true;
+    if (!session?.token || session.role !== "COMMERCANT") {
+      setOwnedStoreIds(null);
+      return () => { isMounted = false; };
+    }
+    setOwnedStoreIds(null);
+    getMyStores(session.token)
+      .then((stores) => {
+        if (isMounted) setOwnedStoreIds(stores.map((store) => String(store.id)));
+      })
+      .catch(() => {
+        if (isMounted) setOwnedStoreIds([]);
+      });
+    return () => { isMounted = false; };
+  }, [session?.token, session?.role]);
+
+  if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  const merchantOnlyPath: boolean = /^\/dashboard\/(stores|products|subscriptions|wallet|withdrawal-methods)(\/|$)/.test(location.pathname);
+  if (merchantOnlyPath && session.role !== "COMMERCANT") return <Navigate to="/dashboard" replace />;
+
+  // Store management must remain reachable so a merchant can create/select their first store.
+  const isStoreManagementPath = /^\/dashboard\/stores(\/|$)/.test(location.pathname);
+  if (session.role === "COMMERCANT" && !isStoreManagementPath) {
+    if (ownedStoreIds === null) return <div className="dashboard-gate-loading" role="status">Chargement de votre boutique…</div>;
+    if (!activeStoreId || !ownedStoreIds.includes(activeStoreId)) {
+      return <Navigate to="/store-selection" replace state={{ from: location.pathname }} />;
+    }
+  }
+  return <Index />;
 }
 
-export default App
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <OrionProvider>
+      <TooltipProvider>
+        <Toaster />
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Routes>
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/marketplace" element={<MarketplacePage />} />
+              <Route path="/product/:id" element={<ProductPage />} />
+              <Route path="/opportunities" element={<OpportunitiesPage />} />
+              <Route path="/opportunities/:id" element={<OpportunityDetailPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/purchases" element={<PurchasesPage />} />
+            </Route>
+            <Route path="/login" element={<AuthPage />} />
+            <Route path="/register" element={<AuthPage register />} />
+            <Route path="/profile-selection" element={<ProfileSelectionPage />} />
+            <Route path="/store-selection" element={<StoreSelectionPage />} />
+            <Route path="/dashboard/*" element={<DashboardGate />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </OrionProvider>
+  </QueryClientProvider>
+);
+
+export default App;
