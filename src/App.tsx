@@ -5,7 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-import Index from "./pages/Index";
+import Index from "./pages/index";
 import { ThemeModeProvider } from "./ThemeMode";
 import NotFound from "./pages/NotFound";
 import { AuthPage } from "./pages/AuthPages";
