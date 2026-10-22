@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { getCurrentUser, loginUser, registerUser } from "./lib/auth-service";
 import { getProducts, type ProductRecord } from "./lib/catalog-service";
 import { getUploadUrl } from "./lib/api";
+import { getMyCart, saveMyCart } from "./lib/cart-service";
 
 export type UserRole = "UTILISATEUR" | "COMMERCANT" | "ADMIN";
 
@@ -21,9 +22,12 @@ export type Product = {
   store: string;
   category: string;
   price: number;
+  promotionalPrice?: number | null;
   stock: number;
   description: string;
   image: string;
+  secondaryImages?: string[];
+  status?: string;
   featured?: boolean;
 };
 
@@ -36,6 +40,7 @@ export type OpportunityRecord = {
   amount: string;
   duration: string;
   description: string;
+  requirements?: string[];
   accent: string;
 };
 
@@ -52,7 +57,7 @@ function readLiveAttribution(): number | null {
   return Number.isSafeInteger(value) && value > 0 ? value : null;
 }
 
-const fallbackCatalogProducts: Product[] = [
+export const fallbackCatalogProducts: Product[] = [
   {
     id: "kente-tote",
     name: "Tote Kente Héritage",
@@ -126,6 +131,9 @@ export function syncCatalogProducts(products: Product[]): void {
 
 export function mapBackendProduct(product: ProductRecord): Product {
   const price = Number(product.prix ?? 0);
+  const promotionalPrice = product.prixPromotionnel == null || product.prixPromotionnel === ''
+    ? null
+    : Number(product.prixPromotionnel);
   const category = typeof product.categorie === "string"
     ? product.categorie
     : product.categorie?.libellé;
@@ -135,11 +143,21 @@ export function mapBackendProduct(product: ProductRecord): Product {
     store: product.statut ?? "Boutique Orion",
     category: category || "Divers",
     price: Number.isFinite(price) ? price : 0,
+    promotionalPrice: Number.isFinite(promotionalPrice) && promotionalPrice > 0 && promotionalPrice < price ? promotionalPrice : null,
     stock: Number(product.stock ?? 0),
     description: product.description ?? "Produit disponible sur Orion.",
     image: getUploadUrl(product.image || product.images_secondaires?.[0]) || "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=88",
+    secondaryImages: (product.images_secondaires ?? []).map((image) => getUploadUrl(image)).filter(Boolean),
+    status: product.statut,
     featured: true,
   };
+}
+
+export function getSellingPrice(product: Pick<Product, "price" | "promotionalPrice">): number {
+  const promotionalPrice = Number(product.promotionalPrice);
+  return Number.isFinite(promotionalPrice) && promotionalPrice > 0 && promotionalPrice < product.price
+    ? promotionalPrice
+    : product.price;
 }
 
 export const opportunityCatalog: OpportunityRecord[] = [
@@ -190,12 +208,14 @@ export const opportunityCatalog: OpportunityRecord[] = [
 ];
 
 const demoSessionKey = "orion-demo-session";
-const cartStorageKey = "orion-cart";
+const legacyCartStorageKey = "orion-cart";
+const guestCartStorageKey = "orion-cart:guest";
+const userCartStorageKey = (userId: number) => `orion-cart:user:${userId}`;
 
-function readStoredCart(): CartLine[] {
+function readStoredCart(key = guestCartStorageKey): CartLine[] {
   if (typeof window === "undefined") return [];
   try {
-    const saved = window.localStorage.getItem(cartStorageKey);
+    const saved = window.localStorage.getItem(key) ?? window.localStorage.getItem(legacyCartStorageKey);
     const parsed: unknown = saved ? JSON.parse(saved) : [];
     if (!Array.isArray(parsed)) return [];
     return parsed.filter((line): line is CartLine => Boolean(
@@ -228,15 +248,11 @@ type OrionContextValue = {
     role: UserRole;
     nom?: string;
     prenom?: string;
-    date_naissance?: string;
-    adresse?: string;
     contact?: string;
-    specialite?: string;
-    localisation?: string;
+    indicatifPays?: string;
   }) => Promise<void>;
   logout: () => void;
-  switchRole: (role: UserRole) => void;
-  updateSession: (updates: Partial<OrionSession>) => void;
+  updateSession: (updates: Partial<Omit<OrionSession, "role">>) => void;
   activeStoreId: string | null;
   setActiveStoreId: (storeId: string | null) => void;
   cart: CartLine[];
@@ -259,12 +275,22 @@ export function OrionProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return "";
     return window.localStorage.getItem("orion-active-store") ?? readStoredSession()?.activeStoreId ?? "";
   });
-  const [cart, setCart] = useState<CartLine[]>(readStoredCart);
+  const [cart, setCart] = useState<CartLine[]>(() => {
+    const initialSession = readStoredSession();
+    return readStoredCart(initialSession?.userId ? userCartStorageKey(initialSession.userId) : guestCartStorageKey);
+  });
+  const cartRef = useRef(cart);
+  const cartReadyTokenRef = useRef<string | null>(null);
+  const pendingCartSaveRef = useRef<number | undefined>(undefined);
+  cartRef.current = cart;
   const [liveAttribution, setLiveAttributionState] = useState<number | null>(readLiveAttribution);
 
   useEffect(() => {
-    if (typeof window !== "undefined") window.localStorage.setItem(cartStorageKey, JSON.stringify(cart));
-  }, [cart]);
+    if (typeof window === "undefined") return;
+    const key = session?.userId ? userCartStorageKey(session.userId) : guestCartStorageKey;
+    window.localStorage.setItem(key, JSON.stringify(cart));
+    window.localStorage.removeItem(legacyCartStorageKey);
+  }, [cart, session?.userId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -276,6 +302,11 @@ export function OrionProvider({ children }: { children: ReactNode }) {
         console.log("Fetched products from backend:", mapped);
         setProducts(mapped);
         syncCatalogProducts(mapped);
+        const mappedById = new Map(mapped.map((product) => [product.id, product]));
+        setCart((current) => current.map((line) => {
+          const latestProduct = mappedById.get(line.product.id);
+          return latestProduct ? { ...line, product: latestProduct } : line;
+        }));
       })
       .catch(() => {
         if (isMounted) {
@@ -296,22 +327,81 @@ export function OrionProvider({ children }: { children: ReactNode }) {
     if (nextSession) window.localStorage.setItem(demoSessionKey, JSON.stringify(nextSession));
     else {
       window.localStorage.removeItem(demoSessionKey);
+      window.localStorage.removeItem("orion-token");
       window.localStorage.removeItem("orion-active-store");
       setActiveStoreIdState("");
+      setCart(readStoredCart(guestCartStorageKey));
     }
   };
 
   useEffect(() => {
-    if (!session?.token || session.userId) return;
+    if (!session?.token) return;
     let isMounted = true;
     getCurrentUser(session.token)
       .then((user) => {
         if (!isMounted) return;
         persistSession({ ...session, userId: user.id });
       })
-      .catch(() => undefined);
+      .catch((error) => {
+        if (!isMounted) return;
+        const message = error instanceof Error ? error.message : "";
+        if (/token invalide|token.*expir|session invalide|session.*expir|unauthorized|utilisateur.*trouv|not found|authentification requise/i.test(message)) {
+          persistSession(null);
+        } else {
+          console.warn("La session n’a pas pu être vérifiée pour le moment.", error);
+        }
+      });
     return () => { isMounted = false; };
-  }, [session?.token, session?.userId]);
+  }, [session?.token]);
+
+  useEffect(() => {
+    const token = session?.token;
+    if (!token) {
+      cartReadyTokenRef.current = null;
+      return;
+    }
+    let isMounted = true;
+    cartReadyTokenRef.current = null;
+    getMyCart(token)
+      .then(async (serverCart) => {
+        if (!isMounted) return;
+        const merged = new Map(serverCart.items.flatMap(({ product, quantity }) => {
+          const mappedProduct = mapBackendProduct(product);
+          const availableQuantity = Math.min(quantity, mappedProduct.stock);
+          return availableQuantity > 0 ? [[mappedProduct.id, { product: mappedProduct, quantity: availableQuantity }] as const] : [];
+        }));
+        for (const localLine of cartRef.current) {
+          const existing = merged.get(localLine.product.id);
+          const quantity = Math.min(Math.max(existing?.quantity ?? 0, localLine.quantity), localLine.product.stock);
+          if (quantity > 0) merged.set(localLine.product.id, { product: localLine.product, quantity });
+        }
+        const nextCart = [...merged.values()];
+        setCart(nextCart);
+        cartReadyTokenRef.current = token;
+        try {
+          await saveMyCart(token, nextCart.map((line) => ({ productId: Number(line.product.id), quantity: line.quantity })));
+          window.localStorage.removeItem(guestCartStorageKey);
+        } catch (error) {
+          console.warn("Impossible de synchroniser le panier avec Orion.", error);
+        }
+      })
+      .catch((error) => console.warn("Impossible de charger le panier du compte.", error));
+    return () => { isMounted = false; };
+  }, [session?.token]);
+
+  useEffect(() => {
+    if (!session?.token || cartReadyTokenRef.current !== session.token) return;
+    if (pendingCartSaveRef.current !== undefined) window.clearTimeout(pendingCartSaveRef.current);
+    pendingCartSaveRef.current = window.setTimeout(() => {
+      void saveMyCart(session.token, cart.map((line) => ({
+        productId: Number(line.product.id),
+        quantity: line.quantity,
+      }))).catch((error) => console.warn("Impossible d’enregistrer le panier côté serveur.", error));
+    }, 300);
+    return () => {
+      if (pendingCartSaveRef.current !== undefined) window.clearTimeout(pendingCartSaveRef.current);
+    };
+  }, [session?.token, cart]);
 
   const login = async (email: string, password: string, role: UserRole): Promise<void> => {
     const response = await loginUser(email, password);
@@ -348,23 +438,23 @@ export function OrionProvider({ children }: { children: ReactNode }) {
     role: UserRole;
     nom?: string;
     prenom?: string;
-    date_naissance?: string;
-    adresse?: string;
     contact?: string;
-    specialite?: string;
-    localisation?: string;
+    indicatifPays?: string;
   }): Promise<void> => {
-    const response = await registerUser({
+    const registrationResponse = await registerUser({
       ...payload,
       nom: payload.nom ?? payload.email.split("@")[0] ?? "Membre",
       prenom: payload.prenom ?? "Orion",
-      date_naissance: payload.date_naissance ?? "2000-01-01",
-      adresse: payload.adresse ?? "Abidjan",
       contact: payload.contact ?? "",
-      specialite: payload.specialite ?? "",
-      localisation: payload.localisation ?? "Abidjan",
+      indicatifPays: payload.indicatifPays,
       role: payload.role,
     });
+
+    // Some deployed API instances still return the created user without a JWT.
+    // Log in immediately in that case so registration works with both response shapes.
+    const response = registrationResponse?.access_token && registrationResponse?.user
+      ? registrationResponse
+      : await loginUser(payload.email, payload.password);
 
     const user = response.user;
     const displayName = [user.prenom, user.nom].filter(Boolean).join(" ") || payload.email.split("@")[0]?.replace(/[._-]/g, " ") || "Membre Orion";
@@ -386,12 +476,7 @@ export function OrionProvider({ children }: { children: ReactNode }) {
 
   const logout = (): void => persistSession(null);
 
-  const switchRole = (role: UserRole): void => {
-    if (!session) return;
-    persistSession({ ...session, role });
-  };
-
-  const updateSession = (updates: Partial<OrionSession>): void => {
+  const updateSession = (updates: Partial<Omit<OrionSession, "role">>): void => {
     if (session) persistSession({ ...session, ...updates });
   };
 
@@ -434,13 +519,12 @@ export function OrionProvider({ children }: { children: ReactNode }) {
     login,
     register,
     logout,
-    switchRole,
     updateSession,
     activeStoreId,
     setActiveStoreId,
     cart,
     cartCount: cart.reduce((total, line) => total + line.quantity, 0),
-    cartTotal: cart.reduce((total, line) => total + line.product.price * line.quantity, 0),
+    cartTotal: cart.reduce((total, line) => total + getSellingPrice(line.product) * line.quantity, 0),
     addToCart,
     updateCartQuantity,
     removeFromCart,

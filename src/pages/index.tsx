@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowDownLeft,
@@ -13,7 +13,6 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDollarSign,
-  CircleHelp,
   Clock3,
   Command,
   CreditCard,
@@ -21,8 +20,10 @@ import {
   FileText,
   Filter,
   HelpCircle,
+  Home,
   Info,
   LayoutDashboard,
+  LogOut,
   MapPin,
   MessagesSquare,
   MoreHorizontal,
@@ -38,8 +39,8 @@ import {
   Smile,
   Store,
   UserRound,
-  Sparkles,
   Star,
+  Tags,
   TrendingUp,
   UsersRound,
   Video,
@@ -48,13 +49,21 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { getManagementPageCopy, DashboardRouteView } from "./DashboardManagementView";
-import { roleLabel, useOrion, type OrionSession, type UserRole } from "../OrionContext";
+import { formatCfa, roleLabel, useOrion, type OrionSession, type UserRole } from "../OrionContext";
 import { getUploadUrl } from "../lib/api";
 import { createMessage, getMessages, type MessageRecord } from "../lib/message-service";
 import { getDiscussions, type DiscussionRecord } from "../lib/discussion-service";
 import { getMyStores } from "../lib/store-service";
+import { getMyApplications, getMyMissions } from "../lib/mission-service";
+import { getMyPurchases, type PurchaseRecord } from "../lib/order-service";
+import { getSellerAnalytics, type SellerAnalytics } from "../lib/analytics-service";
+import { getNotifications, markAllNotificationsRead, markNotificationRead, type OrionNotification } from "../lib/notification-service";
+import { getProductsByOwner } from "../lib/catalog-service";
+import { SellerHandoverWallet, SellerOrdersView } from "../components/HandoverTools";
+import { ThemeModeButton } from "../ThemeMode";
+import { toast } from "../components/ui/sonner";
 
-type Section = "home" | "marketplace" | "opportunities" | "messages" | "wallet" | "analytics";
+type Section = "home" | "marketplace" | "opportunities" | "messages" | "wallet" | "analytics" | "orders" | "users" | "settings" | "store-categories" | "product-categories" | "mission-types";
 type MessageSender = "me" | "them";
 
 type ChatMessage = {
@@ -107,6 +116,7 @@ const merchantNavItems: DashboardNavItem[] = [
   { id: "home", label: "Tableau de bord", path: "/dashboard", section: "home", icon: LayoutDashboard },
   { id: "stores", label: "Mes boutiques", path: "/dashboard/stores", section: "home", icon: Store },
   { id: "products", label: "Mes produits", path: "/dashboard/products", section: "marketplace", icon: PackageOpen },
+  { id: "orders", label: "Commandes reçues", path: "/dashboard/orders", section: "orders", icon: ShoppingCart },
   { id: "marketplace", label: "Marketplace", path: "/dashboard/marketplace", section: "marketplace", icon: ShoppingBag },
   { id: "wallet", label: "Portefeuille", path: "/dashboard/wallet", section: "wallet", icon: WalletCards },
   { id: "analytics", label: "Analyses", path: "/dashboard/analytics", section: "analytics", icon: BarChart3 },
@@ -118,10 +128,20 @@ const merchantNavItems: DashboardNavItem[] = [
 
 const entrepreneurNavItems: DashboardNavItem[] = [
   { id: "home", label: "Tableau de bord", path: "/dashboard", section: "home", icon: LayoutDashboard },
-  { id: "opportunities", label: "Opportunités", path: "/dashboard/opportunities", section: "opportunities", icon: BriefcaseBusiness, badge: "4" },
-  { id: "analytics", label: "Analyses", path: "/dashboard/analytics", section: "analytics", icon: BarChart3 },
-  { id: "messages", label: "Messages", path: "/dashboard/messages", section: "messages", icon: MessagesSquare, badge: "3" },
+  { id: "opportunities", label: "Mes candidatures", path: "/dashboard/opportunities", section: "opportunities", icon: BriefcaseBusiness },
+  { id: "orders", label: "Mes commandes", path: "/dashboard/orders", section: "orders", icon: ShoppingCart },
+  { id: "messages", label: "Messages", path: "/dashboard/messages", section: "messages", icon: MessagesSquare },
   { id: "profile", label: "Profil", path: "/dashboard/profile", section: "home", icon: UserRound },
+];
+
+const adminNavItems: DashboardNavItem[] = [
+  { id: "users", label: "Utilisateurs", path: "/dashboard/users", section: "users", icon: UsersRound },
+  { id: "orders", label: "Commandes", path: "/dashboard/orders", section: "orders", icon: ShoppingCart },
+  { id: "wallet", label: "Portefeuille plateforme", path: "/dashboard/wallet", section: "wallet", icon: WalletCards },
+  { id: "settings", label: "Réglages du site", path: "/dashboard/settings", section: "settings", icon: Settings2 },
+  { id: "store-categories", label: "Catégories boutique", path: "/dashboard/store-categories", section: "store-categories", icon: Tags },
+  { id: "product-categories", label: "Catégories produits", path: "/dashboard/product-categories", section: "product-categories", icon: Tags },
+  { id: "mission-types", label: "Types de mission", path: "/dashboard/mission-types", section: "mission-types", icon: BriefcaseBusiness },
 ];
 
 const opportunities: Opportunity[] = [
@@ -167,9 +187,21 @@ const sectionTitles: Record<Section, { eyebrow: string; title: string; descripti
   messages: { eyebrow: "VOTRE RÉSEAU", title: "Messages", description: "Poursuivez les conversations qui font avancer vos projets." },
   wallet: { eyebrow: "VOTRE ACTIVITÉ", title: "Portefeuille", description: "Un aperçu simple de vos revenus, dépenses et mouvements." },
   analytics: { eyebrow: "VUE D'ENSEMBLE", title: "Analytiques", description: "Comprenez ce qui crée le plus de valeur dans votre espace Orion." },
+  orders: { eyebrow: "VOTRE PARCOURS D'ACHAT", title: "Mes commandes", description: "Retrouvez les commandes et les achats associés à votre compte." },
+  users: { eyebrow: "ADMINISTRATION", title: "Utilisateurs", description: "Consultez les comptes inscrits sur Orion." },
+  settings: { eyebrow: "ADMINISTRATION", title: "Réglages du site", description: "Choisissez les images affichées sur la page d’accueil." },
+  "store-categories": { eyebrow: "ADMINISTRATION", title: "Catégories boutique", description: "Gérez les catégories proposées lors de la création d’une boutique." },
+  "product-categories": { eyebrow: "ADMINISTRATION", title: "Catégories produits", description: "Gérez les catégories proposées lors de la création d’un produit." },
+  "mission-types": { eyebrow: "ADMINISTRATION", title: "Types de mission", description: "Gérez les types proposés lors de la création d’une opportunité." },
 };
 
 function sectionFromPath(pathname: string): Section {
+  if (pathname.includes("store-categories")) return "store-categories";
+  if (pathname.includes("product-categories")) return "product-categories";
+  if (pathname.includes("mission-types")) return "mission-types";
+  if (pathname.includes("/users")) return "users";
+  if (pathname.includes("/settings")) return "settings";
+  if (pathname.includes("orders")) return "orders";
   if (pathname.includes("messages")) return "messages";
   if (pathname.includes("opportunities")) return "opportunities";
   if (pathname.includes("wallet") || pathname.includes("subscriptions") || pathname.includes("withdrawal")) return "wallet";
@@ -179,6 +211,12 @@ function sectionFromPath(pathname: string): Section {
 }
 
 function dashboardPathForSection(section: Section): string {
+  if (section === "store-categories") return "/dashboard/store-categories";
+  if (section === "product-categories") return "/dashboard/product-categories";
+  if (section === "mission-types") return "/dashboard/mission-types";
+  if (section === "users") return "/dashboard/users";
+  if (section === "settings") return "/dashboard/settings";
+  if (section === "orders") return "/dashboard/orders";
   if (section === "marketplace") return "/dashboard/marketplace";
   if (section === "opportunities") return "/dashboard/opportunities";
   if (section === "messages") return "/dashboard/messages";
@@ -203,7 +241,7 @@ function BrandMark() {
 function Sidebar({ activeSection, pathname, role, onRoute }: { activeSection: Section; pathname: string; role: UserRole; onRoute: (path: string) => void }) {
   const { session, activeStoreId } = useOrion();
   const [activeStoreName, setActiveStoreName] = useState<string>("");
-  const navItems: DashboardNavItem[] = role === "COMMERCANT" ? merchantNavItems : entrepreneurNavItems;
+  const navItems: DashboardNavItem[] = role === "ADMIN" ? adminNavItems : role === "COMMERCANT" ? merchantNavItems : entrepreneurNavItems;
   const displayName: string = session?.name ?? "Membre Orion";
   const initials: string = displayName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 
@@ -221,19 +259,82 @@ function Sidebar({ activeSection, pathname, role, onRoute }: { activeSection: Se
   return (
     <aside className="sidebar-shell">
       <div className="sidebar-top">
-        <div className="brand-lockup"><BrandMark /></div>
-        <span className="workspace-pill">{role === "COMMERCANT" ? "COMMERCE" : "ENTREPRENEUR"}</span>
+        <button type="button" className="brand-lockup" aria-label="Retour à l’accueil Orion" title="Accueil Orion" onClick={() => onRoute("/")}><BrandMark /></button>
+        <span className="workspace-pill">{role === "ADMIN" ? "ADMINISTRATION" : role === "COMMERCANT" ? "COMMERCE" : "ENTREPRENEUR"}</span>
       </div>
       <div className="sidebar-profile"><Avatar initials={initials} avatarClass="avatar-burgundy" size="default" /><div className="min-w-0"><p className="sidebar-profile-name">{displayName}</p><p className="sidebar-profile-role">{roleLabel(role)} · Orion</p></div><ChevronDown size={15} strokeWidth={1.8} className="sidebar-chevron" /></div>
       {role === "COMMERCANT" ? <button type="button" className="sidebar-store-switcher" onClick={() => onRoute("/store-selection")}><span className="sidebar-store-icon"><Store size={14} /></span><span><small>BOUTIQUE ACTIVE</small><strong>{activeStoreName || (activeStoreId ? "Chargement…" : "Sélectionner une boutique")}</strong></span><ChevronDown size={14} /></button> : null}
-      <nav className="sidebar-nav" aria-label="Navigation principale"><p className="sidebar-label">{role === "COMMERCANT" ? "ESPACE COMMERCE" : "ESPACE ENTREPRENEUR"}</p>{navItems.map((item) => { const Icon = item.icon; const isActive: boolean = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path)); return <button type="button" key={item.id} className={`sidebar-nav-item ${isActive ? "is-active" : ""}`} onClick={() => onRoute(item.path)}><Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} /><span>{item.label}</span>{item.badge ? <span className={`sidebar-badge ${isActive ? "is-active" : ""}`}>{item.badge}</span> : null}</button>; })}</nav>
-      <div className="sidebar-bottom"><div className="sidebar-notice"><div className="notice-icon"><Sparkles size={15} /></div><div><p className="notice-title">Nouveau sur Orion</p><p className="notice-copy">Découvrez les cercles privés.</p></div><ArrowUpRight size={14} className="notice-arrow" /></div><button type="button" className="sidebar-bottom-item" onClick={() => onRoute("/dashboard/profile")}><Settings2 size={17} /> Réglages</button><button type="button" className="sidebar-bottom-item"><CircleHelp size={17} /> Centre d'aide</button><div className="sidebar-version"><span className="version-dot" /> Orion 2.4.0 <span className="version-status">à jour</span></div></div>
+      <nav className="sidebar-nav" aria-label="Navigation principale"><p className="sidebar-label">{role === "ADMIN" ? "ESPACE ADMIN" : role === "COMMERCANT" ? "ESPACE COMMERCE" : "ESPACE ENTREPRENEUR"}</p>{navItems.map((item) => { const Icon = item.icon; const isActive: boolean = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path)); return <button type="button" key={item.id} className={`sidebar-nav-item ${isActive ? "is-active" : ""}`} onClick={() => onRoute(item.path)}><Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} /><span>{item.label}</span>{item.badge ? <span className={`sidebar-badge ${isActive ? "is-active" : ""}`}>{item.badge}</span> : null}</button>; })}</nav>
+      <div className="sidebar-bottom"><div className="sidebar-version"><span className="version-dot" /> Orion 2.4.0 <span className="version-status">à jour</span></div></div>
     </aside>
   );
 }
 
-function TopBar({ title, onNotificationToggle, notificationsOpen, session, onNavigate }: { title: string; onNotificationToggle: () => void; notificationsOpen: boolean; session: OrionSession | null; onNavigate: (path: string) => void }) {
+function notificationTime(value: string): string {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "Récemment";
+  const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+  if (minutes < 1) return "À l’instant";
+  if (minutes < 60) return `Il y a ${minutes} min`;
+  if (minutes < 1440) return `Il y a ${Math.floor(minutes / 60)} h`;
+  return date.toLocaleDateString("fr-FR");
+}
+
+function TopBar({ title, onNotificationToggle, notificationsOpen, session, onNavigate, onLogout }: { title: string; onNotificationToggle: () => void; notificationsOpen: boolean; session: OrionSession | null; onNavigate: (path: string) => void; onLogout: () => void }) {
   const [accountMenuOpen, setAccountMenuOpen] = useState<boolean>(false);
+  const notificationWrapRef = useRef<HTMLDivElement>(null);
+  const [notifications, setNotifications] = useState<OrionNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const refreshNotifications = async () => {
+    if (!session?.token) { setNotifications([]); setUnreadCount(0); return; }
+    try {
+      const result = await getNotifications(session.token);
+      setNotifications(result.items);
+      setUnreadCount(result.unreadCount);
+    } catch {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  };
+  useEffect(() => {
+    void refreshNotifications();
+    const timer = window.setInterval(() => void refreshNotifications(), 30000);
+    return () => window.clearInterval(timer);
+  }, [session?.token]);
+  useEffect(() => {
+    if (!notificationsOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (event.target instanceof Node && !notificationWrapRef.current?.contains(event.target)) onNotificationToggle();
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onNotificationToggle();
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [notificationsOpen, onNotificationToggle]);
+  const markAllRead = async () => {
+    if (!session?.token) return;
+    try {
+      const result = await markAllNotificationsRead(session.token);
+      setNotifications(result.items);
+      setUnreadCount(result.unreadCount);
+    } catch { /* L’état reste inchangé et pourra être relu au prochain rafraîchissement. */ }
+  };
+  const openNotification = async (item: OrionNotification) => {
+    if (session?.token && !item.readAt) {
+      try {
+        const result = await markNotificationRead(item.id, session.token);
+        setNotifications(result.items);
+        setUnreadCount(result.unreadCount);
+      } catch { /* L’ouverture de la page reste possible si la lecture échoue. */ }
+    }
+    onNavigate("/dashboard/orders");
+    if (notificationsOpen) onNotificationToggle();
+  };
   const initials = session?.name?.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "OR";
   return (
     <header className="topbar">
@@ -244,19 +345,19 @@ function TopBar({ title, onNotificationToggle, notificationsOpen, session, onNav
         <span className="search-shortcut"><Command size={12} /> K</span>
       </div>
       <div className="topbar-actions">
+        <ThemeModeButton />
         <button type="button" className="topbar-icon-button" aria-label="Aide"><HelpCircle size={19} strokeWidth={1.75} /></button>
-        <div className="notification-wrap">
-          <button type="button" className={`topbar-icon-button ${notificationsOpen ? "is-active" : ""}`} aria-label="Notifications" onClick={onNotificationToggle}><Bell size={19} strokeWidth={1.75} /><span className="notification-dot" /></button>
+        <div className="notification-wrap" ref={notificationWrapRef}>
+          <button type="button" className={`topbar-icon-button ${notificationsOpen ? "is-active" : ""}`} aria-label={`Notifications${unreadCount ? `, ${unreadCount} non lues` : ""}`} onClick={onNotificationToggle}><Bell size={19} strokeWidth={1.75} />{unreadCount ? <span className="notification-dot" /> : null}</button>
           {notificationsOpen ? (
             <div className="notification-popover">
-              <div className="popover-heading"><span>Notifications</span><button type="button"><Check size={15} /> Tout lire</button></div>
-              <div className="notification-item"><span className="notification-symbol symbol-coral"><MessagesSquare size={15} /></span><div><p>Marie Laurent vous a écrit</p><span>Il y a 2 min</span></div></div>
-              <div className="notification-item"><span className="notification-symbol symbol-gold"><BriefcaseBusiness size={15} /></span><div><p>4 opportunités correspondent à votre profil</p><span>Il y a 1 h</span></div></div>
+              <div className="popover-heading"><span>Notifications {unreadCount ? `(${unreadCount})` : ""}</span><button type="button" onClick={() => void markAllRead()} disabled={!unreadCount}><Check size={15} /> Tout lire</button></div>
+              {notifications.length ? notifications.map((item) => <button type="button" className={`notification-item ${item.readAt ? "is-read" : ""}`} key={item.id} onClick={() => void openNotification(item)}><span className="notification-symbol symbol-coral"><ShoppingBag size={15} /></span><span><p>{item.title}</p><span>{item.message}</span><span>{notificationTime(item.createdAt)}</span></span></button>) : <div className="notification-empty">Aucune notification pour le moment.</div>}
             </div>
           ) : null}
         </div>
         <div className="topbar-divider" />
-        <div className="topbar-account-wrap"><button type="button" className="topbar-user" aria-expanded={accountMenuOpen} aria-haspopup="menu" onClick={() => setAccountMenuOpen((current) => !current)}>{session?.image ? <img className="topbar-user-photo" src={getUploadUrl(session.image)} alt="" /> : <Avatar initials={initials} avatarClass="avatar-burgundy" size="small" />}<span>{session?.name ?? "Mon compte"}</span><ChevronDown size={15} /></button>{accountMenuOpen ? <div className="topbar-account-menu" role="menu"><div className="topbar-account-summary"><strong>{session?.name ?? "Mon compte"}</strong><span>{session?.email}</span></div><button type="button" role="menuitem" onClick={() => { setAccountMenuOpen(false); onNavigate("/dashboard"); }}><LayoutDashboard size={15} /> Aller au dashboard</button><button type="button" role="menuitem" onClick={() => { setAccountMenuOpen(false); onNavigate("/dashboard/profile"); }}><UserRound size={15} /> Mon profil</button></div> : null}</div>
+        <div className="topbar-account-wrap"><button type="button" className="topbar-user" aria-expanded={accountMenuOpen} aria-haspopup="menu" onClick={() => setAccountMenuOpen((current) => !current)}>{session?.image ? <img className="topbar-user-photo" src={getUploadUrl(session.image)} alt="" /> : <Avatar initials={initials} avatarClass="avatar-burgundy" size="small" />}<span>{session?.name ?? "Mon compte"}</span><ChevronDown size={15} /></button>{accountMenuOpen ? <div className="topbar-account-menu" role="menu"><div className="topbar-account-summary"><strong>{session?.name ?? "Mon compte"}</strong><span>{session?.email}</span></div><button type="button" role="menuitem" onClick={() => { setAccountMenuOpen(false); onNavigate("/"); }}><Home size={15} /> Aller à la page d’accueil</button><button type="button" role="menuitem" onClick={() => { setAccountMenuOpen(false); onNavigate("/dashboard/profile"); }}><UserRound size={15} /> Mon profil</button><button type="button" role="menuitem" className="account-logout" onClick={() => { setAccountMenuOpen(false); onLogout(); }}><LogOut size={15} /> Se déconnecter</button></div> : null}</div>
       </div>
     </header>
   );
@@ -301,12 +402,16 @@ function StatCard({ icon: Icon, label, value, detail, trend, tone }: { icon: Luc
   );
 }
 
-function QuickActions({ onNavigate }: { onNavigate: (section: Section) => void }) {
-  const actions: { label: string; copy: string; icon: LucideIcon; action: () => void; tone: string }[] = [
+function QuickActions({ onNavigate, role }: { onNavigate: (section: Section) => void; role: UserRole }) {
+  const actions: { label: string; copy: string; icon: LucideIcon; action: () => void; tone: string }[] = role === "COMMERCANT" ? [
     { label: "Explorer", copy: "La marketplace", icon: ShoppingBag, action: () => onNavigate("marketplace"), tone: "action-pink" },
-    { label: "Postuler", copy: "Aux opportunités", icon: BriefcaseBusiness, action: () => onNavigate("opportunities"), tone: "action-gold" },
+    { label: "Publier", copy: "Une opportunité", icon: BriefcaseBusiness, action: () => onNavigate("opportunities"), tone: "action-gold" },
     { label: "Écrire", copy: "À votre réseau", icon: MessagesSquare, action: () => onNavigate("messages"), tone: "action-blue" },
     { label: "Analyser", copy: "Votre activité", icon: BarChart3, action: () => onNavigate("analytics"), tone: "action-green" },
+  ] : [
+    { label: "Candidatures", copy: "Suivre mes réponses", icon: BriefcaseBusiness, action: () => onNavigate("opportunities"), tone: "action-gold" },
+    { label: "Commandes", copy: "Retrouver mes achats", icon: ShoppingCart, action: () => onNavigate("orders"), tone: "action-pink" },
+    { label: "Messages", copy: "Voir mes discussions", icon: MessagesSquare, action: () => onNavigate("messages"), tone: "action-blue" },
   ];
   return (
     <section className="section-block">
@@ -359,15 +464,77 @@ function ConversationsPanel({ conversations, onOpen, onViewAll }: { conversation
   );
 }
 
-function HomeView({ conversations, onNavigate, onOpenConversation, role }: { conversations: Conversation[]; onNavigate: (section: Section) => void; onOpenConversation: (id: string) => void; role: UserRole }) {
-  return (
-    <>
-      <div className="dashboard-top-grid">{role === "COMMERCANT" ? <WalletCard onNavigate={onNavigate} /> : <section className="wallet-card entrepreneur-dashboard-card"><div className="wallet-card-top"><div><p className="card-overline light">VOTRE RYTHME</p><div className="wallet-amount">7 <span>missions actives</span></div></div><span className="wallet-chip"><BriefcaseBusiness size={14} /> ENTREPRENEUR</span></div><div className="wallet-card-bottom"><div className="wallet-change"><TrendingUp size={15} /> <strong>+24 %</strong><span>de connexions utiles</span></div><button type="button" className="wallet-link" onClick={() => onNavigate("opportunities")}>Voir les opportunités <ArrowUpRight size={15} /></button></div></section>}<div className="stats-stack">{role === "COMMERCANT" ? <><StatCard icon={TrendingUp} label="Revenus ce mois" value="4 286 €" detail="+ 18,4 % vs. juillet" trend="↑" tone="stat-green" /><StatCard icon={BriefcaseBusiness} label="Opportunités actives" value="12" detail="4 nouvelles cette semaine" tone="stat-gold" /></> : <><StatCard icon={BriefcaseBusiness} label="Candidatures suivies" value="8" detail="2 réponses cette semaine" trend="↑" tone="stat-gold" /><StatCard icon={UsersRound} label="Connexions utiles" value="34" detail="+ 6 ce mois" trend="↑" tone="stat-green" /></>}</div></div>
-      <QuickActions onNavigate={onNavigate} />
-      <section className="section-block opportunities-section"><div className="section-heading"><div><p className="eyebrow">SÉLECTION ORION</p><h2>Des opportunités pour vous</h2></div><button type="button" className="text-link" onClick={() => onNavigate("opportunities")}>Explorer les opportunités <ChevronRight size={15} /></button></div><div className="opportunities-grid">{opportunities.map((opportunity) => <OpportunityCard key={opportunity.id} opportunity={opportunity} onSelect={() => onNavigate("opportunities")} />)}</div></section>
-      <div className="lower-panels"><RecentActivity onNavigate={onNavigate} /><ConversationsPanel conversations={conversations} onOpen={onOpenConversation} onViewAll={() => onNavigate("messages")} /></div>
-    </>
-  );
+function ClientHomeView({ session, conversations, onNavigate, onOpenConversation }: { session: OrionSession | null; conversations: Conversation[]; onNavigate: (section: Section) => void; onOpenConversation: (id: string) => void }) {
+  const [applicationCount, setApplicationCount] = useState<number>(0);
+  const [orders, setOrders] = useState<PurchaseRecord[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  useEffect(() => {
+    let isMounted = true;
+    if (!session?.token) { setApplicationCount(0); setOrders([]); setLoading(false); return () => { isMounted = false; }; }
+    Promise.all([getMyApplications(session.token), getMyPurchases(session.token)])
+      .then(([applications, purchases]) => { if (isMounted) { setApplicationCount(applications.length); setOrders(purchases); } })
+      .catch(() => { if (isMounted) { setApplicationCount(0); setOrders([]); } })
+      .finally(() => { if (isMounted) setLoading(false); });
+    return () => { isMounted = false; };
+  }, [session?.token]);
+  return <>
+    <div className="opportunity-dashboard-intro"><div><span className="public-kicker">VOTRE ESPACE PERSONNEL</span><h3>Vos achats et vos projets,<br /><em>au même endroit.</em></h3><p>Suivez vos candidatures, retrouvez vos commandes et poursuivez vos échanges sur Orion.</p></div><div className="opportunity-dashboard-score"><strong>OR</strong><span>compte actif</span></div></div>
+    <div className="stats-stack client-dashboard-stats"><button type="button" className="client-dashboard-stat" onClick={() => onNavigate("opportunities")}><span>Mes candidatures</span><strong>{loading ? "…" : applicationCount}</strong><small>Suivre mes réponses <ArrowUpRight size={13} /></small></button><button type="button" className="client-dashboard-stat" onClick={() => onNavigate("orders")}><span>Mes commandes</span><strong>{loading ? "…" : orders.length}</strong><small>Retrouver mes achats <ArrowUpRight size={13} /></small></button></div>
+    <QuickActions onNavigate={onNavigate} role="UTILISATEUR" />
+    <section className="panel client-recent-orders"><div className="panel-heading"><div><p className="eyebrow">VOTRE PARCOURS D'ACHAT</p><h2>Commandes récentes</h2></div><button type="button" className="text-link" onClick={() => onNavigate("orders")}>Tout voir <ChevronRight size={15} /></button></div>{loading ? <p>Chargement de vos achats…</p> : orders.length ? orders.slice(0, 3).map((order) => <article className="client-order-preview" key={order.id}><span className="activity-icon activity-coral"><ShoppingBag size={15} /></span><div><strong>{order.reference || `Commande #${order.id}`}</strong><small>{order.produits?.map((product) => product.nom).join(", ") || "Commande Orion"}</small></div><strong>{formatCfa(Number(order.prix_total ?? 0))}</strong></article>) : <p className="client-empty-copy">Vos achats apparaîtront ici après une commande confirmée.</p>}</section>
+    <div className="lower-panels"><ConversationsPanel conversations={conversations} onOpen={onOpenConversation} onViewAll={() => onNavigate("messages")} /></div>
+  </>;
+}
+
+function HomeView({ conversations, onNavigate, onOpenConversation, role, session }: { conversations: Conversation[]; onNavigate: (section: Section) => void; onOpenConversation: (id: string) => void; role: UserRole; session: OrionSession | null }) {
+  if (role !== "COMMERCANT") return <ClientHomeView session={session} conversations={conversations} onNavigate={onNavigate} onOpenConversation={onOpenConversation} />;
+  return <SellerHomeView onNavigate={onNavigate} conversations={conversations} onOpenConversation={onOpenConversation} session={session} />;
+}
+
+function localDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function SellerHomeView({ onNavigate, conversations, onOpenConversation, session }: { onNavigate: (section: Section) => void; conversations: Conversation[]; onOpenConversation: (id: string) => void; session: OrionSession | null }) {
+  const [analytics, setAnalytics] = useState<SellerAnalytics | null>(null);
+  const [productCount, setProductCount] = useState<number>(0);
+  const [activeMissionCount, setActiveMissionCount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string>("");
+
+  useEffect(() => {
+    if (!session?.token || !session.userId) { setLoading(false); return; }
+    let isMounted = true;
+    const now = new Date();
+    const from = localDateKey(new Date(now.getFullYear(), now.getMonth(), 1));
+    const to = localDateKey(now);
+    setLoading(true);
+    Promise.allSettled([
+      getSellerAnalytics(session.token, from, to),
+      getProductsByOwner(Number(session.userId), session.token),
+      getMyMissions(session.token),
+    ]).then(([salesResult, productsResult, missionsResult]) => {
+      if (!isMounted) return;
+      if (salesResult.status === "fulfilled") setAnalytics(salesResult.value);
+      else setLoadError("Les indicateurs de vente n’ont pas pu être chargés.");
+      if (productsResult.status === "fulfilled") setProductCount(productsResult.value.length);
+      if (missionsResult.status === "fulfilled") setActiveMissionCount(missionsResult.value.filter((item) => item.statut === "ouverte" && item.publicationPayee).length);
+      setLoading(false);
+    });
+    return () => { isMounted = false; };
+  }, [session?.token, session?.userId]);
+
+  const summary = analytics?.summary;
+  return <div className="view-stack seller-home-view">
+    <section className="seller-overview-grid">
+      <article className="seller-overview-card seller-overview-primary"><span>CHIFFRE D’AFFAIRES · CE MOIS</span><strong>{loading ? "…" : formatCfa(summary?.revenue ?? 0)}</strong><p>{loading ? "Chargement des ventes…" : `${summary?.orderCount ?? 0} commande${summary?.orderCount === 1 ? "" : "s"} payée${summary?.orderCount === 1 ? "" : "s"} · ${summary?.unitsSold ?? 0} article${summary?.unitsSold === 1 ? "" : "s"} vendu${summary?.unitsSold === 1 ? "" : "s"}`}</p><button type="button" onClick={() => onNavigate("analytics")}>Voir les analyses <ArrowUpRight size={14} /></button></article>
+      <article className="seller-overview-card"><span>PRODUITS EN CATALOGUE</span><strong>{loading ? "…" : productCount}</strong><p>Produits associés à votre compte vendeur</p><button type="button" onClick={() => onNavigate("marketplace")}>Gérer mes produits <ArrowUpRight size={14} /></button></article>
+      <article className="seller-overview-card"><span>OPPORTUNITÉS PUBLIÉES</span><strong>{loading ? "…" : activeMissionCount}</strong><p>Vos missions ouvertes et payées</p><button type="button" onClick={() => onNavigate("opportunities")}>Voir mes opportunités <ArrowUpRight size={14} /></button></article>
+    </section>
+    {loadError ? <p className="auth-error" role="alert">{loadError}</p> : null}
+    <QuickActions onNavigate={onNavigate} role="COMMERCANT" />
+    <div className="lower-panels"><section className="panel seller-recent-orders"><div className="panel-heading"><div><p className="eyebrow">VENTES CONFIRMÉES</p><h2>Commandes récentes</h2></div><button type="button" className="text-link" onClick={() => onNavigate("analytics")}>Tout voir <ChevronRight size={15} /></button></div>{loading ? <p className="seller-empty-state">Chargement des commandes…</p> : analytics?.recentOrders.length ? analytics.recentOrders.slice(0, 5).map((order) => <article className="seller-order-row" key={order.venteId}><span className="activity-icon activity-green"><ShoppingBag size={15} /></span><div><strong>{order.reference || `Commande #${order.venteId}`}</strong><small>{order.articles.map((item) => `${item.nom} × ${item.quantite}`).join(", ")}</small></div><strong>{formatCfa(order.montant)}</strong></article>) : <p className="seller-empty-state">Aucune vente confirmée sur cette période.</p>}</section><ConversationsPanel conversations={conversations} onOpen={onOpenConversation} onViewAll={() => onNavigate("messages")} /></div>
+  </div>;
 }
 
 function MarketplaceView({ onNavigate }: { onNavigate: (section: Section) => void }) {
@@ -391,14 +558,14 @@ function MessagesView({ conversations, selectedConversationId, onSelectConversat
 }
 
 /*
-function WalletView() {
+function LegacyWalletView() {
   return (
     <div className="view-stack"><div className="wallet-overview"><div><p className="card-overline light">SOLDE TOTAL</p><div className="wallet-overview-amount">2 840,50 <span>€</span></div><div className="wallet-change"><TrendingUp size={15} /> <strong>+12,8 %</strong><span>sur les 30 derniers jours</span></div></div><div className="wallet-overview-actions"><button type="button" className="button button-cream"><Plus size={16} /> Ajouter des fonds</button><button type="button" className="wallet-outline-button"><ArrowUpRight size={16} /> Transférer</button></div></div><div className="wallet-metrics"><StatCard icon={ArrowDownLeft} label="Entrées ce mois" value="4 286 €" detail="3 transactions" tone="stat-green" /><StatCard icon={ArrowUpRight} label="Sorties ce mois" value="1 446 €" detail="7 transactions" tone="stat-coral" /><StatCard icon={CreditCard} label="Carte Orion" value="•• 4829" detail="Active" tone="stat-blue" /></div><section className="panel transactions-panel"><div className="panel-heading"><div><p className="eyebrow">HISTORIQUE</p><h2>Dernières transactions</h2></div><button type="button" className="button button-quiet"><Filter size={15} /> Filtrer</button></div><div className="transaction-table"><div className="transaction-head"><span>TRANSACTION</span><span>DATE</span><span>STATUT</span><span>MONTANT</span></div>{[{ name: "Studio Serein", copy: "Paiement reçu · Projet identité", icon: ArrowDownLeft, tone: "activity-green", date: "Aujourd'hui, 09:12", amount: "+ 1 200,00 €", positive: true }, { name: "Atelier N°7", copy: "Achat · Chaise Sillon", icon: ShoppingCart, tone: "activity-coral", date: "18 août 2026", amount: "− 480,00 €", positive: false }, { name: "Maison Calme", copy: "Mission conseil", icon: ArrowDownLeft, tone: "activity-green", date: "16 août 2026", amount: "+ 850,00 €", positive: true }].map((transaction) => <div className="transaction-row" key={transaction.name}><div className="transaction-name"><span className={`activity-icon ${transaction.tone}`}><transaction.icon size={16} /></span><div><strong>{transaction.name}</strong><small>{transaction.copy}</small></div></div><span>{transaction.date}</span><span className="status-complete"><Check size={13} /> Terminée</span><strong className={transaction.positive ? "positive" : "negative"}>{transaction.amount}</strong></div>)}</div></section></div>
 }
 
 */
 
-function WalletView() {
+function LegacyWalletView() {
   const transactions: { name: string; copy: string; icon: LucideIcon; tone: string; date: string; amount: string; positive: boolean }[] = [
     { name: "Studio Serein", copy: "Paiement reçu · Projet identité", icon: ArrowDownLeft, tone: "activity-green", date: "Aujourd'hui, 09:12", amount: "+ 1 200,00 €", positive: true },
     { name: "Atelier N°7", copy: "Achat · Chaise Sillon", icon: ShoppingCart, tone: "activity-coral", date: "18 août 2026", amount: "− 480,00 €", positive: false },
@@ -434,17 +601,76 @@ function WalletView() {
   );
 }
 
+function WalletView() {
+  return <SellerHandoverWallet />;
+}
+
 function AnalyticsView() {
-  const bars = [42, 56, 48, 74, 61, 78, 92, 68, 84, 72, 88, 100];
-  return (
-    <div className="view-stack"><div className="analytics-summary"><div><p className="eyebrow">PERFORMANCE GLOBALE</p><h2>Votre activité prend de l'ampleur.</h2><p>Vous avez créé 24 % plus de connexions utiles que le mois dernier.</p></div><div className="analytics-score"><span>INDICE ORION</span><strong>84</strong><small>Très bon rythme</small></div></div><div className="analytics-grid"><section className="panel chart-panel"><div className="panel-heading"><div><p className="eyebrow">VUE SUR 12 MOIS</p><h2>Valeur créée</h2></div><button type="button" className="sort-button">2026 <ChevronDown size={14} /></button></div><div className="chart-area"><div className="chart-y-labels"><span>8k</span><span>6k</span><span>4k</span><span>2k</span><span>0</span></div><div className="chart-plot"><div className="chart-grid-lines"><span /><span /><span /><span /><span /></div><svg viewBox="0 0 700 240" preserveAspectRatio="none" className="chart-svg"><defs><linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#8a1538" stopOpacity="0.24" /><stop offset="1" stopColor="#8a1538" stopOpacity="0" /></linearGradient></defs><path d="M0 210 C34 196 48 182 82 190 C120 199 127 166 164 172 C202 178 207 153 246 160 C282 166 294 127 326 137 C360 147 367 119 402 126 C437 132 449 104 482 112 C520 120 529 74 565 83 C596 91 613 55 642 63 C666 68 680 39 700 30 L700 240 L0 240 Z" fill="url(#chartGradient)" /><path d="M0 210 C34 196 48 182 82 190 C120 199 127 166 164 172 C202 178 207 153 246 160 C282 166 294 127 326 137 C360 147 367 119 402 126 C437 132 449 104 482 112 C520 120 529 74 565 83 C596 91 613 55 642 63 C666 68 680 39 700 30" fill="none" stroke="#8a1538" strokeWidth="3" strokeLinecap="round" /></svg><div className="chart-bars">{bars.map((bar, index) => <span key={index} style={{ height: `${bar}%` }} className={index === bars.length - 1 ? "is-current" : ""} />)}</div><div className="chart-months">{["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"].map((month) => <span key={month}>{month}</span>)}</div></div></div></section><section className="panel insight-panel"><div className="panel-heading"><div><p className="eyebrow">INSIGHTS</p><h2>À retenir</h2></div><Sparkles size={18} className="insight-spark" /></div><div className="insight-list"><div className="insight-item"><span className="insight-number">01</span><div><strong>Vos messages convertissent</strong><p>Les échanges avec votre réseau génèrent 38 % de vos projets.</p></div></div><div className="insight-item"><span className="insight-number">02</span><div><strong>Le jeudi est votre jour fort</strong><p>Votre activité est 2,4× plus élevée en fin de semaine.</p></div></div><div className="insight-item"><span className="insight-number">03</span><div><strong>Un profil à mettre à jour</strong><p>Ajoutez deux références pour augmenter votre visibilité.</p></div></div></div><button type="button" className="insight-cta">Optimiser mon profil <ArrowUpRight size={15} /></button></section></div></div>
-  );
+  const { session } = useOrion();
+  const today = new Date();
+  const [from, setFrom] = useState<string>(() => localDateKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29)));
+  const [to, setTo] = useState<string>(() => localDateKey(today));
+  const [analytics, setAnalytics] = useState<SellerAnalytics | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    if (!session?.token) { setLoading(false); return; }
+    let isMounted = true;
+    setLoading(true);
+    setError("");
+    getSellerAnalytics(session.token, from, to)
+      .then((data) => { if (isMounted) setAnalytics(data); })
+      .catch((reason: unknown) => { if (isMounted) setError(reason instanceof Error ? reason.message : "Impossible de charger les analyses."); })
+      .finally(() => { if (isMounted) setLoading(false); });
+    return () => { isMounted = false; };
+  }, [session?.token, from, to]);
+
+  const chart = useMemo(() => {
+    const start = new Date(`${from}T00:00:00`);
+    const end = new Date(`${to}T00:00:00`);
+    const byDate = new Map((analytics?.series ?? []).map((point) => [point.date, point]));
+    const points: Array<{ date: string; revenue: number; orders: number }> = [];
+    for (const date = new Date(start); date <= end && points.length < 367; date.setDate(date.getDate() + 1)) {
+      const key = localDateKey(date);
+      const point = byDate.get(key);
+      points.push({ date: key, revenue: point?.revenue ?? 0, orders: point?.orders ?? 0 });
+    }
+    const maxRevenue = Math.max(0, ...points.map((point) => point.revenue));
+    const scaleMaxRevenue = Math.max(1, maxRevenue);
+    const coordinates = points.map((point, index) => ({ ...point, x: points.length <= 1 ? 350 : index / (points.length - 1) * 700, y: 210 - point.revenue / scaleMaxRevenue * 180 }));
+    const line = coordinates.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+    const area = coordinates.length ? `${line} L700 230 L0 230 Z` : "";
+    const labelIndices = [...new Set([0, Math.floor((points.length - 1) / 4), Math.floor((points.length - 1) / 2), Math.floor((points.length - 1) * 3 / 4), points.length - 1])].filter((index) => index >= 0);
+    return { points, coordinates, line, area, maxRevenue, labels: labelIndices.map((index) => points[index]) };
+  }, [analytics, from, to]);
+
+  const choosePeriod = (days: number): void => {
+    const end = new Date();
+    const start = new Date(end);
+    start.setDate(start.getDate() - days + 1);
+    setFrom(localDateKey(start));
+    setTo(localDateKey(end));
+  };
+  const topProducts = analytics?.topProducts ?? [];
+  const highestProductQuantity = Math.max(1, ...topProducts.map((product) => product.quantity));
+  const totalRevenue = analytics?.summary.revenue ?? 0;
+
+  return <div className="view-stack seller-analytics-view">
+    <section className="analytics-summary seller-analytics-summary"><div><p className="eyebrow">VENTES ET PRODUITS</p><h2>Les chiffres de votre boutique</h2><p>Les montants incluent vos remises payées et excluent les commandes remboursées.</p></div><div className="analytics-score"><span>CHIFFRE D’AFFAIRES</span><strong>{loading ? "…" : formatCfa(totalRevenue)}</strong><small>{analytics?.summary.orderCount ?? 0} commandes confirmées</small></div></section>
+    <div className="seller-period-toolbar"><div className="seller-period-presets"><button type="button" onClick={() => choosePeriod(7)}>7 jours</button><button type="button" onClick={() => choosePeriod(30)}>30 jours</button><button type="button" onClick={() => choosePeriod(90)}>90 jours</button><button type="button" onClick={() => { const end = new Date(); setFrom(`${end.getFullYear()}-01-01`); setTo(localDateKey(end)); }}>Cette année</button></div><label>Du <input type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} /></label><label>Au <input type="date" value={to} min={from} onChange={(event) => setTo(event.target.value)} /></label></div>
+    {error ? <p className="auth-error" role="alert">{error}</p> : null}
+    <section className="seller-analytics-kpis"><article><span>COMMANDES</span><strong>{loading ? "…" : analytics?.summary.orderCount ?? 0}</strong></article><article><span>ARTICLES VENDUS</span><strong>{loading ? "…" : analytics?.summary.unitsSold ?? 0}</strong></article><article><span>PANIER MOYEN</span><strong>{loading ? "…" : formatCfa(analytics?.summary.averageOrderValue ?? 0)}</strong></article></section>
+    <section className="panel seller-chart-panel"><div className="panel-heading"><div><p className="eyebrow">ÉVOLUTION DES VENTES</p><h2>Chiffre d’affaires par jour</h2></div><strong>{formatCfa(totalRevenue)}</strong></div><div className="seller-chart-legend"><span /> Ventes payées</div><div className="seller-chart-wrap"><div className="seller-chart-y"><span>{formatCfa(chart.maxRevenue)}</span><span>{formatCfa(Math.round(chart.maxRevenue / 2))}</span><span>0 FCFA</span></div><div className="seller-chart-main"><div className="seller-chart-grid"><i /><i /><i /></div><svg viewBox="0 0 700 240" preserveAspectRatio="none" role="img" aria-label="Graphique du chiffre d’affaires"><defs><linearGradient id="sellerRevenueGradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#8a1538" stopOpacity="0.22" /><stop offset="1" stopColor="#8a1538" stopOpacity="0.01" /></linearGradient></defs><path d={chart.area} fill="url(#sellerRevenueGradient)" /><path d={chart.line} fill="none" stroke="#8a1538" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />{chart.coordinates.map((point) => point.revenue > 0 ? <circle key={point.date} cx={point.x} cy={point.y} r="3.5" fill="#8a1538" /> : null)}</svg><div className="seller-chart-labels">{chart.labels.map((point) => <span key={point.date}>{new Date(`${point.date}T12:00:00`).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</span>)}</div></div></div>{!loading && !chart.points.some((point) => point.revenue > 0) ? <p className="seller-empty-state">{error ? "Les données seront affichées dès qu’elles seront disponibles." : "Aucune vente confirmée sur cette période. La courbe restera à zéro jusqu’à votre première vente."}</p> : null}</section>
+    <div className="seller-analytics-lower"><section className="panel seller-products-panel"><div className="panel-heading"><div><p className="eyebrow">POPULARITÉ PAR LES VENTES</p><h2>Produits les plus vendus</h2></div><PackageOpen size={18} /></div>{loading ? <p className="seller-empty-state">Chargement…</p> : topProducts.length ? topProducts.map((product, index) => <article className="seller-popular-product" key={product.produitId}><span className="seller-product-rank">{String(index + 1).padStart(2, "0")}</span><div className="seller-product-data"><div><strong>{product.name}</strong><small>{product.orders} commande{product.orders === 1 ? "" : "s"} · {formatCfa(product.revenue)}</small></div><div className="seller-product-track"><span style={{ width: `${Math.max(5, product.quantity / highestProductQuantity * 100)}%` }} /></div></div><b>{product.quantity} vendu{product.quantity === 1 ? "" : "s"}</b></article>) : <p className="seller-empty-state">Les produits apparaîtront ici après une vente confirmée.</p>}</section>
+      <section className="panel seller-analytics-orders"><div className="panel-heading"><div><p className="eyebrow">ACTIVITÉ RÉCENTE</p><h2>Commandes</h2></div><ShoppingBag size={18} /></div>{loading ? <p className="seller-empty-state">Chargement…</p> : analytics?.recentOrders.length ? analytics.recentOrders.slice(0, 6).map((order) => <article className="seller-analytics-order" key={order.venteId}><div><strong>{order.reference || `Commande #${order.venteId}`}</strong><small>{new Date(order.date).toLocaleDateString("fr-FR")} · {order.articles.map((article) => `${article.nom} × ${article.quantite}`).join(", ")}</small></div><b>{formatCfa(order.montant)}</b></article>) : <p className="seller-empty-state">Aucune commande pour cette période.</p>}</section></div>
+  </div>;
 }
 
 function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { session } = useOrion();
+  const { session, logout } = useOrion();
   const [activeSection, setActiveSection] = useState<Section>(() => sectionFromPath(location.pathname));
   const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
   const [selectedConversationId, setSelectedConversationId] = useState<string>("marie");
@@ -452,7 +678,12 @@ function AppContent() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const role: UserRole = session?.role ?? "UTILISATEUR";
   const managementPage = getManagementPageCopy(location.pathname, role);
-  const title: string = managementPage?.title ?? sectionTitles[activeSection].title;
+  const pageCopy = managementPage ?? (activeSection === "home" ? {
+    eyebrow: new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }).toLocaleUpperCase("fr-FR"),
+    title: `Bonjour, ${session?.name?.split(/\s+/)[0] ?? ""}`.trim(),
+    description: role === "COMMERCANT" ? "Voici les ventes et l’activité réelle de votre boutique." : "Retrouvez vos achats, vos candidatures et vos conversations.",
+  } : null);
+  const title: string = pageCopy?.title ?? sectionTitles[activeSection].title;
 
   useEffect(() => {
     let isMounted = true;
@@ -465,11 +696,14 @@ function AppContent() {
     Promise.all([getDiscussions(session.token), getMessages(session.token)])
       .then(([response, backendMessages]) => {
         if (!isMounted) return;
-        const mapped: Conversation[] = response.map((discussion: DiscussionRecord, index: number) => ({
+        const mapped: Conversation[] = response.map((discussion: DiscussionRecord, index: number) => {
+          const contactName = [discussion.contactUser?.prenom, discussion.contactUser?.nom].filter(Boolean).join(" ");
+          const displayName = contactName || "Contact";
+          return {
           id: String(discussion.id),
-          name: discussion.titre ?? `Discussion ${discussion.id}`,
+          name: displayName,
           role: discussion.statut ?? "Partenaire Orion",
-          initials: (discussion.titre ?? `D${discussion.id}`).slice(0, 2).toUpperCase(),
+          initials: displayName.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(),
           avatarClass: ["avatar-rose", "avatar-sand", "avatar-lilac", "avatar-blue"][index % 4],
           preview: discussion.lastMessage ?? "Nouvelle discussion",
           time: discussion.lastMessageDate ? new Date(discussion.lastMessageDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "À l'instant",
@@ -484,16 +718,22 @@ function AppContent() {
               time: message.createdAt ? new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "",
               sender: message.senderId === session.userId ? "me" : "them",
             })),
-        }));
+        }; });
         setConversations(mapped);
         setSelectedConversationId((current) => mapped.some((item) => item.id === current) ? current : mapped[0]?.id ?? "");
       })
       .catch(() => { if (isMounted) setConversations([]); });
 
     return () => { isMounted = false; };
-  }, [session?.token, session?.userId]);
+  }, [session?.token, session?.userId, location.search]);
 
   useEffect(() => { setActiveSection(sectionFromPath(location.pathname)); }, [location.pathname]);
+  useEffect(() => {
+    const requestedDiscussionId = new URLSearchParams(location.search).get("discussionId");
+    if (requestedDiscussionId && conversations.some((conversation) => conversation.id === requestedDiscussionId)) {
+      setSelectedConversationId(requestedDiscussionId);
+    }
+  }, [location.search, conversations]);
 
   const unreadCount: number = useMemo(() => conversations.reduce((total, conversation) => total + conversation.unread, 0), [conversations]);
   const handleNavigate = (section: Section): void => { setNotificationsOpen(false); navigate(dashboardPathForSection(section)); };
@@ -524,7 +764,7 @@ function AppContent() {
     }
   };
 
-  return <div className="app-frame"><Sidebar activeSection={activeSection} pathname={location.pathname} role={role} onRoute={handleRoute} /><main className="main-shell"><TopBar title={title} session={session} onNavigate={handleRoute} onNotificationToggle={() => setNotificationsOpen((open) => !open)} notificationsOpen={notificationsOpen} /><div className="main-content"><PageHeader section={activeSection} onSectionChange={handleNavigate} pageCopy={managementPage} />{managementPage ? <DashboardRouteView pathname={location.pathname} role={role} /> : null}{!managementPage && activeSection === "home" ? <HomeView conversations={conversations} onNavigate={handleNavigate} onOpenConversation={handleOpenConversation} role={role} /> : null}{!managementPage && activeSection === "marketplace" ? <MarketplaceView onNavigate={handleNavigate} /> : null}{!managementPage && activeSection === "opportunities" ? <OpportunitiesView onNavigate={handleNavigate} /> : null}{!managementPage && activeSection === "messages" ? <MessagesView conversations={conversations} selectedConversationId={selectedConversationId} onSelectConversation={(id) => { setSelectedConversationId(id); setConversations((current) => current.map((conversation) => conversation.id === id ? { ...conversation, unread: 0 } : conversation)); }} onSendMessage={handleSendMessage} draft={draft} onDraftChange={setDraft} /> : null}{!managementPage && activeSection === "wallet" ? <WalletView /> : null}{!managementPage && activeSection === "analytics" ? <AnalyticsView /> : null}</div><footer className="main-footer"><span>© 2026 Orion</span><span className="footer-center">Fait pour les personnes qui font avancer les choses.</span><span className="footer-links"><a href="#privacy">Confidentialité</a><a href="#terms">Conditions</a></span></footer></main>{unreadCount === 0 ? null : <span className="sr-only">{unreadCount} messages non lus</span>}</div>;
+  return <div className="app-frame"><Sidebar activeSection={activeSection} pathname={location.pathname} role={role} onRoute={handleRoute} /><main className="main-shell"><TopBar title={title} session={session} onNavigate={handleRoute} onLogout={() => { logout(); toast.success("Vous êtes déconnecté."); navigate("/", { replace: true }); }} onNotificationToggle={() => setNotificationsOpen((open) => !open)} notificationsOpen={notificationsOpen} /><div className="main-content">{managementPage ? null : <PageHeader section={activeSection} onSectionChange={handleNavigate} pageCopy={pageCopy} />}{managementPage ? <DashboardRouteView pathname={location.pathname} role={role} /> : null}{!managementPage && activeSection === "home" ? <HomeView conversations={conversations} onNavigate={handleNavigate} onOpenConversation={handleOpenConversation} role={role} session={session} /> : null}{!managementPage && activeSection === "marketplace" ? <MarketplaceView onNavigate={handleNavigate} /> : null}{!managementPage && activeSection === "opportunities" ? <OpportunitiesView onNavigate={handleNavigate} /> : null}{!managementPage && activeSection === "messages" ? <MessagesView conversations={conversations} selectedConversationId={selectedConversationId} onSelectConversation={(id) => { setSelectedConversationId(id); setConversations((current) => current.map((conversation) => conversation.id === id ? { ...conversation, unread: 0 } : conversation)); }} onSendMessage={handleSendMessage} draft={draft} onDraftChange={setDraft} /> : null}{!managementPage && activeSection === "wallet" ? <WalletView /> : null}{!managementPage && activeSection === "analytics" ? <AnalyticsView /> : null}</div><footer className="main-footer"><span>© 2026 Orion</span><span className="footer-center">Fait pour les personnes qui font avancer les choses.</span><span className="footer-links"><a href="#privacy">Confidentialité</a><a href="#terms">Conditions</a></span></footer></main>{unreadCount === 0 ? null : <span className="sr-only">{unreadCount} messages non lus</span>}</div>;
 }
 
 const Index = () => <AppContent />;

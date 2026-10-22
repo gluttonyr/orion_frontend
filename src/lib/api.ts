@@ -36,7 +36,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const hasExplicitJsonBody = typeof options.body === "string" && !(options.headers instanceof Headers);
 
   const response = await fetch(url, {
-    credentials: "include",
+    credentials: "omit",
     ...options,
     headers: {
       Accept: "application/json",

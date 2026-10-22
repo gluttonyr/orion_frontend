@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import Index from "./pages/Index";
+import { ThemeModeProvider } from "./ThemeMode";
 import NotFound from "./pages/NotFound";
 import { AuthPage } from "./pages/AuthPages";
 import { OrionProvider, useOrion } from "./OrionContext";
@@ -30,31 +31,38 @@ function DashboardGate() {
   const { session, activeStoreId } = useOrion();
   const location = useLocation();
   const [ownedStoreIds, setOwnedStoreIds] = useState<string[] | null>(null);
+  const [storeLoadError, setStoreLoadError] = useState("");
+  const [storeRetry, setStoreRetry] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
     if (!session?.token || session.role !== "COMMERCANT") {
       setOwnedStoreIds(null);
+      setStoreLoadError("");
       return () => { isMounted = false; };
     }
     setOwnedStoreIds(null);
+    setStoreLoadError("");
     getMyStores(session.token)
       .then((stores) => {
         if (isMounted) setOwnedStoreIds(stores.map((store) => String(store.id)));
       })
-      .catch(() => {
-        if (isMounted) setOwnedStoreIds([]);
+      .catch((reason: unknown) => {
+        if (isMounted) setStoreLoadError(reason instanceof Error ? reason.message : "Impossible de vérifier vos boutiques.");
       });
     return () => { isMounted = false; };
-  }, [session?.token, session?.role]);
+  }, [session?.token, session?.role, storeRetry]);
 
   if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  const merchantOnlyPath: boolean = /^\/dashboard\/(stores|products|subscriptions|wallet|withdrawal-methods)(\/|$)/.test(location.pathname);
+  const adminPath = /^\/dashboard\/(users|orders|wallet|settings|store-categories|product-categories|mission-types)(\/|$)/.test(location.pathname);
+  if (session.role === "ADMIN" && !adminPath) return <Navigate to="/dashboard/users" replace />;
+  if (session.role !== "ADMIN" && adminPath) return <Navigate to="/dashboard" replace />;
+  const merchantOnlyPath: boolean = /^\/dashboard\/(stores|products|marketplace|subscriptions|wallet|withdrawal-methods|analytics)(\/|$)/.test(location.pathname);
   if (merchantOnlyPath && session.role !== "COMMERCANT") return <Navigate to="/dashboard" replace />;
-
   // Store management must remain reachable so a merchant can create/select their first store.
   const isStoreManagementPath = /^\/dashboard\/stores(\/|$)/.test(location.pathname);
   if (session.role === "COMMERCANT" && !isStoreManagementPath) {
+    if (storeLoadError) return <div className="dashboard-gate-loading" role="alert"><p>Impossible de vérifier vos boutiques : {storeLoadError}</p><button type="button" className="button button-dark" onClick={() => setStoreRetry((current) => current + 1)}>Réessayer</button></div>;
     if (ownedStoreIds === null) return <div className="dashboard-gate-loading" role="status">Chargement de votre boutique…</div>;
     if (!activeStoreId || !ownedStoreIds.includes(activeStoreId)) {
       return <Navigate to="/store-selection" replace state={{ from: location.pathname }} />;
@@ -64,7 +72,7 @@ function DashboardGate() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <ThemeModeProvider><QueryClientProvider client={queryClient}>
     <OrionProvider>
       <TooltipProvider>
         <Toaster />
@@ -90,7 +98,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </OrionProvider>
-  </QueryClientProvider>
+  </QueryClientProvider></ThemeModeProvider>
 );
 
 export default App;

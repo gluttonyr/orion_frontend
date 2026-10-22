@@ -6,6 +6,7 @@ export type ProductRecord = {
   image?: string;
   images_secondaires?: string[];
   prix: number;
+  prixPromotionnel?: number | null;
   description: string;
   stock: number;
   statut?: string;
@@ -32,9 +33,27 @@ export async function getProductById(id: number) {
 }
 
 export async function createProduct(payload: Record<string, unknown>, token: string) {
+  const formData = toProductFormData(payload);
+  return apiRequest<ProductRecord>("/produits", { method: "POST", body: formData, headers: { Authorization: `Bearer ${token}` } });
+}
+
+export async function updateProduct(id: number, payload: Record<string, unknown>, token: string) {
+  const formData = toProductFormData(payload);
+  return apiRequest<ProductRecord>(`/produits/${id}`, { method: "PUT", body: formData, headers: { Authorization: `Bearer ${token}` } });
+}
+
+export function publishProduct(id: number, token: string) {
+  return apiRequest<ProductRecord>(`/produits/${id}/publish`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` } });
+}
+
+function toProductFormData(payload: Record<string, unknown>): FormData {
   const formData = new FormData();
   Object.entries(payload).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
+    if (value === undefined) return;
+    if (value === null) {
+      formData.append(key, "");
+      return;
+    }
     if (value instanceof File) {
       formData.append(key, value);
       return;
@@ -45,6 +64,5 @@ export async function createProduct(payload: Record<string, unknown>, token: str
     }
     formData.append(key, String(value));
   });
-
-  return apiRequest<ProductRecord>("/produits", { method: "POST", body: formData, headers: { Authorization: `Bearer ${token}` } });
+  return formData;
 }

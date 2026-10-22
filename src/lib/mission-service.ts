@@ -19,12 +19,32 @@ export type MissionRecord = {
   candidatures?: MissionCandidate[];
 };
 
+export function formatMissionRemuneration(amount: number | string | undefined, frequency?: string): string {
+  const formattedAmount = `${Number(amount ?? 0).toLocaleString("fr-FR")} FCFA`;
+  const frequencyLabel: Record<string, string> = {
+    fixe: " · une seule fois",
+    horaire: " · par heure",
+    journalier: " · par jour",
+    hebdomadaire: " · par semaine",
+    mensuel: " · par mois",
+    annuel: " · par an",
+    projet: " · par projet",
+  };
+  return `${formattedAmount}${frequency ? frequencyLabel[frequency.toLowerCase()] ?? "" : ""}`;
+}
+
 export type MissionCandidate = {
   userId: number;
   statut: string;
   dateCandidature: string | Date;
   message: string;
-  candidat: { id: number; nom?: string; prenom?: string; email?: string; specialite?: string; image?: string };
+  candidat: { id: number; nom?: string; prenom?: string; email?: string; adresse?: string; telephone?: string; specialite?: string; image?: string };
+  discussionId?: number;
+};
+
+export type MissionApplicationRecord = MissionRecord & {
+  candidature: Pick<MissionCandidate, "userId" | "statut" | "dateCandidature" | "message">;
+  commercant?: { id: number; nom?: string; prenom?: string; email?: string } | null;
 };
 
 export async function getMissions() {
@@ -32,11 +52,23 @@ export async function getMissions() {
 }
 
 export async function getMissionById(id: number, token?: string) {
-  return apiRequest<MissionRecord>(`/mission/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  const response = await apiRequest<MissionRecord | MissionRecord[]>(`/mission/${id}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!Array.isArray(response)) return response;
+  const mission = response.find((item) => String(item.id) === String(id));
+  if (!mission) throw new Error(`L’API n’a renvoyé aucune opportunité correspondant à l’identifiant ${id}.`);
+  return mission;
 }
 
 export async function getMyMissions(token: string) {
   return apiRequest<MissionRecord[]>("/mission/mine", { headers: { Authorization: `Bearer ${token}` } });
+}
+
+export async function getMyApplications(token: string) {
+  return apiRequest<MissionApplicationRecord[]>("/mission/applications/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 export async function applyToMission(id: number, message: string, token: string) {

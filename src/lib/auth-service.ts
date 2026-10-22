@@ -7,6 +7,8 @@ export type AuthUser = {
   email: string;
   role: "UTILISATEUR" | "COMMERCANT" | "ADMIN";
   contact?: string;
+  pays?: string;
+  indicatifPays?: string;
   specialite?: string;
   localisation?: string;
   adresse?: string;

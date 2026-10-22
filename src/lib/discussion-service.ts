@@ -10,6 +10,12 @@ export type DiscussionRecord = {
   lastMessageDate?: string | Date;
   createdAt?: string | Date;
   updatedAt?: string | Date;
+  contactUser?: {
+    id: number;
+    nom?: string | null;
+    prenom?: string | null;
+    image?: string | null;
+  } | null;
 };
 
 export async function getDiscussions(token?: string) {
