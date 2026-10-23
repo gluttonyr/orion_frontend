@@ -29,8 +29,12 @@ import {
   Store,
   Trash2,
   TrendingUp,
+  UserRound,
   WalletCards,
+  Heart,
+  UsersRound,
 } from "lucide-react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { catalogProducts, formatCfa, mapBackendProduct, opportunityCatalog, roleLabel, useOrion, type Product, type UserRole } from "../OrionContext";
 import { createProduct, getProductsByOwner, publishProduct, updateProduct, type ProductRecord } from "../lib/catalog-service";
 import { apiRequest } from "../lib/api";
@@ -40,7 +44,7 @@ import { createStore, getMyStores, resolveStoreLocation, updateStore, type Store
 import { getUploadUrl } from "../lib/api";
 import { getCurrentUser, updateUser, type AuthUser } from "../lib/auth-service";
 import { ClientHandoverScanner, SellerOrdersView } from "../components/HandoverTools";
-import { deleteAboutTeamMember, getAboutTeam, getAdminOrders, getAdminUsers, getAdminWallet, getSiteSettings, saveAboutTeamMember, saveSiteSettings, type AboutTeamMember, type AdminOrder, type AdminPlatformWallet, type AdminUser, type SiteSettingsRecord } from "../lib/admin-service";
+import { deleteAboutTeamMember, getAboutTeam, getAdminCarouselProducts, getAdminMerchantProducts, getAdminMerchants, getAdminOrders, getAdminUsers, getAdminWallet, getAdminDashboardStats, getSiteSettings, saveAboutTeamMember, saveSiteSettings, type AboutTeamMember, type AdminMerchant, type AdminMerchantProduct, type AdminOrder, type AdminPlatformWallet, type AdminUser, type AdminDashboardStats, type SiteSettingsRecord } from "../lib/admin-service";
 import { toast } from "../components/ui/sonner";
 import { createStoreCategory, deleteStoreCategory, getStoreCategories, updateStoreCategory, type StoreCategory } from "../lib/store-category-service";
 import { createProductCategory, deleteProductCategory, getProductCategories, updateProductCategory, type ProductCategory } from "../lib/product-category-service";
@@ -259,7 +263,7 @@ function ProductsView() {
     } finally { setPublishingId(null); }
   };
 
-  return <div className="management-view"><ManagementHeading eyebrow="CATALOGUE" title="Mes produits" description={`Forfait Standard : ${products.length}/40 produits dans votre boutique.`} action={products.length >= 40 ? "Limite de 40 produits atteinte" : "Ajouter un produit"} actionDisabled={products.length >= 40} onAction={() => navigate("/dashboard/products/add")} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans mes produits" /></div><button type="button" className="button button-quiet"><Settings2 size={15} /> Filtres</button></div><ManagementTable className="product-management-table"><div className="management-table-head"><span>PRODUIT</span><span>CATÉGORIE</span><span>STOCK</span><span>PRIX</span><span>STATUT</span><span /></div>{filtered.map((product) => { const isDraft = product.statut === "Brouillon"; return <div className="management-table-row" key={product.id}><div className="management-product-cell"><img src={getUploadUrl(product.image) || "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=88"} alt="" /><div><strong>{product.nom}</strong><small>{product.statut ?? "Boutique Orion"}</small></div></div><span>{product.categorie ?? "Divers"}</span><span className={Number(product.stock) < 10 ? "table-warning" : ""}>{Number(product.stock)} unités</span><ProductAdminPrice price={Number(product.prix ?? 0)} promotionalPrice={product.prixPromotionnel} /><span className={`status-pill ${isDraft ? "status-gold" : "status-green"}`}>{isDraft ? "Brouillon" : <><Check size={12} /> {Number(product.stock) > 0 ? "En ligne" : "Rupture"}</>}</span><div className="table-actions">{isDraft ? <button type="button" className="product-publish-button" disabled={publishingId !== null} onClick={() => void publish(product)}>{publishingId === product.id ? "Publication…" : "Publier"}</button> : null}<button type="button" onClick={() => navigate(`/dashboard/products/${product.id}`)} aria-label="Voir"><Eye size={15} /></button><button type="button" onClick={() => navigate(`/dashboard/products/edit/${product.id}`)} aria-label="Modifier"><Pencil size={15} /></button></div></div>; })}</ManagementTable></div>;
+  return <div className="management-view"><ManagementHeading eyebrow="CATALOGUE" title="Mes produits" description={`Forfait Standard : ${products.length}/40 produits dans votre boutique.`} action={products.length >= 40 ? "Limite de 40 produits atteinte" : "Ajouter un produit"} actionDisabled={products.length >= 40} onAction={() => navigate("/dashboard/products/add")} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans mes produits" /></div><button type="button" className="button button-quiet"><Settings2 size={15} /> Filtres</button></div><ManagementTable className="product-management-table"><div className="management-table-head"><span>PRODUIT</span><span>CATÉGORIE</span><span>STOCK</span><span>PRIX</span><span>STATUT</span><span /></div>{filtered.map((product) => { const isDraft = product.statut === "Brouillon"; return <div className="management-table-row" key={product.id}><div className="management-product-cell"><img src={getUploadUrl(product.image) || "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=88"} alt="" /><div><strong>{product.nom}</strong><small>{Number(product.likesCount ?? 0)} j’aime</small></div></div><span>{product.categorie ?? "Divers"}</span><span className={Number(product.stock) < 10 ? "table-warning" : ""}>{Number(product.stock)} unités</span><ProductAdminPrice price={Number(product.prix ?? 0)} promotionalPrice={product.prixPromotionnel} /><span className={`status-pill ${isDraft ? "status-gold" : "status-green"}`}>{isDraft ? "Brouillon" : <><Check size={12} /> {Number(product.stock) > 0 ? "En ligne" : "Rupture"}</>}</span><div className="table-actions">{isDraft ? <button type="button" className="product-publish-button" disabled={publishingId !== null} onClick={() => void publish(product)}>{publishingId === product.id ? "Publication…" : "Publier"}</button> : null}<button type="button" onClick={() => navigate(`/dashboard/products/${product.id}`)} aria-label="Voir"><Eye size={15} /></button><button type="button" onClick={() => navigate(`/dashboard/products/edit/${product.id}`)} aria-label="Modifier"><Pencil size={15} /></button></div></div>; })}</ManagementTable></div>;
 }
 
 function ProductFormView({ edit = false }: { edit?: boolean }) {
@@ -863,17 +867,71 @@ function InternalCheckoutView() {
   return <div className="management-view"><BackButton label="Marketplace interne" /><ManagementHeading eyebrow="ACHAT INTERNE" title="Finaliser l'achat" description="Achetez un produit sans quitter votre espace Orion." /><div className="internal-checkout-card"><div className="checkout-order-line"><img src={catalogProducts[0].image} alt="" /><div><strong>{catalogProducts[0].name}</strong><span>{catalogProducts[0].store} · {formatCfa(catalogProducts[0].price)}</span></div></div><div className="checkout-summary-total"><span>Total</span><strong>{formatCfa(catalogProducts[0].price)}</strong></div><button type="button" className="button button-dark" onClick={() => navigate("/dashboard")}>Confirmer le paiement <ArrowRight size={15} /></button></div></div>;
 }
 
+function AdminDashboardView() {
+  const { session } = useOrion();
+  const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (!session?.token) return;
+    let active = true;
+    const loadStats = () => {
+      getAdminDashboardStats(session.token!)
+        .then((result) => { if (active) { setStats(result); setError(""); } })
+        .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "Impossible de charger les indicateurs."); });
+    };
+    loadStats();
+    const refreshTimer = window.setInterval(loadStats, 30_000);
+    window.addEventListener("focus", loadStats);
+    return () => { active = false; window.clearInterval(refreshTimer); window.removeEventListener("focus", loadStats); };
+  }, [session?.token]);
+
+  const chartColors = ["#84133a", "#c47c52", "#d9b66f"];
+  return <div className="management-view admin-management-view admin-dashboard-view">
+    <ManagementHeading eyebrow="VUE D’ENSEMBLE" title="Tableau de bord" description="Les indicateurs réels d’Orion : ventes payées, comptes, catalogue et engagement." />
+    {error ? <p className="auth-error" role="alert">{error}</p> : null}
+    {!stats && !error ? <p role="status">Chargement des données de la plateforme…</p> : null}
+    {stats ? <>
+      <div className="admin-dashboard-kpis">
+        <article><span><Banknote size={17} /> Chiffre d’affaires payé</span><strong>{formatCfa(stats.revenue)}</strong><small>Commandes au statut payé</small></article>
+        <article><span><ShoppingBag size={17} /> Ventes confirmées</span><strong>{stats.paidOrders.toLocaleString("fr-FR")}</strong><small>{stats.allOrders.toLocaleString("fr-FR")} commandes au total</small></article>
+        <article><span><UsersRound size={17} /> Utilisateurs inscrits</span><strong>{stats.users.toLocaleString("fr-FR")}</strong><small>{stats.merchants.toLocaleString("fr-FR")} commerçants</small></article>
+        <article><span><Package size={17} /> Produits publiés</span><strong>{stats.publishedProducts.toLocaleString("fr-FR")}</strong><small>{stats.products.toLocaleString("fr-FR")} produits au catalogue</small></article>
+        <article><span><Heart size={17} /> J’aime reçus</span><strong>{stats.totalLikes.toLocaleString("fr-FR")}</strong><small>Likes enregistrés sur les produits</small></article>
+      </div>
+      <div className="admin-dashboard-chart-grid">
+        <section className="admin-dashboard-panel admin-sales-panel"><div className="admin-dashboard-panel-heading"><div><span className="public-kicker">ÉVOLUTION</span><h3>Chiffre d’affaires</h3></div><span className="admin-chart-legend"><i /> Ventes payées · 6 mois</span></div><div className="admin-chart-area"><ResponsiveContainer width="100%" height="100%"><AreaChart data={stats.monthlySales} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}><defs><linearGradient id="adminRevenueGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#8a1538" stopOpacity={0.22} /><stop offset="95%" stopColor="#8a1538" stopOpacity={0.01} /></linearGradient></defs><CartesianGrid stroke="#efe7e2" strokeDasharray="4 5" vertical={false} /><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#8b7e7e", fontSize: 11 }} /><YAxis axisLine={false} tickLine={false} width={72} tick={{ fill: "#8b7e7e", fontSize: 10 }} tickFormatter={(value: number) => `${Math.round(value / 1000)}k`} /><Tooltip formatter={(value) => [formatCfa(Number(value)), "Ventes payées"]} contentStyle={{ border: "1px solid #eee5dd", borderRadius: 12, fontSize: 12 }} /><Area type="monotone" dataKey="revenue" stroke="#861438" strokeWidth={3} fill="url(#adminRevenueGradient)" activeDot={{ r: 5, strokeWidth: 0, fill: "#861438" }} /></AreaChart></ResponsiveContainer></div></section>
+        <section className="admin-dashboard-panel"><div className="admin-dashboard-panel-heading"><div><span className="public-kicker">COMMUNAUTÉ</span><h3>Comptes par profil</h3></div></div><div className="admin-role-chart"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={stats.userRoles} dataKey="value" nameKey="name" innerRadius={61} outerRadius={91} paddingAngle={4} stroke="none">{stats.userRoles.map((entry, index) => <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />)}</Pie><Tooltip formatter={(value, name) => [`${Number(value).toLocaleString("fr-FR")} comptes`, name]} contentStyle={{ border: "1px solid #eee5dd", borderRadius: 12, fontSize: 12 }} /></PieChart></ResponsiveContainer><div className="admin-role-total"><strong>{stats.users.toLocaleString("fr-FR")}</strong><span>comptes</span></div></div><div className="admin-role-legend">{stats.userRoles.map((role, index) => <div key={role.name}><i style={{ background: chartColors[index % chartColors.length] }} /><span>{role.name}</span><strong>{role.value.toLocaleString("fr-FR")}</strong></div>)}</div></section>
+        <section className="admin-dashboard-panel"><div className="admin-dashboard-panel-heading"><div><span className="public-kicker">ACTIVITÉ COMMERCIALE</span><h3>Commandes payées</h3></div><span className="admin-panel-total">{stats.paidOrders.toLocaleString("fr-FR")}</span></div><div className="admin-chart-area admin-orders-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={stats.monthlySales} margin={{ top: 12, right: 10, left: -18, bottom: 0 }}><CartesianGrid stroke="#efe7e2" strokeDasharray="4 5" vertical={false} /><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#8b7e7e", fontSize: 11 }} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "#8b7e7e", fontSize: 10 }} /><Tooltip formatter={(value) => [Number(value).toLocaleString("fr-FR"), "Commandes payées"]} contentStyle={{ border: "1px solid #eee5dd", borderRadius: 12, fontSize: 12 }} /><Bar dataKey="orders" fill="#c28a63" radius={[6, 6, 0, 0]} maxBarSize={35} /></BarChart></ResponsiveContainer></div></section>
+        <section className="admin-dashboard-panel admin-top-liked-panel"><div className="admin-dashboard-panel-heading"><div><span className="public-kicker">ENGAGEMENT</span><h3>Produits les plus aimés</h3></div><Heart size={17} /></div>{stats.topLikedProducts.length ? <div className="admin-top-liked-list">{stats.topLikedProducts.map((product, index) => <div className="admin-top-liked-row" key={product.id}><span>{String(index + 1).padStart(2, "0")}</span><strong title={product.name}>{product.name}</strong><div><i style={{ width: `${Math.max(5, product.likes / Math.max(1, stats.topLikedProducts[0].likes) * 100)}%` }} /></div><b>{product.likes.toLocaleString("fr-FR")}</b></div>)}</div> : <div className="admin-chart-empty"><Heart size={20} /><span>Les premiers likes apparaîtront ici.</span></div>}</section>
+      </div>
+      <p className="admin-dashboard-footnote"><TrendingUp size={14} /> Le chiffre d’affaires inclut uniquement les commandes marquées comme payées. Les graphiques affichent les six derniers mois, avec zéro lorsqu’il n’y a pas eu d’activité.</p>
+    </> : null}
+  </div>;
+}
+
 function AdminUsersView() {
   const { session } = useOrion();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
-    if (!session?.token) return;
-    getAdminUsers(session.token).then(setUsers).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Impossible de charger les utilisateurs."));
+    let active = true;
+    if (!session?.token) { setLoading(false); setError("Votre session administrateur est introuvable. Reconnectez-vous."); return () => { active = false; }; }
+    setLoading(true);
+    setError("");
+    getAdminUsers(session.token)
+      .then((response) => {
+        if (!active) return;
+        if (!Array.isArray(response)) throw new Error("Le serveur a renvoyé une liste d’utilisateurs au format inattendu.");
+        setUsers(response.filter((user): user is AdminUser => Boolean(user && typeof user === "object")));
+      })
+      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "Impossible de charger les utilisateurs."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [session?.token]);
-  const filtered = users.filter((user) => `${user.prenom} ${user.nom} ${user.email} ${user.role}`.toLowerCase().includes(query.trim().toLowerCase()));
-  return <div className="management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Tous les utilisateurs" description={`${users.length} compte${users.length === 1 ? "" : "s"} enregistré${users.length === 1 ? "" : "s"} sur Orion.`} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input aria-label="Rechercher un utilisateur" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom, e-mail ou rôle" /></div></div>{error ? <p className="auth-error">{error}</p> : <ManagementTable><div className="management-table-head admin-users-head"><span>UTILISATEUR</span><span>E-MAIL</span><span>RÔLE</span><span>LOCALISATION</span></div>{filtered.map((user) => <div className="management-table-row admin-users-row" key={user.id}><div className="management-product-cell"><span className="admin-user-avatar"><UserRound size={16} /></span><div><strong>{[user.prenom, user.nom].filter(Boolean).join(" ") || "Sans nom"}</strong><small>Compte #{user.id}</small></div></div><span>{user.email}</span><span className="status-pill">{user.role === "ADMIN" ? "Administrateur" : user.role === "COMMERCANT" ? "Commerçant" : "Utilisateur"}</span><span>{user.localisation || "—"}</span></div>)}</ManagementTable>}</div>;
+  const filtered = users.filter((user) => `${user.prenom ?? ""} ${user.nom ?? ""} ${user.email ?? ""} ${user.role ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()));
+  return <div className="management-view admin-management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Tous les utilisateurs" description={`${users.length} compte${users.length === 1 ? "" : "s"} enregistré${users.length === 1 ? "" : "s"} sur Orion.`} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input aria-label="Rechercher un utilisateur" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom, e-mail ou rôle" /></div></div>{error ? <p className="auth-error" role="alert">{error}</p> : loading ? <p role="status">Chargement des utilisateurs…</p> : <ManagementTable><div className="management-table-head admin-users-head"><span>UTILISATEUR</span><span>E-MAIL</span><span>RÔLE</span><span>LOCALISATION</span></div>{filtered.length === 0 ? <div className="admin-users-empty">{users.length === 0 ? "Aucun utilisateur n’est encore enregistré." : "Aucun utilisateur ne correspond à cette recherche."}</div> : filtered.map((user, index) => <div className="management-table-row admin-users-row" key={user.id ?? `user-${index}`}><div className="management-product-cell"><span className="admin-user-avatar"><UserRound size={16} /></span><div><strong>{[user.prenom, user.nom].filter(Boolean).join(" ") || "Sans nom"}</strong><small>Compte #{user.id}</small></div></div><span>{user.email || "—"}</span><span className="status-pill">{user.role === "ADMIN" ? "Administrateur" : user.role === "COMMERCANT" ? "Commerçant" : "Utilisateur"}</span><span>{user.localisation || "—"}</span></div>)}</ManagementTable>}</div>;
 }
 
 function AdminStoreCategoriesView() {
@@ -917,7 +975,7 @@ function AdminStoreCategoriesView() {
     finally { setSaving(false); }
   };
 
-  return <div className="management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Catégories de boutique" description="Les catégories ci-dessous sont proposées aux commerçants lors de la création de leur boutique." />
+  return <div className="management-view admin-management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Catégories de boutique" description="Les catégories ci-dessous sont proposées aux commerçants lors de la création de leur boutique." />
     <form className="store-category-add" onSubmit={addCategory}><label>Nouvelle catégorie<input required maxLength={100} value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Ex. Artisanat" /></label><button className="button button-dark" disabled={saving || !newName.trim()}><Plus size={15} /> Ajouter</button></form>
     {error ? <p className="auth-error" role="alert">{error}</p> : null}
     {loading ? <p role="status">Chargement des catégories…</p> : <div className="store-category-admin-list">{categories.map((category) => <article className="store-category-admin-row" key={category.id}>{editingId === category.id ? <input aria-label="Nom de la catégorie" maxLength={100} value={editingName} onChange={(event) => setEditingName(event.target.value)} /> : <strong>{category.nom}</strong>}<div>{editingId === category.id ? <><button type="button" className="button button-dark" disabled={saving || !editingName.trim()} onClick={() => void saveCategory(category.id)}>Enregistrer</button><button type="button" className="button button-quiet" onClick={() => setEditingId(null)}>Annuler</button></> : <><button type="button" className="table-icon-button" aria-label={`Modifier ${category.nom}`} onClick={() => { setEditingId(category.id); setEditingName(category.nom); }}><Pencil size={15} /></button><button type="button" className="table-icon-button danger" aria-label={`Supprimer ${category.nom}`} disabled={saving} onClick={() => void removeCategory(category.id, category.nom)}><Trash2 size={15} /></button></>}</div></article>)}{!categories.length ? <p>Aucune catégorie définie.</p> : null}</div>}
@@ -965,7 +1023,7 @@ function AdminProductCategoriesView() {
     finally { setSaving(false); }
   };
 
-  return <div className="management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Catégories de produits" description="Les catégories ci-dessous sont proposées aux commerçants lors de la création d’un produit." />
+  return <div className="management-view admin-management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Catégories de produits" description="Les catégories ci-dessous sont proposées aux commerçants lors de la création d’un produit." />
     <form className="store-category-add" onSubmit={addCategory}><label>Nouvelle catégorie<input required maxLength={100} value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Ex. Artisanat" /></label><button className="button button-dark" disabled={saving || !newName.trim()}><Plus size={15} /> Ajouter</button></form>
     {error ? <p className="auth-error" role="alert">{error}</p> : null}
     {loading ? <p role="status">Chargement des catégories…</p> : <div className="store-category-admin-list">{categories.map((category) => <article className="store-category-admin-row" key={category.id}>{editingId === category.id ? <input aria-label="Nom de la catégorie" maxLength={100} value={editingName} onChange={(event) => setEditingName(event.target.value)} /> : <strong>{category.libellé}</strong>}<div>{editingId === category.id ? <><button type="button" className="button button-dark" disabled={saving || !editingName.trim()} onClick={() => void saveCategory(category.id)}>Enregistrer</button><button type="button" className="button button-quiet" onClick={() => setEditingId(null)}>Annuler</button></> : <><button type="button" className="table-icon-button" aria-label={`Modifier ${category.libellé}`} onClick={() => { setEditingId(category.id); setEditingName(category.libellé); }}><Pencil size={15} /></button><button type="button" className="table-icon-button danger" aria-label={`Supprimer ${category.libellé}`} disabled={saving} onClick={() => void removeCategory(category.id, category.libellé)}><Trash2 size={15} /></button></>}</div></article>)}{!categories.length ? <p>Aucune catégorie définie.</p> : null}</div>}
@@ -1013,7 +1071,7 @@ function AdminMissionTypesView() {
     finally { setSaving(false); }
   };
 
-  return <div className="management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Types de mission" description="Les types ci-dessous sont proposés aux commerçants lors de la création d’une opportunité." />
+  return <div className="management-view admin-management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Types de mission" description="Les types ci-dessous sont proposés aux commerçants lors de la création d’une opportunité." />
     <form className="store-category-add" onSubmit={addType}><label>Nouveau type<input required maxLength={100} value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Ex. Stage rémunéré" /></label><button className="button button-dark" disabled={saving || !newName.trim()}><Plus size={15} /> Ajouter</button></form>
     {error ? <p className="auth-error" role="alert">{error}</p> : null}
     {loading ? <p role="status">Chargement des types de mission…</p> : <div className="store-category-admin-list">{missionTypes.map((missionType) => <article className="store-category-admin-row" key={missionType.id}>{editingId === missionType.id ? <input aria-label="Nom du type de mission" maxLength={100} value={editingName} onChange={(event) => setEditingName(event.target.value)} /> : <strong>{missionType.nom}</strong>}<div>{editingId === missionType.id ? <><button type="button" className="button button-dark" disabled={saving || !editingName.trim()} onClick={() => void saveType(missionType.id)}>Enregistrer</button><button type="button" className="button button-quiet" onClick={() => setEditingId(null)}>Annuler</button></> : <><button type="button" className="table-icon-button" aria-label={`Modifier ${missionType.nom}`} onClick={() => { setEditingId(missionType.id); setEditingName(missionType.nom); }}><Pencil size={15} /></button><button type="button" className="table-icon-button danger" aria-label={`Supprimer ${missionType.nom}`} disabled={saving} onClick={() => void removeType(missionType.id, missionType.nom)}><Trash2 size={15} /></button></>}</div></article>)}{!missionTypes.length ? <p>Aucun type de mission défini.</p> : null}</div>}
@@ -1030,7 +1088,7 @@ function AdminOrdersView() {
     getAdminOrders(session.token).then(setOrders).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Impossible de charger les commandes."));
   }, [session?.token]);
   const filtered = orders.filter((order) => `${order.reference} ${order.id} ${order.utilisateur?.email ?? ""} ${order.statut}`.toLowerCase().includes(query.trim().toLowerCase()));
-  return <div className="management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Toutes les commandes" description={`${orders.length} commande${orders.length === 1 ? "" : "s"}, tous les comptes confondus.`} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input aria-label="Rechercher une commande" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Référence, client ou statut" /></div></div>{error ? <p className="auth-error">{error}</p> : <ManagementTable><div className="management-table-head admin-orders-head"><span>COMMANDE</span><span>CLIENT</span><span>PRODUITS</span><span>DATE</span><span>TOTAL</span><span>STATUT</span></div>{filtered.map((order) => <div className="management-table-row admin-orders-row" key={order.id}><div><strong>{order.reference || `Commande #${order.id}`}</strong><small>#{order.id}</small></div><span>{[order.utilisateur?.prenom, order.utilisateur?.nom].filter(Boolean).join(" ") || order.utilisateur?.email || "Client invité"}</span><span>{order.produits?.map((product) => product.nom).join(", ") || "—"}</span><span>{order.date_achat ? new Date(order.date_achat).toLocaleDateString("fr-FR") : "—"}</span><strong>{formatCfa(Number(order.prix_total ?? 0))}</strong><span className={`status-pill ${order.statut === "payee" ? "status-green" : order.statut === "remboursee" ? "status-coral" : "status-gold"}`}>{order.statut}</span></div>)}</ManagementTable>}</div>;
+  return <div className="management-view admin-management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Toutes les commandes" description={`${orders.length} commande${orders.length === 1 ? "" : "s"}, tous les comptes confondus.`} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input aria-label="Rechercher une commande" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Référence, client ou statut" /></div></div>{error ? <p className="auth-error">{error}</p> : <ManagementTable><div className="management-table-head admin-orders-head"><span>COMMANDE</span><span>CLIENT</span><span>PRODUITS</span><span>DATE</span><span>TOTAL</span><span>STATUT</span></div>{filtered.map((order) => <div className="management-table-row admin-orders-row" key={order.id}><div><strong>{order.reference || `Commande #${order.id}`}</strong><small>#{order.id}</small></div><span>{[order.utilisateur?.prenom, order.utilisateur?.nom].filter(Boolean).join(" ") || order.utilisateur?.email || "Client invité"}</span><span>{order.produits?.map((product) => product.nom).join(", ") || "—"}</span><span>{order.date_achat ? new Date(order.date_achat).toLocaleDateString("fr-FR") : "—"}</span><strong>{formatCfa(Number(order.prix_total ?? 0))}</strong><span className={`status-pill ${order.statut === "payee" ? "status-green" : order.statut === "remboursee" ? "status-coral" : "status-gold"}`}>{order.statut}</span></div>)}</ManagementTable>}</div>;
 }
 
 function AdminWalletView() {
@@ -1041,7 +1099,7 @@ function AdminWalletView() {
     if (!session?.token) return;
     getAdminWallet(session.token).then(setWallet).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Impossible de charger le portefeuille plateforme."));
   }, [session?.token]);
-  return <div className="management-view"><ManagementHeading eyebrow="FINANCES ORION" title="Portefeuille plateforme" description="Suivez les commissions retenues sur les commandes et les remboursements enregistrés." />{error ? <p className="auth-error">{error}</p> : !wallet ? <p>Chargement du portefeuille…</p> : <><section className="wallet-metrics admin-wallet-metrics"><article className="stat-card"><span>Solde plateforme</span><strong>{formatCfa(wallet.solde)}</strong><small>Commissions nettes après remboursements</small></article><article className="stat-card"><span>Commissions cumulées</span><strong>{formatCfa(wallet.totalCommissions)}</strong><small>Retenues comptabilisées</small></article><article className="stat-card"><span>Commissions remboursées</span><strong>{formatCfa(wallet.totalRemboursements)}</strong><small>Reprises lors des remboursements</small></article></section>{wallet.updatedAt ? <p className="withdrawal-note">Dernière mise à jour : {new Date(wallet.updatedAt).toLocaleString("fr-FR")}</p> : null}</>}</div>;
+  return <div className="management-view admin-management-view"><ManagementHeading eyebrow="FINANCES ORION" title="Portefeuille plateforme" description="Suivez les commissions retenues sur les commandes et les remboursements enregistrés." />{error ? <p className="auth-error">{error}</p> : !wallet ? <p>Chargement du portefeuille…</p> : <><section className="wallet-metrics admin-wallet-metrics"><article className="stat-card"><span>Solde plateforme</span><strong>{formatCfa(wallet.solde)}</strong><small>Commissions nettes après remboursements</small></article><article className="stat-card"><span>Commissions cumulées</span><strong>{formatCfa(wallet.totalCommissions)}</strong><small>Retenues comptabilisées</small></article><article className="stat-card"><span>Commissions remboursées</span><strong>{formatCfa(wallet.totalRemboursements)}</strong><small>Reprises lors des remboursements</small></article></section>{wallet.updatedAt ? <p className="withdrawal-note">Dernière mise à jour : {new Date(wallet.updatedAt).toLocaleString("fr-FR")}</p> : null}</>}</div>;
 }
 
 function AdminAboutTeamSection() {
@@ -1078,31 +1136,118 @@ function AdminSettingsView() {
   const { session } = useOrion();
   const [settings, setSettings] = useState<SiteSettingsRecord | null>(null);
   const [heroFiles, setHeroFiles] = useState<File[]>([]);
-  const [carouselFiles, setCarouselFiles] = useState<File[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<AdminMerchantProduct[]>([]);
+  const [merchants, setMerchants] = useState<AdminMerchant[]>([]);
+  const [merchantSearch, setMerchantSearch] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [selectedMerchantId, setSelectedMerchantId] = useState<number | null>(null);
+  const [merchantProducts, setMerchantProducts] = useState<AdminMerchantProduct[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [imagesChanged, setImagesChanged] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  useEffect(() => { getSiteSettings().then(setSettings).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Impossible de charger les images du site.")); }, []);
+
+  useEffect(() => {
+    if (!session?.token) return;
+    Promise.all([
+      getSiteSettings(),
+      getAdminMerchants(session.token),
+      getAdminCarouselProducts(session.token),
+    ]).then(([siteSettings, merchantList, carouselProducts]) => {
+      setSettings(siteSettings);
+      setMerchants(merchantList);
+      setSelectedProducts(carouselProducts);
+    }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Impossible de charger les r?glages du site."));
+  }, [session?.token]);
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!session?.token) return;
+    if (!session?.token || !settings) return;
     setSaving(true); setError(""); setMessage("");
     try {
-      setSettings(await saveSiteSettings(session.token, heroFiles, carouselFiles));
-      setHeroFiles([]); setCarouselFiles([]); setMessage("Les images de la page d’accueil ont été enregistrées.");
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Impossible d’enregistrer les images."); }
+      const nextSettings = await saveSiteSettings(session.token, heroFiles, settings.heroImages, selectedProducts.map((product) => product.id));
+      setSettings(nextSettings);
+      setHeroFiles([]); setImagesChanged(false);
+      setMessage("La s?lection de la page d?accueil a ?t? enregistr?e.");
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Impossible d?enregistrer les r?glages."); }
     finally { setSaving(false); }
   };
-  const previewList = (files: File[], existing: string[]) => files.length ? files.map((file) => URL.createObjectURL(file)) : existing.map((file) => getUploadUrl(file));
-  const heroPreview = useMemo(() => previewList(heroFiles, settings?.heroImages ?? []), [heroFiles, settings?.heroImages]);
-  const carouselPreview = useMemo(() => previewList(carouselFiles, settings?.carouselImages ?? []), [carouselFiles, settings?.carouselImages]);
-  useEffect(() => () => [...heroPreview, ...carouselPreview].filter((src) => src.startsWith("blob:")).forEach((src) => URL.revokeObjectURL(src)), [heroPreview, carouselPreview]);
-  return <div className="management-view"><ManagementHeading eyebrow="CONTENU PUBLIC" title="Images de la page d’accueil" description="Définissez les trois visuels de l’en-tête et les images du carrousel. Les images sont téléversées dans Orion, aucun lien n’est nécessaire." />{error ? <p className="auth-error">{error}</p> : null}{message ? <p className="handover-success">{message}</p> : null}<form className="admin-settings-form" onSubmit={submit}><section className="panel admin-image-panel"><div className="panel-heading"><div><span className="public-kicker">EN-TÊTE</span><h2>Les trois images principales</h2></div><span>{heroFiles.length ? `${heroFiles.length} sélectionnées` : `${settings?.heroImages.length ?? 0}/3 enregistrées`}</span></div><label className="admin-image-picker"><ImagePlus size={18} /><span>Choisir jusqu’à 3 images</span><input type="file" accept="image/*" multiple onChange={(event) => setHeroFiles(Array.from(event.target.files ?? []).slice(0, 3))} /></label><div className="admin-image-grid">{heroPreview.map((src, index) => <img key={`${src}-${index}`} src={src} alt={`Visuel d’en-tête ${index + 1}`} />)}</div><p>Si vous ne choisissez pas de nouveaux fichiers, les images actuelles restent en place.</p></section><section className="panel admin-image-panel"><div className="panel-heading"><div><span className="public-kicker">CARROUSEL</span><h2>Images qui défilent en bas</h2></div><span>{carouselFiles.length ? `${carouselFiles.length} sélectionnées` : `${settings?.carouselImages.length ?? 0} enregistrées`}</span></div><label className="admin-image-picker"><ImagePlus size={18} /><span>Choisir jusqu’à 10 images</span><input type="file" accept="image/*" multiple onChange={(event) => setCarouselFiles(Array.from(event.target.files ?? []).slice(0, 10))} /></label><div className="admin-image-grid admin-carousel-preview">{carouselPreview.map((src, index) => <img key={`${src}-${index}`} src={src} alt={`Image de carrousel ${index + 1}`} />)}</div><p>Le carrousel reprend l’ordre des fichiers sélectionnés.</p></section><div className="management-form-actions"><button type="submit" className="button button-dark" disabled={saving || !settings}>{saving ? "Enregistrement…" : "Enregistrer les images"} <Check size={15} /></button></div></form><AdminAboutTeamSection /></div>;
+
+  const heroPreview = useMemo(() => [
+    ...(settings?.heroImages ?? []).map((file) => getUploadUrl(file)),
+    ...heroFiles.map((file) => URL.createObjectURL(file)),
+  ], [heroFiles, settings?.heroImages]);
+  useEffect(() => () => heroPreview.filter((src) => src.startsWith("blob:")).forEach((src) => URL.revokeObjectURL(src)), [heroPreview]);
+
+  const heroCount = settings?.heroImages.length ?? 0;
+  const heroRemaining = Math.max(0, 3 - heroCount - heroFiles.length);
+  const carouselChanged = JSON.stringify(settings?.carouselProductIds ?? []) !== JSON.stringify(selectedProducts.map((product) => product.id));
+  const filteredMerchants = merchants.filter((merchant) => `${merchant.prenom} ${merchant.nom} ${merchant.email}`.toLowerCase().includes(merchantSearch.trim().toLowerCase()));
+  const filteredProducts = merchantProducts.filter((product) => `${product.nom} ${typeof product.categorie === "string" ? product.categorie : product.categorie ? Object.values(product.categorie)[0] ?? "" : ""}`.toLowerCase().includes(productSearch.trim().toLowerCase()));
+  const selectedMerchant = merchants.find((merchant) => merchant.id === selectedMerchantId);
+
+  const chooseMerchant = async (merchant: AdminMerchant) => {
+    if (!session?.token) return;
+    setSelectedMerchantId(merchant.id);
+    setProductSearch(""); setMerchantProducts([]); setLoadingProducts(true);
+    try { setMerchantProducts(await getAdminMerchantProducts(session.token, merchant.id)); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Impossible de charger les produits de ce marchand."); }
+    finally { setLoadingProducts(false); }
+  };
+
+  const toggleProduct = (product: AdminMerchantProduct) => {
+    setSelectedProducts((current) => current.some((selected) => selected.id === product.id)
+      ? current.filter((selected) => selected.id !== product.id)
+      : current.length < 10 ? [...current, product] : current);
+  };
+
+  const removeHeroImage = (index: number) => {
+    if (index < heroCount) {
+      setSettings((current) => current ? { ...current, heroImages: current.heroImages.filter((_, imageIndex) => imageIndex !== index) } : current);
+      setImagesChanged(true);
+    } else setHeroFiles((current) => current.filter((_, fileIndex) => fileIndex !== index - heroCount));
+  };
+
+  return <div className="management-view admin-management-view">
+    <ManagementHeading eyebrow="CONTENU PUBLIC" title="Images de la page d’accueil" description="Gérez les visuels de l’en-tête et choisissez jusqu’à 10 produits pour le carrousel de la page d’accueil." />
+    {error ? <p className="auth-error" role="alert">{error}</p> : null}
+    {message ? <p className="handover-success">{message}</p> : null}
+    <form className="admin-settings-form" onSubmit={submit}>
+      <section className="panel admin-image-panel">
+        <div className="panel-heading"><div><span className="public-kicker">EN-TÊTE</span><h2>Images principales</h2></div><span>{heroCount + heroFiles.length}/3 images</span></div>
+        <label className="admin-image-picker"><ImagePlus size={18} /><span>{heroRemaining ? `Ajouter des images (maximum ${heroRemaining} de plus)` : "Limite de 3 images atteinte"}</span><input type="file" accept="image/*" multiple disabled={!heroRemaining} onChange={(event) => { setHeroFiles((current) => [...current, ...Array.from(event.target.files ?? []).slice(0, heroRemaining)]); event.currentTarget.value = ""; }} /></label>
+        <div className="admin-image-grid">{heroPreview.map((src, index) => <div className="admin-image-preview-item" key={`${src}-${index}`}><img src={src} alt={`Visuel d’en-tête ${index + 1}`} /><button type="button" aria-label={`Retirer l’image d’en-tête ${index + 1}`} onClick={() => removeHeroImage(index)}><Trash2 size={15} /></button></div>)}</div>
+        <p>Retirez une image avec la corbeille, puis enregistrez pour appliquer le changement.</p>
+      </section>
+
+      <section className="panel admin-image-panel admin-carousel-product-panel">
+        <div className="panel-heading"><div><span className="public-kicker">CARROUSEL PRODUITS</span><h2>Produits à mettre en avant</h2></div><span>{selectedProducts.length}/10 produits</span></div>
+        <p>Recherchez un marchand, puis choisissez les produits publiés qui défileront sur l’accueil.</p>
+        <label className="admin-merchant-search">Rechercher un marchand<input value={merchantSearch} onChange={(event) => setMerchantSearch(event.target.value)} placeholder="Nom, prénom ou adresse e-mail" /></label>
+        <div className="admin-merchant-list">{filteredMerchants.map((merchant) => <button type="button" key={merchant.id} className={`admin-merchant-option ${selectedMerchantId === merchant.id ? "is-selected" : ""}`} onClick={() => void chooseMerchant(merchant)}><Store size={16} /><span><strong>{merchant.prenom} {merchant.nom}</strong><small>{merchant.email}</small></span><ArrowRight size={15} /></button>)}{!filteredMerchants.length ? <p>Aucun marchand trouvé.</p> : null}</div>
+        {selectedMerchant ? <div className="admin-merchant-products">
+          <div className="panel-heading"><h3>Produits de {selectedMerchant.prenom} {selectedMerchant.nom}</h3><span>{merchantProducts.length} produit{merchantProducts.length === 1 ? "" : "s"}</span></div>
+          <label className="admin-product-search">Rechercher dans ses produits<input value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Nom ou catégorie du produit" /></label>
+          {loadingProducts ? <p>Chargement des produits...</p> : <div className="admin-product-choice-list">{filteredProducts.map((product) => {
+            const isSelected = selectedProducts.some((selected) => selected.id === product.id);
+            const category = typeof product.categorie === "string" ? product.categorie : product.categorie ? Object.values(product.categorie)[0] ?? "Produit" : "Produit";
+            return <article className="admin-product-choice" key={product.id}>{product.image ? <img src={getUploadUrl(product.image)} alt="" /> : <span className="admin-product-choice-placeholder"><Package size={18} /></span>}<div><strong>{product.nom}</strong><small>{String(category)} - {formatCfa(Number(product.prix))}</small></div><button type="button" className="button button-secondary" disabled={!isSelected && selectedProducts.length >= 10} onClick={() => toggleProduct(product)}>{isSelected ? "Retirer" : "Ajouter"}</button></article>;
+          })}{!filteredProducts.length && !loadingProducts ? <p>Ce marchand n’a pas de produit publié.</p> : null}</div>}
+        </div> : null}
+        {selectedProducts.length ? <div className="admin-selected-products"><h3>Sélection du carrousel</h3><div className="admin-selected-product-list">{selectedProducts.map((product, index) => <article className="admin-product-choice" key={product.id}>{product.image ? <img src={getUploadUrl(product.image)} alt="" /> : <span className="admin-product-choice-placeholder"><Package size={18} /></span>}<div><strong>{index + 1}. {product.nom}</strong><small>{formatCfa(Number(product.prix))}</small></div><button type="button" className="button button-secondary" onClick={() => toggleProduct(product)}>Retirer</button></article>)}</div></div> : <p className="admin-carousel-empty">Aucun produit sélectionné pour le carrousel.</p>}
+      </section>
+
+      <div className="management-form-actions"><button type="submit" className="button button-dark" disabled={saving || !settings || (!imagesChanged && !heroFiles.length && !carouselChanged)}>{saving ? "Enregistrement…" : "Enregistrer les réglages"} <Check size={15} /></button></div>
+    </form>
+    <AdminAboutTeamSection />
+  </div>;
 }
 
 export function DashboardRouteView({ pathname, role }: ManagementProps) {
   const normalized: string = pathname.replace(/\/$/, "");
   if (role === "ADMIN") {
+    if (normalized === "/dashboard/overview" || normalized === "/dashboard") return <AdminDashboardView />;
     if (normalized === "/dashboard/users") return <AdminUsersView />;
     if (normalized === "/dashboard/store-categories") return <AdminStoreCategoriesView />;
     if (normalized === "/dashboard/product-categories") return <AdminProductCategoriesView />;
@@ -1143,6 +1288,7 @@ export function DashboardRouteView({ pathname, role }: ManagementProps) {
 export function getManagementPageCopy(pathname: string, role: UserRole = "COMMERCANT"): { eyebrow: string; title: string; description: string } | null {
   const normalized: string = pathname.replace(/\/$/, "");
   if (role === "ADMIN") {
+    if (normalized === "/dashboard/overview" || normalized === "/dashboard") return { eyebrow: "ADMINISTRATION", title: "Tableau de bord", description: "Suivez les ventes, les comptes, le catalogue et l’engagement sur Orion." };
     if (normalized === "/dashboard/store-categories") return { eyebrow: "ADMINISTRATION", title: "Catégories de boutique", description: "Ajoutez et gérez les catégories proposées aux commerçants." };
     if (normalized === "/dashboard/product-categories") return { eyebrow: "ADMINISTRATION", title: "Catégories de produits", description: "Ajoutez et gérez les catégories proposées aux commerçants." };
     if (normalized === "/dashboard/mission-types") return { eyebrow: "ADMINISTRATION", title: "Types de mission", description: "Ajoutez et gérez les types proposés lors de la création d’une opportunité." };

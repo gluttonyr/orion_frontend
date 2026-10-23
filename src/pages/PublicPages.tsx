@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -42,7 +42,7 @@ import {
   type Product,
   type UserRole,
 } from "../OrionContext";
-import { getProductById } from "../lib/catalog-service";
+import { getProductById, setProductLike } from "../lib/catalog-service";
 import { mapBackendProduct } from "../OrionContext";
 import { getUploadUrl } from "../lib/api";
 import { applyToMission, formatMissionRemuneration, getMissionById, getMissions, getMyMissionApplication, type MissionRecord } from "../lib/mission-service";
@@ -68,14 +68,67 @@ function ProductPrice({ product, className = "" }: { product: Product; className
   </span>;
 }
 
+const favoriteProductsKey = "orion-favorite-products";
+const visitorIdKey = "orion-visitor-id";
+
+function getVisitorId(): string {
+  let id = window.localStorage.getItem(visitorIdKey);
+  if (!id) {
+    id = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem(visitorIdKey, id);
+  }
+  return id;
+}
+
+function readFavoriteProductIds(): string[] {
+  try {
+    const saved: unknown = JSON.parse(window.localStorage.getItem(favoriteProductsKey) ?? "[]");
+    return Array.isArray(saved) ? saved.filter((id): id is string => typeof id === "string") : [];
+  } catch { return []; }
+}
+
+function useFavoriteProduct(productId?: string) {
+  const [isFavorite, setIsFavorite] = useState(false);
+  useEffect(() => {
+    const syncFavorites = () => setIsFavorite(Boolean(productId) && readFavoriteProductIds().includes(productId!));
+    syncFavorites();
+    window.addEventListener("storage", syncFavorites);
+    window.addEventListener("orion-favorites-change", syncFavorites);
+    return () => {
+      window.removeEventListener("storage", syncFavorites);
+      window.removeEventListener("orion-favorites-change", syncFavorites);
+    };
+  }, [productId]);
+  const toggleFavorite = async () => {
+    if (!productId) return;
+    const favorites = readFavoriteProductIds();
+    const next = favorites.includes(productId) ? favorites.filter((id) => id !== productId) : [...favorites, productId];
+    const liked = next.includes(productId);
+    try {
+      await setProductLike(Number(productId), getVisitorId(), liked);
+      window.localStorage.setItem(favoriteProductsKey, JSON.stringify(next));
+      setIsFavorite(liked);
+      window.dispatchEvent(new Event("orion-favorites-change"));
+      toast.success(liked ? "Produit ajouté à vos favoris." : "Produit retiré de vos favoris.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Impossible d’enregistrer votre like.");
+    }
+  };
+  return { isFavorite, toggleFavorite };
+}
+
 function ProductCard({ product, onAdd }: { product: Product; onAdd?: (product: Product) => void }) {
   const { addToCart } = useOrion();
+  const { isFavorite, toggleFavorite } = useFavoriteProduct(product.id);
   const handleAdd = (): void => {
     if (onAdd) onAdd(product);
     else { addToCart(product); toast.success(`${product.name} ajouté au panier.`); }
   };
+  const handleFavorite = (event: import("react").MouseEvent<HTMLButtonElement>) => { event.preventDefault(); event.stopPropagation(); toggleFavorite(); };
   return <article className="public-product-card">
-    <Link to={`/product/${product.id}`} className="public-product-image-link"><div className="public-product-image"><img src={product.image} alt={product.name} />{getSellingPrice(product) < product.price ? <span className="product-discount-badge">PROMO</span> : null}<span className="product-save"><Heart size={16} /></span>{product.featured ? <span className="product-featured">SÉLECTION</span> : null}</div></Link>
+    <div className="public-product-image"><Link to={`/product/${product.id}`} className="public-product-image-link"><img src={product.image} alt={product.name} />{getSellingPrice(product) < product.price ? <span className="product-discount-badge">PROMO</span> : null}{product.featured ? <span className="product-featured">SÉLECTION</span> : null}</Link><button type="button" className={`product-save ${isFavorite ? "is-favorite" : ""}`} aria-label={isFavorite ? `Retirer ${product.name} des favoris` : `Ajouter ${product.name} aux favoris`} aria-pressed={isFavorite} onClick={handleFavorite}><Heart size={16} fill={isFavorite ? "currentColor" : "none"} /></button></div>
     <div className="public-product-info"><div><p className="public-product-category">{product.category}</p><Link to={`/product/${product.id}`}><h3>{product.name}</h3></Link><p className="public-product-store">{product.store}</p></div><ProductPrice product={product} className="public-product-price" /></div>
     <button type="button" className="product-add-button" onClick={handleAdd}><ShoppingCart size={15} /> Ajouter au panier</button>
   </article>;
@@ -116,31 +169,48 @@ export function PublicLayout() {
 }
 
 function PublicFooter() {
-  return <footer className="public-footer"><div className="public-footer-main"><div className="public-footer-brand"><OrionLogo light /><p>Une marketplace africaine pour découvrir, acheter et faire grandir les idées locales.</p><div className="public-socials"><a href="#instagram" aria-label="Instagram">ig</a><a href="#linkedin" aria-label="LinkedIn">in</a><a href="#x" aria-label="X">x</a></div></div><div className="public-footer-column"><p>EXPLORER</p><Link to="/marketplace">Marketplace</Link><Link to="/opportunities">Opportunités</Link><Link to="/register">Rejoindre Orion</Link></div><div className="public-footer-column"><p>ORION</p><Link to="/login">Connexion</Link><Link to="/profile-selection">Choisir son profil</Link><Link to="/a-propos">À propos</Link></div><div className="public-footer-column"><p>SUPPORT</p><a href="mailto:bonjour@orion.africa">Nous contacter</a><a href="mailto:support@orion.africa">Centre d'aide</a><a href="#terms">Conditions</a></div></div><div className="public-footer-bottom"><span>© 2026 Orion Africa</span><span>Fait avec soin pour les personnes qui font avancer les choses.</span></div></footer>;
+  return <footer className="public-footer"><div className="public-footer-main"><div className="public-footer-brand"><OrionLogo light /><p>Une marketplace africaine pour découvrir, acheter et faire grandir les idées locales.</p><div className="public-socials" aria-label="Réseaux sociaux">
+    <a href="https://www.tiktok.com/@reginova_studio" target="_blank" rel="noopener noreferrer" aria-label="TikTok Orion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.6 7.1a5.2 5.2 0 0 1-3.3-3.8V3h-3.9v12.1a2.8 2.8 0 1 1-2-2.7V8.5a6.7 6.7 0 1 0 5.9 6.6V9.6a9 9 0 0 0 5 1.5V7.2c-.5 0-1.1 0-1.7-.1Z" fill="currentColor" /></svg></a>
+    <a href="https://www.instagram.com/reginaldkadanga?utm_source=qr&obrf=aDBmamV2MnpjZGww" target="_blank" rel="noopener noreferrer" aria-label="Instagram Orion"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="17.6" cy="6.7" r="1.2" fill="currentColor" /></svg></a>
+    <a href="https://www.linkedin.com/in/reno-graphiste-kadanga-35b21143a?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn Orion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 8.5H2.1V22h3.1V8.5ZM3.7 2A1.8 1.8 0 1 0 3.7 5.6 1.8 1.8 0 0 0 3.7 2ZM22 14.3c0-4.1-2.2-6-5.1-6-2.4 0-3.5 1.3-4.1 2.2V8.5H9.7V22h3.1v-6.7c0-1.8.3-3.5 2.6-3.5s2.4 2 2.4 3.6V22H22v-7.7Z" fill="currentColor" /></svg></a>
+    <a href="https://x.com/RginaldKad8l" target="_blank" rel="noopener noreferrer" aria-label="X Orion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.7 5.6 22H2.4l7.3-8.4L1.9 2h6.5l4.4 6.7L18.9 2Zm-1.1 17.8h1.7L7.3 4.1H5.5l12.3 15.7Z" fill="currentColor" /></svg></a>
+  </div></div><div className="public-footer-column"><p>EXPLORER</p><Link to="/marketplace">Marketplace</Link><Link to="/opportunities">Opportunités</Link><Link to="/register">Rejoindre Orion</Link></div><div className="public-footer-column"><p>ORION</p><Link to="/login">Connexion</Link><Link to="/profile-selection">Choisir son profil</Link><Link to="/a-propos">À propos</Link></div><div className="public-footer-column"><p>SUPPORT</p><a href="mailto:bonjour@orion.africa">Nous contacter</a><a href="mailto:support@orion.africa">Centre d'aide</a><a href="#terms">Conditions</a></div></div><div className="public-footer-bottom"><span>© 2026 Orion Africa</span><span>Fait avec soin pour les personnes qui font avancer les choses.</span></div></footer>;
 }
 
 export function HomePage() {
   const { products } = useOrion();
   const catalog = products;
-  const slides = catalog.slice(0, 4);
-  const [siteImages, setSiteImages] = useState<{ heroImages: string[]; carouselImages: string[] }>({ heroImages: [], carouselImages: [] });
+  const [siteSettings, setSiteSettings] = useState<{ heroImages: string[]; carouselProductIds: number[] }>({ heroImages: [], carouselProductIds: [] });
   const [activeSlide, setActiveSlide] = useState(0);
   const [opportunities, setOpportunities] = useState<OpportunityRecord[]>([]);
+  const heroImages = Array.isArray(siteSettings.heroImages) ? siteSettings.heroImages : [];
+  const carouselProductIds = Array.isArray(siteSettings.carouselProductIds) ? siteSettings.carouselProductIds : [];
+  const selectedCarouselProducts = carouselProductIds
+    .map((id) => catalog.find((product) => Number(product.id) === id))
+    .filter((product): product is Product => Boolean(product));
+  const slides = selectedCarouselProducts.length ? selectedCarouselProducts : catalog.slice(0, 4);
 
   useEffect(() => {
     getMissions().then((response) => setOpportunities(response.map(mapMissionToOpportunity))).catch(() => setOpportunities([]));
   }, []);
 
-  useEffect(() => { getSiteSettings().then(setSiteImages).catch(() => undefined); }, []);
+  useEffect(() => {
+    getSiteSettings().then((settings) => setSiteSettings({
+      heroImages: Array.isArray(settings?.heroImages) ? settings.heroImages : [],
+      carouselProductIds: Array.isArray(settings?.carouselProductIds) ? settings.carouselProductIds : [],
+    })).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
-    const count = siteImages.carouselImages.length || slides.length;
+    const count = slides.length;
     if (count < 2) return;
     const timer = window.setInterval(() => setActiveSlide((current) => (current + 1) % count), 6000);
     return () => window.clearInterval(timer);
-  }, [siteImages.carouselImages.length, slides.length]);
+  }, [slides.length]);
 
-  const featured = slides[activeSlide];
+  useEffect(() => { setActiveSlide((current) => slides.length ? current % slides.length : 0); }, [slides.length]);
+
+  const featured = slides.length ? slides[activeSlide % slides.length] : undefined;
   const moveSlide = (direction: number) => setActiveSlide((current) => (current + direction + slides.length) % slides.length);
 
   return <>
@@ -148,8 +218,8 @@ export function HomePage() {
       <section className="public-home-hero">
         <div className="public-hero-copy">
           <span className="public-kicker">PRODUITS AFRICAINS. TALENTS LOCAUX. UN AVENIR MEILLEUR.</span>
-          <h1>Tout ce qu’il vous faut,<br />au même endroit.</h1>
-          <p>Mode, beauté, artisanat, high-tech et bien plus encore.<br className="desktop-break" /> Découvrez le meilleur de l’Afrique sur ORION.</p>
+          <h1>Achetez, vendez et saisissez<br />de nouvelles opportunités.</h1>
+          <p>Découvrez des produits de toutes catégories et développez votre activité.<br className="desktop-break" /> Créez ou saisissez des opportunités pour faire avancer vos projets.</p>
           <div className="public-hero-actions"><Link to="/marketplace" className="public-primary-button">Explorer le marketplace <ArrowRight size={19} /></Link><Link to="/opportunities" className="public-secondary-button">Voir les opportunités</Link></div>
           <div className="public-trust-line">
             <span><ShieldCheck size={25} /><span><strong>Paiement sécurisé</strong><small>Vos transactions sont protégées</small></span></span>
@@ -159,12 +229,12 @@ export function HomePage() {
         </div>
         <div className="public-hero-art" aria-label="Une sélection de produits africains">
           <div className="hero-collage-background" aria-hidden="true"><span className="hero-art-halo" /><span className="hero-art-plinth" /></div>
-          {(siteImages.heroImages.length ? siteImages.heroImages.slice(0, 3).map((image) => getUploadUrl(image)) : slides.slice(0, 3).map((product) => product.image)).map((image, index) => <Link to="/marketplace" aria-label={`Découvrir le visuel ${index + 1}`} className={`hero-collage-item hero-collage-item-${index + 1} ${siteImages.heroImages.length ? "is-admin-image" : ""}`} key={`${image}-${index}`}><img src={image} alt={`Sélection Orion ${index + 1}`} /></Link>)}
+          {(heroImages.length ? heroImages.slice(0, 3).map((image) => getUploadUrl(image)) : slides.slice(0, 3).map((product) => product.image)).map((image, index) => <Link to="/marketplace" aria-label={`Découvrir le visuel ${index + 1}`} className={`hero-collage-item hero-collage-item-${index + 1} ${heroImages.length ? "is-admin-image" : ""}`} key={`${image}-${index}`}><img src={image} alt={`Sélection Orion ${index + 1}`} /></Link>)}
         </div>
       </section>
-      {siteImages.carouselImages.length ? <section className="home-featured-carousel home-admin-image-carousel" aria-label="Images à la une"><button type="button" className="home-carousel-arrow home-carousel-prev" aria-label="Image précédente" onClick={() => setActiveSlide((current) => (current - 1 + siteImages.carouselImages.length) % siteImages.carouselImages.length)}><ArrowLeft size={22} /></button><Link to="/marketplace" className="home-admin-carousel-image"><img src={getUploadUrl(siteImages.carouselImages[activeSlide % siteImages.carouselImages.length])} alt={`Image à la une ${activeSlide + 1}`} /></Link><div className="home-carousel-dots">{siteImages.carouselImages.map((image, index) => <button type="button" key={`${image}-${index}`} aria-label={`Afficher l’image ${index + 1}`} aria-current={index === activeSlide % siteImages.carouselImages.length} className={index === activeSlide % siteImages.carouselImages.length ? "is-active" : ""} onClick={() => setActiveSlide(index)} />)}</div><button type="button" className="home-carousel-arrow home-carousel-next" aria-label="Image suivante" onClick={() => setActiveSlide((current) => (current + 1) % siteImages.carouselImages.length)}><ArrowRight size={22} /></button></section> : featured ? <section className="home-featured-carousel" aria-label="Produits à la une">
+      {featured ? <section className="home-featured-carousel" aria-label="Produits à la une">
         <button type="button" className="home-carousel-arrow home-carousel-prev" aria-label="Produit précédent" onClick={() => moveSlide(-1)}><ArrowLeft size={22} /></button>
-        <div className="home-carousel-copy"><span className="home-carousel-badge">{getSellingPrice(featured) < featured.price ? "Promotion" : "Nouveau"}</span><span className="home-carousel-category">{featured.category}</span><h2>{featured.name}</h2><ProductPrice product={featured} className="home-carousel-price" /><Link to={`/product/${featured.id}`} className="home-carousel-cta">Voir le produit <ArrowRight size={18} /></Link></div>
+        <div className="home-carousel-copy"><span className="home-carousel-badge">{getSellingPrice(featured) < featured.price ? "Promotion" : "À découvrir"}</span><span className="home-carousel-category">{featured.category}</span><h2>{featured.name}</h2><ProductPrice product={featured} className="home-carousel-price" /><Link to={`/product/${featured.id}`} className="home-carousel-cta">Voir le produit <ArrowRight size={18} /></Link></div>
         <Link to={`/product/${featured.id}`} className="home-carousel-product"><img src={featured.image} alt={featured.name} /></Link>
         <ul className="home-carousel-specs"><li><ShieldCheck size={20} /><span>Achat sécurisé<br />sur Orion</span></li><li><Package size={20} /><span>{featured.category || "Création locale"}<br />choisie pour vous</span></li><li><Truck size={21} /><span>Livraison rapide<br />partout en Afrique</span></li></ul>
         <div className="home-carousel-dots">{slides.map((product, index) => <button type="button" key={product.id} aria-label={`Afficher ${product.name}`} aria-current={index === activeSlide} className={index === activeSlide ? "is-active" : ""} onClick={() => setActiveSlide(index)} />)}</div>
@@ -185,10 +255,10 @@ export function AboutPage() {
     <section className="about-intro"><div><span className="about-eyebrow">QUI SOMMES-NOUS ?</span><h2>Une plateforme au service de celles et ceux qui <em>font avancer les choses.</em></h2><p>ORION est une plateforme numérique conçue pour réunir le commerce, les savoir-faire et les initiatives locales. Elle donne aux commerçants un espace pour présenter leurs produits et permet à chacun de découvrir des offres et des opportunités.</p></div><aside className="about-facts"><span>NOTRE AMBITION</span><strong>Rendre les initiatives locales plus visibles et accessibles.</strong><i>Commerce · Talents · Opportunités</i></aside></section>
     <section className="about-purpose"><div className="about-section-heading"><span className="about-eyebrow">POURQUOI ORION EXISTE</span><h2>Créer des liens qui<br /><em>font avancer.</em></h2></div><div className="about-purpose-copy"><p>Les bonnes idées ont besoin d’un espace pour rencontrer leur public. Les commerces ont besoin de visibilité. Les porteurs de projets ont besoin de partenaires et d’occasions concrètes.</p><p>ORION rassemble ces besoins pour faciliter les rencontres entre vendeurs, clients et personnes qui souhaitent faire avancer un projet.</p><Link to="/opportunities" className="about-text-link">Explorer les opportunités <ArrowRight size={16} /></Link></div></section>
     <section className="about-pillars"><article><span>01</span><Store size={22} /><h3>Découvrir et acheter</h3><p>Parcourir des produits proposés par des boutiques et soutenir les commerces qui font vivre leurs communautés.</p></article><article><span>02</span><Globe2 size={22} /><h3>Développer son activité</h3><p>Créer une présence en ligne, présenter ses produits et gérer son activité depuis un espace dédié.</p></article><article><span>03</span><BriefcaseBusiness size={22} /><h3>Saisir des opportunités</h3><p>Publier ou rejoindre des missions, entrer en contact et transformer une intention en collaboration.</p></article></section>
-    <section className="about-mission-vision"><article className="about-mission"><span className="about-eyebrow">NOTRE MISSION</span><h2>Donner aux idées<br />les moyens d’exister.</h2><p>Nous construisons des outils simples pour aider les commerçants et les entrepreneurs à présenter leur travail, rencontrer leur public et développer leurs projets.</p></article><article className="about-vision"><span className="about-eyebrow">NOTRE VISION</span><h2>Un écosystème où<br />chacun trouve sa place.</h2><p>Nous voulons contribuer ? un espace numérique ouvert, o? les talents et les commerces locaux peuvent ?tre découverts et o? les collaborations peuvent naître.</p></article></section>
+    <section className="about-mission-vision"><article className="about-mission"><span className="about-eyebrow">NOTRE MISSION</span><h2>Donner aux idées<br />les moyens d’exister.</h2><p>Nous construisons des outils simples pour aider les commerçants et les entrepreneurs à présenter leur travail, rencontrer leur public et développer leurs projets.</p></article><article className="about-vision"><span className="about-eyebrow">NOTRE VISION</span><h2>Un écosystème où<br />chacun trouve sa place.</h2><p>Nous voulons contribuer à un espace numérique ouvert, où les talents et les commerces locaux peuvent être découverts et où les collaborations peuvent naître.</p></article></section>
     <section className="about-commitments"><div><span className="about-eyebrow">NOS ENGAGEMENTS</span><h2>Une plateforme qui avance<br /><em>avec sa communauté.</em></h2></div><ul><li><span>01</span><div><strong>Accessibilité</strong><p>Faciliter l’accès aux outils numériques pour les activités locales.</p></div></li><li><span>02</span><div><strong>Confiance</strong><p>Favoriser des échanges clairs entre les membres de la communauté.</p></div></li><li><span>03</span><div><strong>Évolution</strong><p>Faire évoluer ORION à partir des besoins et des retours de ses utilisateurs.</p></div></li></ul></section>
     <section className="about-team"><div className="about-section-heading"><span className="about-eyebrow">LES PERSONNES DERRIÈRE ORION</span><h2>Une aventure portée<br /><em>par des personnes.</em></h2><p>Découvrez les membres de l’administration qui contribuent au développement d’ORION.</p></div>{team.length ? <div className="about-team-grid">{team.map((member) => <article className="about-team-card" key={member.id}>{member.photo ? <img src={getUploadUrl(member.photo)} alt={member.name} /> : <div className="about-team-avatar">{member.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}</div>}<div><span>{member.role}</span><h3>{member.name}</h3>{member.bio ? <p>{member.bio}</p> : null}</div></article>)}</div> : <p className="about-team-empty">ORION se construit progressivement avec sa communauté. Les profils de l’équipe seront présentés ici au fur et à mesure.</p>}</section>
-    <section className="about-join"><span className="about-eyebrow">FAISONS GRANDIR LES IDÉES</span><h2>La suite s’écrit<br /><em>avec vous.</em></h2><p>Rejoignez ORION et prenez part ? une communauté qui entreprend, partage et crée des opportunités.</p><Link to="/register" className="about-hero-button">Rejoindre ORION <ArrowRight size={17} /></Link></section>
+    <section className="about-join"><span className="about-eyebrow">FAISONS GRANDIR LES IDÉES</span><h2>La suite s’écrit<br /><em>avec vous.</em></h2><p>Rejoignez ORION et prenez part à une communauté qui entreprend, partage et crée des opportunités.</p><Link to="/register" className="about-hero-button">Rejoindre ORION <ArrowRight size={17} /></Link></section>
   </main><PublicFooter /></>;
 }
 
@@ -245,10 +315,11 @@ export function ProductPage() {
   }, [id, location.search, setLiveAttribution]);
   const [quantity, setQuantity] = useState<number>(1);
   const [added, setAdded] = useState<boolean>(false);
+  const { isFavorite, toggleFavorite } = useFavoriteProduct(product?.id);
   if (!product) return <main className="public-page"><EmptyState title="Produit introuvable" copy="Ce produit n'est pas disponible actuellement." action="Retour à la marketplace" onAction={() => navigate("/marketplace")} /></main>;
   const productImages = Array.from(new Set([product.image, ...(product.secondaryImages ?? [])].filter(Boolean)));
   const addProduct = (): void => { addToCart(product, quantity); setAdded(true); toast.success(`${quantity} × ${product.name} ajouté${quantity > 1 ? 's' : ''} au panier.`); };
-  return <><main className="public-page product-detail-page"><button type="button" className="back-link" onClick={() => navigate(-1)}><ChevronLeft size={16} /> Retour à la marketplace</button><div className="product-detail-grid"><div className="product-detail-gallery"><div className="product-detail-main-image"><img src={selectedImage || product.image} alt={product.name} /><span className="product-gallery-label">{product.category}</span></div><div className="product-detail-thumb-row">{productImages.map((image, index) => <button type="button" key={`${image}-${index}`} className={`product-thumb ${(selectedImage || product.image) === image ? "is-active" : ""}`} onClick={() => setSelectedImage(image)} aria-label={`Afficher l’image ${index + 1} de ${product.name}`}><img src={image} alt="" /></button>)}</div></div><div className="product-detail-copy"><div className="product-detail-brand"><span className="company-avatar">{product.store.slice(0, 1)}</span><span>{product.store}</span><BadgeCheck size={15} /></div><span className="public-kicker">{product.category.toUpperCase()}</span><h1>{product.name}</h1><div className="product-rating"><span>★★★★★</span><strong>4,9</strong><a href="#reviews">24 avis</a></div><p className="product-detail-description">{product.description}</p><ProductPrice product={product} className="product-detail-price" /><div className="product-stock"><span className="stock-dot" /> En stock · expédié sous 48h</div><div className="product-purchase-row"><div className="quantity-control"><button type="button" onClick={() => setQuantity((current) => Math.max(1, current - 1))} aria-label="Diminuer la quantité"><Minus size={15} /></button><span>{quantity}</span><button type="button" onClick={() => setQuantity((current) => Math.min(product.stock, current + 1))} aria-label="Augmenter la quantité"><Plus size={15} /></button></div><button type="button" className="public-primary-button product-buy-button" onClick={addProduct}><ShoppingCart size={17} /> {added ? "Ajouté au panier" : "Ajouter au panier"}</button></div><div className="product-reassurance"><div><Package size={18} /><span>Livraison<br /><b>Partout en Afrique</b></span></div><div><LockKeyhole size={18} /><span>Paiement<br /><b>100% sécurisé</b></span></div><div><CircleHelp size={18} /><span>Besoin d'aide ?<br /><b>Écrivez-nous</b></span></div></div></div></div><section className="product-detail-bottom"><span className="public-kicker">L'HISTOIRE DERRIÈRE L'OBJET</span><h2>Un objet fait pour<br /><em>vivre avec vous.</em></h2><p>Chez Orion, nous croyons que les meilleurs objets ne sont pas seulement beaux. Ils racontent un lieu, un geste, une personne — et trouvent une nouvelle histoire entre vos mains.</p></section></main><PublicFooter /></>;
+  return <><main className="public-page product-detail-page"><button type="button" className="back-link" onClick={() => navigate(-1)}><ChevronLeft size={16} /> Retour à la marketplace</button><div className="product-detail-grid"><div className="product-detail-gallery"><div className="product-detail-main-image"><img src={selectedImage || product.image} alt={product.name} /><button type="button" className={`product-save product-detail-save ${isFavorite ? "is-favorite" : ""}`} aria-label={isFavorite ? `Retirer ${product.name} des favoris` : `Ajouter ${product.name} aux favoris`} aria-pressed={isFavorite} onClick={toggleFavorite}><Heart size={17} fill={isFavorite ? "currentColor" : "none"} /></button><span className="product-gallery-label">{product.category}</span></div><div className="product-detail-thumb-row">{productImages.map((image, index) => <button type="button" key={`${image}-${index}`} className={`product-thumb ${(selectedImage || product.image) === image ? "is-active" : ""}`} onClick={() => setSelectedImage(image)} aria-label={`Afficher l’image ${index + 1} de ${product.name}`}><img src={image} alt="" /></button>)}</div></div><div className="product-detail-copy"><div className="product-detail-brand"><span className="company-avatar">{product.store.slice(0, 1)}</span><span>{product.store}</span><BadgeCheck size={15} /></div><span className="public-kicker">{product.category.toUpperCase()}</span><h1>{product.name}</h1><div className="product-rating"><span>?????</span><strong>4,9</strong><a href="#reviews">24 avis</a></div><p className="product-detail-description">{product.description}</p><ProductPrice product={product} className="product-detail-price" /><div className="product-stock"><span className="stock-dot" /> En stock · expédié sous 48h</div><div className="product-purchase-row"><div className="quantity-control"><button type="button" onClick={() => setQuantity((current) => Math.max(1, current - 1))} aria-label="Diminuer la quantité"><Minus size={15} /></button><span>{quantity}</span><button type="button" onClick={() => setQuantity((current) => Math.min(product.stock, current + 1))} aria-label="Augmenter la quantité"><Plus size={15} /></button></div><button type="button" className="public-primary-button product-buy-button" onClick={addProduct}><ShoppingCart size={17} /> {added ? "Ajouté au panier" : "Ajouter au panier"}</button></div><div className="product-reassurance"><div><Package size={18} /><span>Livraison<br /><b>Partout en Afrique</b></span></div><div><LockKeyhole size={18} /><span>Paiement<br /><b>100% sécurisé</b></span></div><div><CircleHelp size={18} /><span>Besoin d'aide ?<br /><b>Écrivez-nous</b></span></div></div></div></div><section className="product-detail-bottom"><span className="public-kicker">L'HISTOIRE DERRIÈRE L'OBJET</span><h2>Un objet fait pour<br /><em>vivre avec vous.</em></h2><p>Chez Orion, nous croyons que les meilleurs objets ne sont pas seulement beaux. Ils racontent un lieu, un geste, une personne — et trouvent une nouvelle histoire entre vos mains.</p></section></main><PublicFooter /></>;
 }
 
 export function OpportunitiesPage() {

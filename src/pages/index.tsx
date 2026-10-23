@@ -19,7 +19,6 @@ import {
   Download,
   FileText,
   Filter,
-  HelpCircle,
   Home,
   Info,
   LayoutDashboard,
@@ -135,6 +134,7 @@ const entrepreneurNavItems: DashboardNavItem[] = [
 ];
 
 const adminNavItems: DashboardNavItem[] = [
+  { id: "overview", label: "Tableau de bord", path: "/dashboard/overview", section: "home", icon: LayoutDashboard },
   { id: "users", label: "Utilisateurs", path: "/dashboard/users", section: "users", icon: UsersRound },
   { id: "orders", label: "Commandes", path: "/dashboard/orders", section: "orders", icon: ShoppingCart },
   { id: "wallet", label: "Portefeuille plateforme", path: "/dashboard/wallet", section: "wallet", icon: WalletCards },
@@ -346,7 +346,6 @@ function TopBar({ title, onNotificationToggle, notificationsOpen, session, onNav
       </div>
       <div className="topbar-actions">
         <ThemeModeButton />
-        <button type="button" className="topbar-icon-button" aria-label="Aide"><HelpCircle size={19} strokeWidth={1.75} /></button>
         <div className="notification-wrap" ref={notificationWrapRef}>
           <button type="button" className={`topbar-icon-button ${notificationsOpen ? "is-active" : ""}`} aria-label={`Notifications${unreadCount ? `, ${unreadCount} non lues` : ""}`} onClick={onNotificationToggle}><Bell size={19} strokeWidth={1.75} />{unreadCount ? <span className="notification-dot" /> : null}</button>
           {notificationsOpen ? (

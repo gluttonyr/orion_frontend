@@ -12,6 +12,7 @@ export type ProductRecord = {
   statut?: string;
   categorie?: string | { libellé?: string | null } | null;
   categorieId?: number;
+  likesCount?: number;
 };
 
 export async function getProducts() {
@@ -30,6 +31,14 @@ export async function getProductsByOwner(ownerId: number, token: string) {
 
 export async function getProductById(id: number) {
   return apiRequest<ProductRecord>(`/produits/${id}`);
+}
+
+export function setProductLike(id: number, visitorId: string, liked: boolean) {
+  return apiRequest<{ count: number; liked: boolean }>(`/produits/${id}/likes`, {
+    method: "PUT",
+    body: JSON.stringify({ visitorId, liked }),
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 export async function createProduct(payload: Record<string, unknown>, token: string) {
