@@ -40,7 +40,7 @@ import { createStore, getMyStores, resolveStoreLocation, updateStore, type Store
 import { getUploadUrl } from "../lib/api";
 import { getCurrentUser, updateUser, type AuthUser } from "../lib/auth-service";
 import { ClientHandoverScanner, SellerOrdersView } from "../components/HandoverTools";
-import { getAdminOrders, getAdminUsers, getAdminWallet, getSiteSettings, saveSiteSettings, type AdminOrder, type AdminPlatformWallet, type AdminUser, type SiteSettingsRecord } from "../lib/admin-service";
+import { deleteAboutTeamMember, getAboutTeam, getAdminOrders, getAdminUsers, getAdminWallet, getSiteSettings, saveAboutTeamMember, saveSiteSettings, type AboutTeamMember, type AdminOrder, type AdminPlatformWallet, type AdminUser, type SiteSettingsRecord } from "../lib/admin-service";
 import { toast } from "../components/ui/sonner";
 import { createStoreCategory, deleteStoreCategory, getStoreCategories, updateStoreCategory, type StoreCategory } from "../lib/store-category-service";
 import { createProductCategory, deleteProductCategory, getProductCategories, updateProductCategory, type ProductCategory } from "../lib/product-category-service";
@@ -663,24 +663,9 @@ function OpportunityManagementDetail({ id }: { id: string }) {
     setCandidates([]);
     setError("");
     const loadMission = async (): Promise<MissionRecord | null> => {
-      let requestError: unknown;
-      try {
-        const missionRecord = await getMissionById(Number(id), session?.token);
-        if (missionRecord) return missionRecord;
-      } catch (reason) {
-        requestError = reason;
-      }
-      if (!session?.token) {
-        if (requestError) throw requestError;
-        return null;
-      }
-      try {
-        return (await getMyMissions(session.token)).find((item) => String(item.id) === id) ?? null;
-      } catch (reason) {
-        if (!requestError) requestError = reason;
-      }
-      if (requestError) throw requestError;
-      return null;
+      if (!session?.token) throw new Error("Connectez-vous avec le compte commerçant pour consulter cette opportunité.");
+      const ownedMissions = await getMyMissions(session.token);
+      return ownedMissions.find((item) => Number(item.id) === Number(id)) ?? null;
     };
 
     const candidateRequest = session?.token
@@ -1059,6 +1044,36 @@ function AdminWalletView() {
   return <div className="management-view"><ManagementHeading eyebrow="FINANCES ORION" title="Portefeuille plateforme" description="Suivez les commissions retenues sur les commandes et les remboursements enregistrés." />{error ? <p className="auth-error">{error}</p> : !wallet ? <p>Chargement du portefeuille…</p> : <><section className="wallet-metrics admin-wallet-metrics"><article className="stat-card"><span>Solde plateforme</span><strong>{formatCfa(wallet.solde)}</strong><small>Commissions nettes après remboursements</small></article><article className="stat-card"><span>Commissions cumulées</span><strong>{formatCfa(wallet.totalCommissions)}</strong><small>Retenues comptabilisées</small></article><article className="stat-card"><span>Commissions remboursées</span><strong>{formatCfa(wallet.totalRemboursements)}</strong><small>Reprises lors des remboursements</small></article></section>{wallet.updatedAt ? <p className="withdrawal-note">Dernière mise à jour : {new Date(wallet.updatedAt).toLocaleString("fr-FR")}</p> : null}</>}</div>;
 }
 
+function AdminAboutTeamSection() {
+  const { session } = useOrion();
+  const [members, setMembers] = useState<AboutTeamMember[]>([]);
+  const [editing, setEditing] = useState<AboutTeamMember | null>(null);
+  const [name, setName] = useState("");
+  const [role, setRole] = useState("");
+  const [bio, setBio] = useState("");
+  const [position, setPosition] = useState("0");
+  const [photo, setPhoto] = useState<File | undefined>();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const refresh = () => getAboutTeam().then(setMembers).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Impossible de charger l’équipe."));
+  useEffect(() => { void refresh(); }, []);
+  const reset = () => { setEditing(null); setName(""); setRole(""); setBio(""); setPosition(String(members.length)); setPhoto(undefined); };
+  const selectMember = (member: AboutTeamMember) => { setEditing(member); setName(member.name); setRole(member.role); setBio(member.bio ?? ""); setPosition(String(member.position)); setPhoto(undefined); };
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); if (!session?.token) return;
+    setSaving(true); setError("");
+    try { await saveAboutTeamMember(session.token, { name, role, bio, position: Number(position) || 0, photo }, editing?.id); await refresh(); reset(); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Impossible d’enregistrer ce profil."); }
+    finally { setSaving(false); }
+  };
+  const remove = async (member: AboutTeamMember) => {
+    if (!session?.token || !window.confirm(`Supprimer le profil de ${member.name} ?`)) return;
+    try { await deleteAboutTeamMember(session.token, member.id); await refresh(); if (editing?.id === member.id) reset(); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Impossible de supprimer ce profil."); }
+  };
+  return <section className="panel admin-team-panel"><div className="panel-heading"><div><span className="public-kicker">PAGE À PROPOS</span><h2>Membres de l’administration</h2></div><span>{members.length} profil{members.length > 1 ? "s" : ""}</span></div><p>Ces profils seront visibles publiquement dans la section « Les personnes derrière ORION ».</p>{error ? <p className="auth-error" role="alert">{error}</p> : null}<div className="admin-team-list">{members.map((member) => <article className="admin-team-row" key={member.id}>{member.photo ? <img src={getUploadUrl(member.photo)} alt="" /> : <span className="admin-team-initials">{member.name.slice(0, 1).toUpperCase()}</span>}<div><strong>{member.name}</strong><span>{member.role}</span></div><button type="button" className="button button-secondary" onClick={() => selectMember(member)}>Modifier</button><button type="button" className="button button-secondary" onClick={() => void remove(member)}>Supprimer</button></article>)}</div><form className="admin-team-form" onSubmit={submit}><h3>{editing ? `Modifier ${editing.name}` : "Ajouter un profil"}</h3><div className="form-grid"><label>Nom affiché<input value={name} onChange={(event) => setName(event.target.value)} required maxLength={120} /></label><label>Fonction<input value={role} onChange={(event) => setRole(event.target.value)} placeholder="Ex. Fondateur, administration…" required maxLength={120} /></label><label className="form-full">Présentation<textarea value={bio} onChange={(event) => setBio(event.target.value)} rows={4} maxLength={1200} placeholder="Quelques mots sur son rôle au sein d’ORION" /></label><label>Ordre d’affichage<input type="number" min="0" value={position} onChange={(event) => setPosition(event.target.value)} /></label><label>Photo de profil<input type="file" accept="image/*" onChange={(event) => setPhoto(event.target.files?.[0])} /></label></div><div className="management-form-actions"><button type="submit" className="button button-dark" disabled={saving}>{saving ? "Enregistrement…" : editing ? "Enregistrer les modifications" : "Ajouter le profil"} <Check size={15} /></button>{editing ? <button type="button" className="button button-secondary" onClick={reset}>Annuler</button> : null}</div></form></section>;
+}
+
 function AdminSettingsView() {
   const { session } = useOrion();
   const [settings, setSettings] = useState<SiteSettingsRecord | null>(null);
@@ -1082,7 +1097,7 @@ function AdminSettingsView() {
   const heroPreview = useMemo(() => previewList(heroFiles, settings?.heroImages ?? []), [heroFiles, settings?.heroImages]);
   const carouselPreview = useMemo(() => previewList(carouselFiles, settings?.carouselImages ?? []), [carouselFiles, settings?.carouselImages]);
   useEffect(() => () => [...heroPreview, ...carouselPreview].filter((src) => src.startsWith("blob:")).forEach((src) => URL.revokeObjectURL(src)), [heroPreview, carouselPreview]);
-  return <div className="management-view"><ManagementHeading eyebrow="CONTENU PUBLIC" title="Images de la page d’accueil" description="Définissez les trois visuels de l’en-tête et les images du carrousel. Les images sont téléversées dans Orion, aucun lien n’est nécessaire." />{error ? <p className="auth-error">{error}</p> : null}{message ? <p className="handover-success">{message}</p> : null}<form className="admin-settings-form" onSubmit={submit}><section className="panel admin-image-panel"><div className="panel-heading"><div><span className="public-kicker">EN-TÊTE</span><h2>Les trois images principales</h2></div><span>{heroFiles.length ? `${heroFiles.length} sélectionnées` : `${settings?.heroImages.length ?? 0}/3 enregistrées`}</span></div><label className="admin-image-picker"><ImagePlus size={18} /><span>Choisir jusqu’à 3 images</span><input type="file" accept="image/*" multiple onChange={(event) => setHeroFiles(Array.from(event.target.files ?? []).slice(0, 3))} /></label><div className="admin-image-grid">{heroPreview.map((src, index) => <img key={`${src}-${index}`} src={src} alt={`Visuel d’en-tête ${index + 1}`} />)}</div><p>Si vous ne choisissez pas de nouveaux fichiers, les images actuelles restent en place.</p></section><section className="panel admin-image-panel"><div className="panel-heading"><div><span className="public-kicker">CARROUSEL</span><h2>Images qui défilent en bas</h2></div><span>{carouselFiles.length ? `${carouselFiles.length} sélectionnées` : `${settings?.carouselImages.length ?? 0} enregistrées`}</span></div><label className="admin-image-picker"><ImagePlus size={18} /><span>Choisir jusqu’à 10 images</span><input type="file" accept="image/*" multiple onChange={(event) => setCarouselFiles(Array.from(event.target.files ?? []).slice(0, 10))} /></label><div className="admin-image-grid admin-carousel-preview">{carouselPreview.map((src, index) => <img key={`${src}-${index}`} src={src} alt={`Image de carrousel ${index + 1}`} />)}</div><p>Le carrousel reprend l’ordre des fichiers sélectionnés.</p></section><div className="management-form-actions"><button type="submit" className="button button-dark" disabled={saving || !settings}>{saving ? "Enregistrement…" : "Enregistrer les images"} <Check size={15} /></button></div></form></div>;
+  return <div className="management-view"><ManagementHeading eyebrow="CONTENU PUBLIC" title="Images de la page d’accueil" description="Définissez les trois visuels de l’en-tête et les images du carrousel. Les images sont téléversées dans Orion, aucun lien n’est nécessaire." />{error ? <p className="auth-error">{error}</p> : null}{message ? <p className="handover-success">{message}</p> : null}<form className="admin-settings-form" onSubmit={submit}><section className="panel admin-image-panel"><div className="panel-heading"><div><span className="public-kicker">EN-TÊTE</span><h2>Les trois images principales</h2></div><span>{heroFiles.length ? `${heroFiles.length} sélectionnées` : `${settings?.heroImages.length ?? 0}/3 enregistrées`}</span></div><label className="admin-image-picker"><ImagePlus size={18} /><span>Choisir jusqu’à 3 images</span><input type="file" accept="image/*" multiple onChange={(event) => setHeroFiles(Array.from(event.target.files ?? []).slice(0, 3))} /></label><div className="admin-image-grid">{heroPreview.map((src, index) => <img key={`${src}-${index}`} src={src} alt={`Visuel d’en-tête ${index + 1}`} />)}</div><p>Si vous ne choisissez pas de nouveaux fichiers, les images actuelles restent en place.</p></section><section className="panel admin-image-panel"><div className="panel-heading"><div><span className="public-kicker">CARROUSEL</span><h2>Images qui défilent en bas</h2></div><span>{carouselFiles.length ? `${carouselFiles.length} sélectionnées` : `${settings?.carouselImages.length ?? 0} enregistrées`}</span></div><label className="admin-image-picker"><ImagePlus size={18} /><span>Choisir jusqu’à 10 images</span><input type="file" accept="image/*" multiple onChange={(event) => setCarouselFiles(Array.from(event.target.files ?? []).slice(0, 10))} /></label><div className="admin-image-grid admin-carousel-preview">{carouselPreview.map((src, index) => <img key={`${src}-${index}`} src={src} alt={`Image de carrousel ${index + 1}`} />)}</div><p>Le carrousel reprend l’ordre des fichiers sélectionnés.</p></section><div className="management-form-actions"><button type="submit" className="button button-dark" disabled={saving || !settings}>{saving ? "Enregistrement…" : "Enregistrer les images"} <Check size={15} /></button></div></form><AdminAboutTeamSection /></div>;
 }
 
 export function DashboardRouteView({ pathname, role }: ManagementProps) {

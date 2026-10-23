@@ -13,6 +13,7 @@ import { OrionProvider, useOrion } from "./OrionContext";
 import { getMyStores } from "./lib/store-service";
 import {
   CartPage,
+  AboutPage,
   CheckoutPage,
   HomePage,
   MarketplacePage,
@@ -80,6 +81,7 @@ const App = () => (
           <Routes>
             <Route element={<PublicLayout />}>
               <Route path="/" element={<HomePage />} />
+              <Route path="/a-propos" element={<AboutPage />} />
               <Route path="/marketplace" element={<MarketplacePage />} />
               <Route path="/product/:id" element={<ProductPage />} />
               <Route path="/opportunities" element={<OpportunitiesPage />} />
