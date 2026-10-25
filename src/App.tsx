@@ -24,6 +24,7 @@ import {
   PurchasesPage,
   PublicLayout,
   StoreSelectionPage,
+  StorefrontPage,
 } from "./pages/PublicPages";
 
 const queryClient = new QueryClient();
@@ -84,6 +85,7 @@ const App = () => (
               <Route path="/a-propos" element={<AboutPage />} />
               <Route path="/marketplace" element={<MarketplacePage />} />
               <Route path="/product/:id" element={<ProductPage />} />
+              <Route path="/store/:id" element={<StorefrontPage />} />
               <Route path="/opportunities" element={<OpportunitiesPage />} />
               <Route path="/opportunities/:id" element={<OpportunityDetailPage />} />
               <Route path="/cart" element={<CartPage />} />

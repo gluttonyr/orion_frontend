@@ -89,6 +89,10 @@ html[data-theme="dark"] .search-field input,
 html[data-theme="dark"] .public-header-search input { color: #e8e6e2; }
 html[data-theme="dark"] .search-field input::placeholder,
 html[data-theme="dark"] .public-header-search input::placeholder { color: #99949b; }
+html[data-theme="dark"] .public-search-suggestions { border-color: var(--orion-dark-border); background: var(--orion-dark-surface); }
+html[data-theme="dark"] .public-search-suggestion { color: var(--orion-dark-text); }
+html[data-theme="dark"] .public-search-suggestion:hover,html[data-theme="dark"] .public-search-suggestion:focus-visible { background: var(--orion-dark-raised); }
+html[data-theme="dark"] .public-search-suggestion small,html[data-theme="dark"] .public-search-suggestions-message { color: var(--orion-dark-muted); }
 html[data-theme="dark"] .public-section:not(.public-join-banner),
 html[data-theme="dark"] .public-page-heading,
 html[data-theme="dark"] .public-section-heading,
@@ -1886,9 +1890,19 @@ html[data-theme="dark"] .app-frame textarea { background-color: #20232b; border-
 .public-nav { flex: 0 0 auto; gap: 32px; margin-left: 20px; }
 .public-nav a { position: relative; color: #171416; font-size: 14px; }
 .public-nav a[aria-current="page"]::after, .public-nav a:hover::after { position: absolute; right: 0; bottom: -13px; left: 0; height: 2px; background: #77142d; content: ""; }
-.public-header-search { display: flex; height: 46px; flex: 1 1 400px; align-items: center; gap: 12px; max-width: 465px; border-radius: 28px; background: #f2f1f1; padding: 0 18px; color: #151315; }
+.public-header-search { position: relative; display: flex; height: 46px; flex: 1 1 400px; align-items: center; gap: 12px; max-width: 465px; border-radius: 28px; background: #f2f1f1; padding: 0 18px; color: #151315; }
 .public-header-search input { width: 100%; border: 0; outline: 0; background: transparent; color: #201c1e; font: inherit; font-size: 13px; }
 .public-header-search input::placeholder { color: #777174; }
+.public-search-suggestions { position: absolute; z-index: 1000; top: calc(100% + 9px); right: 0; left: 0; display: grid; gap: 3px; overflow: hidden; border: 1px solid #e9e0dc; border-radius: 14px; background: #fffdfa; padding: 6px; box-shadow: 0 18px 42px rgba(42,24,29,.16); }
+.public-search-suggestion { display: flex; min-width: 0; align-items: center; gap: 11px; border: 0; border-radius: 9px; background: transparent; padding: 8px; color: #302528; text-align: left; cursor: pointer; }
+.public-search-suggestion:hover,.public-search-suggestion:focus-visible { outline: 0; background: #f8f0ed; }
+.public-search-suggestion > img { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 8px; background: #f3ece8; object-fit: cover; }
+.public-search-suggestion > span { display: grid; min-width: 0; flex: 1; gap: 4px; }
+.public-search-suggestion strong { overflow: hidden; font-size: 12px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.public-search-suggestion small { overflow: hidden; color: #8b7e7e; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.public-search-suggestion-price { flex: 0 0 auto; color: #841438; font-size: 11px; }
+.public-search-suggestion-price del,.public-search-suggestion-price small { display: none; }
+.public-search-suggestions-message { margin: 0; padding: 15px 11px; color: #817476; font-size: 12px; text-align: center; }
 .public-header-actions { gap: 25px; color: #161315; }
 .public-cart-button, .public-account-button { color: #171416; font-size: 14px; }
 .public-cart-button b { position: absolute; top: 0; right: -8px; width: 19px; height: 19px; font-size: 10px; }

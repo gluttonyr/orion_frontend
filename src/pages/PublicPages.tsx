@@ -10,11 +10,14 @@ import {
   Check,
   ChevronDown,
   ChevronLeft,
+  ChevronUp,
   CircleHelp,
   CreditCard,
   Filter,
   Globe2,
   Heart,
+  Grid2X2,
+  List,
   LockKeyhole,
   MapPin,
   Menu,
@@ -42,17 +45,18 @@ import {
   type Product,
   type UserRole,
 } from "../OrionContext";
-import { getProductById, setProductLike } from "../lib/catalog-service";
+import { getProductById, searchProductSuggestions, setProductLike, type ProductRecord } from "../lib/catalog-service";
 import { mapBackendProduct } from "../OrionContext";
 import { getUploadUrl } from "../lib/api";
 import { applyToMission, formatMissionRemuneration, getMissionById, getMissions, getMyMissionApplication, type MissionRecord } from "../lib/mission-service";
 import { checkFedaPayPayment, createFedaPayPayment, recordLiveProductVisit } from "../lib/live-service";
-import { getMyStores, type StoreRecord } from "../lib/store-service";
+import { getMyStores, getStoreById, getStores, type StoreRecord } from "../lib/store-service";
 import { getCurrentUser, type AuthUser } from "../lib/auth-service";
 import { getAboutTeam, getSiteSettings, type AboutTeamMember } from "../lib/admin-service";
 import { getMyPurchases, type PurchaseRecord } from "../lib/order-service";
 import { ThemeModeButton } from "../ThemeMode";
 import { toast } from "../components/ui/sonner";
+import "../marketplace.css";
 
 function OrionLogo({ light = false }: { light?: boolean }) {
   return <Link to="/" className={`orion-public-logo ${light ? "is-light" : ""}`} aria-label="Orion accueil"><img src="/orion.jpeg" alt="Logo Orion" /></Link>;
@@ -119,18 +123,20 @@ function useFavoriteProduct(productId?: string) {
   return { isFavorite, toggleFavorite };
 }
 
-function ProductCard({ product, onAdd }: { product: Product; onAdd?: (product: Product) => void }) {
+function ProductCard({ product, onAdd, marketplace = false, list = false }: { product: Product; onAdd?: (product: Product) => void; marketplace?: boolean; list?: boolean }) {
   const { addToCart } = useOrion();
+  const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavoriteProduct(product.id);
-  const handleAdd = (): void => {
+  const handleAdd = (event: import("react").MouseEvent<HTMLButtonElement>): void => {
+    event.stopPropagation();
     if (onAdd) onAdd(product);
     else { addToCart(product); toast.success(`${product.name} ajouté au panier.`); }
   };
   const handleFavorite = (event: import("react").MouseEvent<HTMLButtonElement>) => { event.preventDefault(); event.stopPropagation(); toggleFavorite(); };
-  return <article className="public-product-card">
+  return <article className={`public-product-card ${marketplace ? `marketplace-product-card ${list ? "is-list" : ""}` : ""}`} role="link" tabIndex={0} onClick={() => navigate(`/product/${product.id}`)} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); navigate(`/product/${product.id}`); } }}>
     <div className="public-product-image"><Link to={`/product/${product.id}`} className="public-product-image-link"><img src={product.image} alt={product.name} />{getSellingPrice(product) < product.price ? <span className="product-discount-badge">PROMO</span> : null}{product.featured ? <span className="product-featured">SÉLECTION</span> : null}</Link><button type="button" className={`product-save ${isFavorite ? "is-favorite" : ""}`} aria-label={isFavorite ? `Retirer ${product.name} des favoris` : `Ajouter ${product.name} aux favoris`} aria-pressed={isFavorite} onClick={handleFavorite}><Heart size={16} fill={isFavorite ? "currentColor" : "none"} /></button></div>
-    <div className="public-product-info"><div><p className="public-product-category">{product.category}</p><Link to={`/product/${product.id}`}><h3>{product.name}</h3></Link><p className="public-product-store">{product.store}</p></div><ProductPrice product={product} className="public-product-price" /></div>
-    <button type="button" className="product-add-button" onClick={handleAdd}><ShoppingCart size={15} /> Ajouter au panier</button>
+    <div className="public-product-info"><div><p className="public-product-category">{product.category}</p><Link to={`/product/${product.id}`}><h3>{product.name}</h3></Link>{marketplace && product.country ? <p className="public-product-store marketplace-product-country"><MapPin size={11} /> {product.country}</p> : <p className="public-product-store">{product.store}</p>}</div><ProductPrice product={product} className="public-product-price" /></div>
+    <button type="button" className={`product-add-button ${marketplace ? "marketplace-add-button" : ""}`} onClick={handleAdd} aria-label={`Ajouter ${product.name} au panier`}><ShoppingCart size={15} />{marketplace ? null : " Ajouter au panier"}</button>
   </article>;
 }
 
@@ -161,9 +167,40 @@ export function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState<ProductRecord[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const navigate = useNavigate();
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setSearchSuggestions([]);
+      setSearchLoading(false);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setSearchLoading(true);
+      searchProductSuggestions(query, 5)
+        .then((results) => { if (active) setSearchSuggestions(results.slice(0, 5)); })
+        .catch(() => { if (active) setSearchSuggestions([]); })
+        .finally(() => { if (active) setSearchLoading(false); });
+    }, 250);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [searchQuery]);
+  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    setSearchFocused(false);
+    navigate(query ? `/marketplace?search=${encodeURIComponent(query)}` : "/marketplace");
+  };
+  const openSuggestedProduct = (product: ProductRecord) => {
+    setSearchFocused(false);
+    setSearchQuery("");
+    navigate(`/product/${product.id}`);
+  };
   return <div className="public-site-shell">
-    <header className="public-header"><div className="public-header-inner"><OrionLogo /><nav className={`public-nav ${menuOpen ? "is-open" : ""}`}><Link to="/" onClick={() => setMenuOpen(false)}>Accueil</Link><Link to="/marketplace" onClick={() => setMenuOpen(false)}>Marketplace</Link><Link to="/opportunities" onClick={() => setMenuOpen(false)}>Opportunités</Link><Link to="/a-propos" onClick={() => setMenuOpen(false)}>À propos</Link></nav><form className="public-header-search" onSubmit={(event) => { event.preventDefault(); const query = searchQuery.trim(); navigate(query ? `/marketplace?search=${encodeURIComponent(query)}` : "/marketplace"); }}><Search size={19} /><input aria-label="Rechercher dans Orion" placeholder="Rechercher un produit, une marque, une catégorie..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} /></form><div className="public-header-actions"><ThemeModeButton className="theme-mode-button" /><Link to="/cart" className="public-cart-button" aria-label="Ouvrir le panier"><ShoppingCart size={19} /><span>Panier</span>{cartCount > 0 ? <b>{cartCount}</b> : null}</Link>{session ? <div className="public-account-menu"><button type="button" className="public-account-button" aria-expanded={accountMenuOpen} aria-haspopup="menu" onClick={() => setAccountMenuOpen((current) => !current)}><span className="public-account-avatar">{session.name.slice(0, 2).toUpperCase()}</span><span>{session.name}</span><ChevronDown size={14} /></button>{accountMenuOpen ? <div className="public-account-dropdown" role="menu"><span className="public-account-dropdown-name">Connecté en tant que<br /><strong>{session.name}</strong></span><Link to="/dashboard" role="menuitem" onClick={() => setAccountMenuOpen(false)}>Aller au dashboard <ArrowUpRight size={15} /></Link></div> : null}</div> : <Link to="/login" className="public-account-button"><UserRound size={22} /><span>Mon compte</span><ChevronDown size={14} /></Link>}<button type="button" className="public-menu-button" aria-label="Ouvrir le menu" onClick={() => setMenuOpen((current) => !current)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button></div></div></header>
+    <header className="public-header"><div className="public-header-inner"><OrionLogo /><nav className={`public-nav ${menuOpen ? "is-open" : ""}`}><Link to="/" onClick={() => setMenuOpen(false)}>Accueil</Link><Link to="/marketplace" onClick={() => setMenuOpen(false)}>Marketplace</Link><Link to="/opportunities" onClick={() => setMenuOpen(false)}>Opportunités</Link><Link to="/a-propos" onClick={() => setMenuOpen(false)}>À propos</Link></nav><form className="public-header-search" role="search" onSubmit={submitSearch} onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}><Search size={19} /><input aria-label="Rechercher dans Orion" placeholder="Rechercher un produit, une marque, une catégorie..." value={searchQuery} onFocus={() => setSearchFocused(true)} onKeyDown={(event) => { if (event.key === "Escape") setSearchFocused(false); }} onChange={(event) => setSearchQuery(event.target.value)} />{searchFocused && searchQuery.trim().length >= 2 ? <div className="public-search-suggestions" role="listbox" aria-label="Suggestions de produits" onMouseDown={(event) => event.preventDefault()}>{searchLoading ? <p className="public-search-suggestions-message">Recherche des produits…</p> : searchSuggestions.length ? searchSuggestions.map((product) => { const mapped = mapBackendProduct(product); return <button type="button" role="option" aria-label={`Voir ${product.nom}`} className="public-search-suggestion" key={product.id} onClick={() => openSuggestedProduct(product)}><img src={getUploadUrl(product.image)} alt="" /><span><strong>{product.nom}</strong><small>{typeof product.categorie === "string" ? product.categorie : product.categorie?.libellé ?? "Produit Orion"}</small></span><ProductPrice product={mapped} className="public-search-suggestion-price" /></button>; }) : <p className="public-search-suggestions-message">Aucun produit similaire trouvé.</p>}</div> : null}</form><div className="public-header-actions"><ThemeModeButton className="theme-mode-button" /><Link to="/cart" className="public-cart-button" aria-label="Ouvrir le panier"><ShoppingCart size={19} /><span>Panier</span>{cartCount > 0 ? <b>{cartCount}</b> : null}</Link>{session ? <div className="public-account-menu"><button type="button" className="public-account-button" aria-expanded={accountMenuOpen} aria-haspopup="menu" onClick={() => setAccountMenuOpen((current) => !current)}><span className="public-account-avatar">{session.name.slice(0, 2).toUpperCase()}</span><span>{session.name}</span><ChevronDown size={14} /></button>{accountMenuOpen ? <div className="public-account-dropdown" role="menu"><span className="public-account-dropdown-name">Connecté en tant que<br /><strong>{session.name}</strong></span><Link to="/dashboard" role="menuitem" onClick={() => setAccountMenuOpen(false)}>Aller au dashboard <ArrowUpRight size={15} /></Link></div> : null}</div> : <Link to="/login" className="public-account-button"><UserRound size={22} /><span>Mon compte</span><ChevronDown size={14} /></Link>}<button type="button" className="public-menu-button" aria-label="Ouvrir le menu" onClick={() => setMenuOpen((current) => !current)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button></div></div></header>
     <Outlet />
   </div>;
 }
@@ -262,22 +299,135 @@ export function AboutPage() {
   </main><PublicFooter /></>;
 }
 
+const marketplacePriceRanges = [
+  { id: 'under-10000', label: 'Moins de 10 000 FCFA', test: (price: number) => price < 10000 },
+  { id: '10000-25000', label: '10 000 – 25 000 FCFA', test: (price: number) => price >= 10000 && price < 25000 },
+  { id: '25000-50000', label: '25 000 – 50 000 FCFA', test: (price: number) => price >= 25000 && price < 50000 },
+  { id: 'over-50000', label: 'Plus de 50 000 FCFA', test: (price: number) => price >= 50000 },
+];
+
+function normalizeMarketplaceText(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr-FR').trim();
+}
+
 export function MarketplacePage() {
   const { products } = useOrion();
   const location = useLocation();
-  const [query, setQuery] = useState<string>(() => new URLSearchParams(location.search).get("search") ?? "");
-  const [category, setCategory] = useState<string>("Tout");
-  const [showFilters, setShowFilters] = useState<boolean>(false);
-  const [sort, setSort] = useState<string>("Recommandés");
-  const categories: string[] = ["Tout", ...Array.from(new Set(products.map((product) => product.category).filter(Boolean)))];
-  const filteredProducts: Product[] = useMemo(() => {
-    const normalized: string = query.toLowerCase().trim();
-    const result: Product[] = products.filter((product) => (category === "Tout" || product.category === category) && (!normalized || `${product.name} ${product.store} ${product.category}`.toLowerCase().includes(normalized)));
-    if (sort === "Prix croissant") return [...result].sort((a, b) => getSellingPrice(a) - getSellingPrice(b));
-    if (sort === "Prix décroissant") return [...result].sort((a, b) => getSellingPrice(b) - getSellingPrice(a));
-    return result;
-  }, [category, products, query, sort]);
-  return <><main className="public-page"><div className="public-page-heading"><div><span className="public-kicker">ORION MARKETPLACE</span><h1>Des objets qui<br /><em>portent une histoire.</em></h1><p>Découvrez des produits pensés, fabriqués et vendus par des talents du continent.</p></div><div className="public-page-heading-aside"><span>342 produits</span><span>18 pays</span><span>Vendeurs vérifiés</span></div></div><div className="marketplace-discovery-bar"><div className="public-search"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un produit, une boutique..." aria-label="Rechercher un produit" /></div><button type="button" className={`public-filter-button ${showFilters ? "is-active" : ""}`} onClick={() => setShowFilters((current) => !current)}><Filter size={16} /> Filtres</button><label className="public-sort-select"><span>Trier par</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option>Recommandés</option><option>Prix croissant</option><option>Prix décroissant</option></select><ChevronDown size={14} /></label></div>{showFilters ? <div className="marketplace-filter-panel"><span>Catégorie</span>{categories.map((item) => <button type="button" key={item} className={category === item ? "is-active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div> : null}<div className="public-category-pills">{categories.map((item) => <button type="button" className={category === item ? "is-active" : ""} key={item} onClick={() => setCategory(item)}>{item}</button>)}</div><div className="marketplace-result-heading"><span>{filteredProducts.length} résultats</span><span>Chaque achat soutient un commerce local <Heart size={14} /></span></div><div className="public-products-grid public-marketplace-grid">{filteredProducts.map((product) => <ProductCard product={product} key={product.id} />)}</div>{filteredProducts.length === 0 ? <EmptyState title="Aucun produit trouvé" copy="Essayez un autre mot-clé ou une autre catégorie." action="Réinitialiser" onAction={() => { setQuery(""); setCategory("Tout"); }} /> : null}</main><PublicFooter /></>;
+  const navigate = useNavigate();
+  const [query, setQuery] = useState<string>(() => new URLSearchParams(location.search).get('search') ?? '');
+  const [fuzzyProductIds, setFuzzyProductIds] = useState<Set<string> | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [sort, setSort] = useState('Plus récents');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [showAllCountries, setShowAllCountries] = useState(false);
+  const [openFacets, setOpenFacets] = useState({ categories: true, prices: true, countries: true });
+
+  useEffect(() => {
+    setQuery(new URLSearchParams(location.search).get('search') ?? '');
+  }, [location.search]);
+  useEffect(() => {
+    const search = query.trim();
+    if (search.length < 2) { setFuzzyProductIds(null); return; }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      searchProductSuggestions(search, 50)
+        .then((results) => { if (active) setFuzzyProductIds(new Set(results.map((product) => String(product.id)))); })
+        .catch(() => { if (active) setFuzzyProductIds(null); });
+    }, 180);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [query]);
+
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    products.forEach((product) => {
+      const name = product.category?.trim();
+      if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
+    });
+    return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b, 'fr')).map(([name, count]) => ({ name, count }));
+  }, [products]);
+
+  const countries = useMemo(() => {
+    const counts = new Map<string, number>();
+    products.forEach((product) => {
+      const name = product.country?.trim();
+      if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr')).map(([name, count]) => ({ name, count }));
+  }, [products]);
+
+  const priceCounts = useMemo(() => new Map(marketplacePriceRanges.map((range) => [range.id, products.filter((product) => range.test(getSellingPrice(product))).length])), [products]);
+  const filteredProducts = useMemo(() => {
+    const normalizedQuery = normalizeMarketplaceText(query);
+    const result = products.filter((product) => {
+      const literalMatch = normalizeMarketplaceText(`${product.name} ${product.store} ${product.category} ${product.country ?? ''}`).includes(normalizedQuery);
+      const matchesText = !normalizedQuery || literalMatch || (fuzzyProductIds?.has(product.id) ?? false);
+      const matchesCategory = !selectedCategories.length || selectedCategories.includes(product.category);
+      const matchesPrice = !selectedPriceRanges.length || selectedPriceRanges.some((id) => marketplacePriceRanges.find((range) => range.id === id)?.test(getSellingPrice(product)));
+      const matchesCountry = !selectedCountries.length || (product.country ? selectedCountries.includes(product.country) : false);
+      return matchesText && matchesCategory && matchesPrice && matchesCountry;
+    });
+    if (sort === 'Prix croissant') return result.sort((a, b) => getSellingPrice(a) - getSellingPrice(b));
+    if (sort === 'Prix décroissant') return result.sort((a, b) => getSellingPrice(b) - getSellingPrice(a));
+    if (sort === 'Nom A–Z') return result.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+    return result.sort((a, b) => Number(b.id) - Number(a.id));
+  }, [products, query, fuzzyProductIds, selectedCategories, selectedCountries, selectedPriceRanges, sort]);
+
+  const clearFilters = () => {
+    setQuery('');
+    setSelectedCategories([]);
+    setSelectedPriceRanges([]);
+    setSelectedCountries([]);
+    if (location.search) navigate('/marketplace', { replace: true });
+  };
+  const hasActiveFilters = Boolean(query.trim() || selectedCategories.length || selectedPriceRanges.length || selectedCountries.length);
+  const toggleFacet = (facet: keyof typeof openFacets) => setOpenFacets((current) => ({ ...current, [facet]: !current[facet] }));
+  const toggleCategory = (name: string) => setSelectedCategories((current) => current.includes(name) ? current.filter((item) => item !== name) : [...current, name]);
+  const togglePriceRange = (id: string) => setSelectedPriceRanges((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const toggleCountry = (name: string) => setSelectedCountries((current) => current.includes(name) ? current.filter((item) => item !== name) : [...current, name]);
+
+  return <><main className="public-page marketplace-page">
+    <section className="marketplace-hero"><div className="marketplace-hero-pattern" aria-hidden="true"><span>✳</span><span>◈</span><span>◎</span></div><div><span className="marketplace-hero-kicker">ORION MARKETPLACE</span><h1>Place de marché</h1><p>Mode, artisanat, beauté, épicerie — découvrez les créations et produits de nos commerçants.</p></div><span className="marketplace-hero-mark" aria-hidden="true">O</span></section>
+
+    <div className="marketplace-layout">
+      <aside className={`marketplace-sidebar ${mobileFiltersOpen ? 'is-open' : ''}`} aria-label="Filtres de la marketplace">
+        <div className="marketplace-sidebar-heading"><strong>Filtres</strong><button type="button" onClick={clearFilters} disabled={!hasActiveFilters}>Effacer</button></div>
+        <section className="marketplace-facet"><button type="button" className="marketplace-facet-heading" aria-expanded={openFacets.categories} onClick={() => toggleFacet('categories')}>Catégories {openFacets.categories ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</button>{openFacets.categories ? <div className="marketplace-facet-options">{categories.map(({ name, count }) => <label key={name}><input type="checkbox" checked={selectedCategories.includes(name)} onChange={() => toggleCategory(name)} /><span>{name}</span><small>{count}</small></label>)}</div> : null}</section>
+        <section className="marketplace-facet"><button type="button" className="marketplace-facet-heading" aria-expanded={openFacets.prices} onClick={() => toggleFacet('prices')}>Prix {openFacets.prices ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</button>{openFacets.prices ? <div className="marketplace-facet-options">{marketplacePriceRanges.map((range) => <label key={range.id}><input type="checkbox" checked={selectedPriceRanges.includes(range.id)} onChange={() => togglePriceRange(range.id)} /><span>{range.label}</span><small>{priceCounts.get(range.id) ?? 0}</small></label>)}</div> : null}</section>
+        <section className="marketplace-facet"><button type="button" className="marketplace-facet-heading" aria-expanded={openFacets.countries} onClick={() => toggleFacet('countries')}>Pays {openFacets.countries ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</button>{openFacets.countries ? countries.length ? <div className="marketplace-facet-options">{(showAllCountries ? countries : countries.slice(0, 6)).map(({ name, count }) => <label key={name}><input type="checkbox" checked={selectedCountries.includes(name)} onChange={() => toggleCountry(name)} /><span>{name}</span><small>{count}</small></label>)}{countries.length > 6 ? <button type="button" className="marketplace-show-more" onClick={() => setShowAllCountries((current) => !current)}>{showAllCountries ? 'Voir moins' : 'Voir plus'}</button> : null}</div> : <p className="marketplace-facet-empty">Les pays seront affichés selon les informations renseignées par les commerçants.</p> : null}</section>
+      </aside>
+
+      <div className="marketplace-results">
+        <div className="marketplace-toolbar"><div className="marketplace-result-count"><strong>{filteredProducts.length}</strong> produit{filteredProducts.length === 1 ? '' : 's'}<span>sur {products.length} au catalogue</span></div><div className="marketplace-toolbar-actions"><button type="button" className={`marketplace-mobile-filter ${mobileFiltersOpen ? 'is-active' : ''}`} onClick={() => setMobileFiltersOpen((current) => !current)}><Filter size={15} /> Filtres{hasActiveFilters ? <i /> : null}</button><label className="marketplace-sort"><span>Trier par</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option>Plus récents</option><option>Prix croissant</option><option>Prix décroissant</option><option>Nom A–Z</option></select><ChevronDown size={14} /></label><div className="marketplace-view-toggle" aria-label="Disposition des produits"><button type="button" className={viewMode === 'grid' ? 'is-active' : ''} aria-label="Affichage en grille" aria-pressed={viewMode === 'grid'} onClick={() => setViewMode('grid')}><Grid2X2 size={17} /></button><button type="button" className={viewMode === 'list' ? 'is-active' : ''} aria-label="Affichage en liste" aria-pressed={viewMode === 'list'} onClick={() => setViewMode('list')}><List size={18} /></button></div></div></div>
+        {hasActiveFilters ? <div className="marketplace-active-filters">{selectedCategories.map((item) => <button type="button" key={`category-${item}`} onClick={() => toggleCategory(item)}>{item} <X size={12} /></button>)}{selectedCountries.map((item) => <button type="button" key={`country-${item}`} onClick={() => toggleCountry(item)}>{item} <X size={12} /></button>)}{selectedPriceRanges.map((id) => { const range = marketplacePriceRanges.find((item) => item.id === id); return range ? <button type="button" key={id} onClick={() => togglePriceRange(id)}>{range.label} <X size={12} /></button> : null; })}{query.trim() ? <button type="button" onClick={() => { setQuery(''); navigate('/marketplace'); }}>« {query} » <X size={12} /></button> : null}<button type="button" className="marketplace-clear-filters" onClick={clearFilters}>Tout effacer</button></div> : null}
+        {filteredProducts.length ? <div className={`public-products-grid public-marketplace-grid ${viewMode === 'list' ? 'is-list' : ''}`}>{filteredProducts.map((product) => <ProductCard product={product} marketplace list={viewMode === 'list'} key={product.id} />)}</div> : <div className="marketplace-empty"><Search size={23} /><h2>Aucun produit trouvé</h2><p>Essaie de modifier ta recherche ou les filtres sélectionnés.</p><button type="button" className="button button-dark" onClick={clearFilters}>Réinitialiser les filtres</button></div>}
+      </div>
+    </div>
+  </main><PublicFooter /></>;
+}
+
+export function StorefrontPage() {
+  const { id = "" } = useParams();
+  const { products } = useOrion();
+  const [store, setStore] = useState<StoreRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    getStoreById(id).then((record) => { if (active) setStore(record); }).catch(() => { if (active) setStore(null); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [id]);
+  const storeProducts = useMemo(() => store?.proprietaireId == null ? [] : products.filter((product) => product.ownerId === store.proprietaireId), [products, store?.proprietaireId]);
+  if (loading) return <main className="public-page storefront-page"><p role="status">Chargement de la boutique…</p></main>;
+  if (!store) return <main className="public-page"><EmptyState title="Boutique introuvable" copy="Cette boutique n’est pas disponible actuellement." action="Retour au marketplace" onAction={() => window.location.assign("/marketplace")} /></main>;
+  return <main className="public-page storefront-page">
+    <nav className="storefront-breadcrumb" aria-label="Fil d’Ariane"><Link to="/marketplace">Marketplace</Link><span>/</span><span>{store.nom}</span></nav>
+    <section className="storefront-hero"><div className="storefront-hero-art" aria-hidden="true"><span>ORION</span><i>✳</i><b>O</b></div><div className="storefront-hero-content"><div className="storefront-brand">{store.logo ? <img src={getUploadUrl(store.logo)} alt={`Logo ${store.nom}`} /> : <span><Store size={27} /></span>}<div><span className="storefront-eyebrow">BOUTIQUE ORION <i /> {store.category || "CRÉATEUR INDÉPENDANT"}</span><h1>{store.nom}</h1><p>{store.address ? <><MapPin size={14} /> {store.address}</> : store.location && /^https?:\/\//i.test(store.location) ? <a className="storefront-map-link" href={store.location} target="_blank" rel="noreferrer"><MapPin size={14} /> Voir la localisation</a> : store.location ? <><MapPin size={14} /> {store.location}</> : "Une boutique locale sur Orion"}</p></div></div><div className="storefront-hero-count"><strong>{storeProducts.length}</strong><span>produit{storeProducts.length === 1 ? "" : "s"}<br />disponible{storeProducts.length === 1 ? "" : "s"}</span></div></div>{store.description ? <p className="storefront-description">{store.description}</p> : null}</section>
+    <div className="storefront-products-heading"><div><span className="public-kicker">LA SÉLECTION DE LA BOUTIQUE</span><h2>Nos produits</h2></div><span>{storeProducts.length} produit{storeProducts.length === 1 ? "" : "s"}</span></div>
+    {storeProducts.length ? <div className="public-products-grid">{storeProducts.map((product) => <ProductCard key={product.id} product={{ ...product, store: store.nom }} marketplace />)}</div> : <EmptyState title="Aucun produit publié" copy="Cette boutique n’a pas encore de produit disponible." action="Explorer le marketplace" onAction={() => window.location.assign("/marketplace")} />}
+  </main>;
 }
 
 export function ProductPage() {
@@ -287,12 +437,28 @@ export function ProductPage() {
   const { addToCart, products, setLiveAttribution } = useOrion();
   const [product, setProduct] = useState<Product | null>(() => products.find((item) => item.id === id) ?? null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [sellerStoreId, setSellerStoreId] = useState<number | null>(null);
+  const [sellerStoreName, setSellerStoreName] = useState<string | null>(null);
   useEffect(() => {
     if (!id) return;
     getProductById(Number(id))
       .then((record) => setProduct(mapBackendProduct(record)))
       .catch(() => setProduct(products.find((item) => item.id === id) ?? null));
   }, [id, products]);
+  useEffect(() => {
+    let active = true;
+    setSellerStoreName(null);
+    if (!product) { setSellerStoreId(null); return () => { active = false; }; }
+    getStores().then((stores) => {
+      if (!active) return;
+      const storeById = product.storeId ? stores.find((item) => item.id === product.storeId) : undefined;
+      const ownedStore = product.ownerId ? stores.find((item) => item.proprietaireId === product.ownerId) : undefined;
+      const resolvedStore = storeById ?? ownedStore ?? (stores.length === 1 ? stores[0] : undefined);
+      setSellerStoreId(resolvedStore?.id ?? null);
+      setSellerStoreName(resolvedStore?.nom ?? null);
+    }).catch(() => { if (active) setSellerStoreId(null); });
+    return () => { active = false; };
+  }, [product?.ownerId, product?.storeId]);
   useEffect(() => { setSelectedImage(product?.image ?? null); }, [product?.id, product?.image]);
   useEffect(() => {
     const rawLiveSessionId = new URLSearchParams(location.search).get("liveSession");
@@ -319,7 +485,7 @@ export function ProductPage() {
   if (!product) return <main className="public-page"><EmptyState title="Produit introuvable" copy="Ce produit n'est pas disponible actuellement." action="Retour à la marketplace" onAction={() => navigate("/marketplace")} /></main>;
   const productImages = Array.from(new Set([product.image, ...(product.secondaryImages ?? [])].filter(Boolean)));
   const addProduct = (): void => { addToCart(product, quantity); setAdded(true); toast.success(`${quantity} × ${product.name} ajouté${quantity > 1 ? 's' : ''} au panier.`); };
-  return <><main className="public-page product-detail-page"><button type="button" className="back-link" onClick={() => navigate(-1)}><ChevronLeft size={16} /> Retour à la marketplace</button><div className="product-detail-grid"><div className="product-detail-gallery"><div className="product-detail-main-image"><img src={selectedImage || product.image} alt={product.name} /><button type="button" className={`product-save product-detail-save ${isFavorite ? "is-favorite" : ""}`} aria-label={isFavorite ? `Retirer ${product.name} des favoris` : `Ajouter ${product.name} aux favoris`} aria-pressed={isFavorite} onClick={toggleFavorite}><Heart size={17} fill={isFavorite ? "currentColor" : "none"} /></button><span className="product-gallery-label">{product.category}</span></div><div className="product-detail-thumb-row">{productImages.map((image, index) => <button type="button" key={`${image}-${index}`} className={`product-thumb ${(selectedImage || product.image) === image ? "is-active" : ""}`} onClick={() => setSelectedImage(image)} aria-label={`Afficher l’image ${index + 1} de ${product.name}`}><img src={image} alt="" /></button>)}</div></div><div className="product-detail-copy"><div className="product-detail-brand"><span className="company-avatar">{product.store.slice(0, 1)}</span><span>{product.store}</span><BadgeCheck size={15} /></div><span className="public-kicker">{product.category.toUpperCase()}</span><h1>{product.name}</h1><div className="product-rating"><span>?????</span><strong>4,9</strong><a href="#reviews">24 avis</a></div><p className="product-detail-description">{product.description}</p><ProductPrice product={product} className="product-detail-price" /><div className="product-stock"><span className="stock-dot" /> En stock · expédié sous 48h</div><div className="product-purchase-row"><div className="quantity-control"><button type="button" onClick={() => setQuantity((current) => Math.max(1, current - 1))} aria-label="Diminuer la quantité"><Minus size={15} /></button><span>{quantity}</span><button type="button" onClick={() => setQuantity((current) => Math.min(product.stock, current + 1))} aria-label="Augmenter la quantité"><Plus size={15} /></button></div><button type="button" className="public-primary-button product-buy-button" onClick={addProduct}><ShoppingCart size={17} /> {added ? "Ajouté au panier" : "Ajouter au panier"}</button></div><div className="product-reassurance"><div><Package size={18} /><span>Livraison<br /><b>Partout en Afrique</b></span></div><div><LockKeyhole size={18} /><span>Paiement<br /><b>100% sécurisé</b></span></div><div><CircleHelp size={18} /><span>Besoin d'aide ?<br /><b>Écrivez-nous</b></span></div></div></div></div><section className="product-detail-bottom"><span className="public-kicker">L'HISTOIRE DERRIÈRE L'OBJET</span><h2>Un objet fait pour<br /><em>vivre avec vous.</em></h2><p>Chez Orion, nous croyons que les meilleurs objets ne sont pas seulement beaux. Ils racontent un lieu, un geste, une personne — et trouvent une nouvelle histoire entre vos mains.</p></section></main><PublicFooter /></>;
+  return <><main className="public-page product-detail-page"><button type="button" className="back-link" onClick={() => navigate(-1)}><ChevronLeft size={16} /> Retour à la marketplace</button><div className="product-detail-grid"><div className="product-detail-gallery"><div className="product-detail-main-image"><img src={selectedImage || product.image} alt={product.name} /><button type="button" className={`product-save product-detail-save ${isFavorite ? "is-favorite" : ""}`} aria-label={isFavorite ? `Retirer ${product.name} des favoris` : `Ajouter ${product.name} aux favoris`} aria-pressed={isFavorite} onClick={toggleFavorite}><Heart size={17} fill={isFavorite ? "currentColor" : "none"} /></button><span className="product-gallery-label">{product.category}</span></div><div className="product-detail-thumb-row">{productImages.map((image, index) => <button type="button" key={`${image}-${index}`} className={`product-thumb ${(selectedImage || product.image) === image ? "is-active" : ""}`} onClick={() => setSelectedImage(image)} aria-label={`Afficher l’image ${index + 1} de ${product.name}`}><img src={image} alt="" /></button>)}</div></div><div className="product-detail-copy"><div className="product-detail-brand"><span className="company-avatar">{(sellerStoreName || product.store).slice(0, 1)}</span>{sellerStoreId ? <Link to={`/store/${sellerStoreId}`} className="storefront-product-link">{sellerStoreName || product.store}</Link> : <span>{sellerStoreName || product.store}</span>}<BadgeCheck size={15} />{sellerStoreId ? <Link to={`/store/${sellerStoreId}`} className="product-store-visit"><Store size={13} /> Voir la boutique</Link> : null}</div><span className="public-kicker">{product.category.toUpperCase()}</span><h1>{product.name}</h1><div className="product-rating"><span>?????</span><strong>4,9</strong><a href="#reviews">24 avis</a></div><p className="product-detail-description">{product.description}</p><ProductPrice product={product} className="product-detail-price" /><div className="product-stock"><span className="stock-dot" /> En stock · expédié sous 48h</div><div className="product-purchase-row"><div className="quantity-control"><button type="button" onClick={() => setQuantity((current) => Math.max(1, current - 1))} aria-label="Diminuer la quantité"><Minus size={15} /></button><span>{quantity}</span><button type="button" onClick={() => setQuantity((current) => Math.min(product.stock, current + 1))} aria-label="Augmenter la quantité"><Plus size={15} /></button></div><button type="button" className="public-primary-button product-buy-button" onClick={addProduct}><ShoppingCart size={17} /> {added ? "Ajouté au panier" : "Ajouter au panier"}</button></div><div className="product-reassurance"><div><Package size={18} /><span>Livraison<br /><b>Partout en Afrique</b></span></div><div><LockKeyhole size={18} /><span>Paiement<br /><b>100% sécurisé</b></span></div><div><CircleHelp size={18} /><span>Besoin d'aide ?<br /><b>Écrivez-nous</b></span></div></div></div></div><section className="product-detail-bottom"><span className="public-kicker">L'HISTOIRE DERRIÈRE L'OBJET</span><h2>Un objet fait pour<br /><em>vivre avec vous.</em></h2><p>Chez Orion, nous croyons que les meilleurs objets ne sont pas seulement beaux. Ils racontent un lieu, un geste, une personne — et trouvent une nouvelle histoire entre vos mains.</p></section></main><PublicFooter /></>;
 }
 
 export function OpportunitiesPage() {

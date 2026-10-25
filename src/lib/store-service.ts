@@ -18,6 +18,10 @@ export async function getStores() {
   return apiRequest<StoreRecord[]>("/boutique");
 }
 
+export async function getStoreById(id: string | number) {
+  return apiRequest<StoreRecord>(`/boutique/${id}`);
+}
+
 export async function getMyStores(token: string) {
   return apiRequest<StoreRecord[]>("/boutique/mine", { headers: { Authorization: `Bearer ${token}` } });
 }

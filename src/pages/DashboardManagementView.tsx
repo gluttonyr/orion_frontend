@@ -266,6 +266,43 @@ function ProductsView() {
   return <div className="management-view"><ManagementHeading eyebrow="CATALOGUE" title="Mes produits" description={`Forfait Standard : ${products.length}/40 produits dans votre boutique.`} action={products.length >= 40 ? "Limite de 40 produits atteinte" : "Ajouter un produit"} actionDisabled={products.length >= 40} onAction={() => navigate("/dashboard/products/add")} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans mes produits" /></div><button type="button" className="button button-quiet"><Settings2 size={15} /> Filtres</button></div><ManagementTable className="product-management-table"><div className="management-table-head"><span>PRODUIT</span><span>CATÉGORIE</span><span>STOCK</span><span>PRIX</span><span>STATUT</span><span /></div>{filtered.map((product) => { const isDraft = product.statut === "Brouillon"; return <div className="management-table-row" key={product.id}><div className="management-product-cell"><img src={getUploadUrl(product.image) || "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=88"} alt="" /><div><strong>{product.nom}</strong><small>{Number(product.likesCount ?? 0)} j’aime</small></div></div><span>{product.categorie ?? "Divers"}</span><span className={Number(product.stock) < 10 ? "table-warning" : ""}>{Number(product.stock)} unités</span><ProductAdminPrice price={Number(product.prix ?? 0)} promotionalPrice={product.prixPromotionnel} /><span className={`status-pill ${isDraft ? "status-gold" : "status-green"}`}>{isDraft ? "Brouillon" : <><Check size={12} /> {Number(product.stock) > 0 ? "En ligne" : "Rupture"}</>}</span><div className="table-actions">{isDraft ? <button type="button" className="product-publish-button" disabled={publishingId !== null} onClick={() => void publish(product)}>{publishingId === product.id ? "Publication…" : "Publier"}</button> : null}<button type="button" onClick={() => navigate(`/dashboard/products/${product.id}`)} aria-label="Voir"><Eye size={15} /></button><button type="button" onClick={() => navigate(`/dashboard/products/edit/${product.id}`)} aria-label="Modifier"><Pencil size={15} /></button></div></div>; })}</ManagementTable></div>;
 }
 
+function MerchantStorefrontView() {
+  const navigate = useNavigate();
+  const { session, activeStoreId } = useOrion();
+  const [store, setStore] = useState<BackendStoreRecord | null>(null);
+  const [products, setProducts] = useState<ProductRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    if (!session?.token) { setLoading(false); return () => { active = false; }; }
+    setLoading(true);
+    getMyStores(session.token).then(async (stores) => {
+      const current = stores.find((item) => String(item.id) === activeStoreId) ?? stores[0] ?? null;
+      if (!active) return;
+      setStore(current);
+      if (!current?.proprietaireId) { setProducts([]); return; }
+      const items = await getProductsByOwner(current.proprietaireId, session.token);
+      if (active) setProducts(items.filter((item) => item.statut !== "Brouillon"));
+    }).catch(() => { if (active) { setStore(null); setProducts([]); } }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [session?.token, activeStoreId]);
+  const publicUrl = store ? `${window.location.origin}/store/${store.id}` : "";
+  const copyLink = async () => {
+    if (!publicUrl) return;
+    try { await navigator.clipboard.writeText(publicUrl); toast.success("Lien de la boutique copié."); }
+    catch { toast.error("Impossible de copier le lien. Vous pouvez le sélectionner manuellement."); }
+  };
+  if (loading) return <div className="management-view"><p role="status">Chargement de votre boutique…</p></div>;
+  if (!store) return <div className="management-view"><ManagementHeading eyebrow="VOTRE VITRINE" title="Votre boutique" description="Créez votre boutique pour présenter vos produits aux clients." action="Créer ma boutique" onAction={() => window.location.assign("/dashboard/stores/add")} /></div>;
+  return <div className="management-view merchant-storefront-management">
+    <div className="storefront-management-toolbar"><div><span className="public-kicker">APERÇU DE VOTRE VITRINE</span><h2>Votre boutique, côté client</h2><p>Voici la page que vos clients peuvent consulter et partager.</p></div><div><a className="button button-dark" href={publicUrl} target="_blank" rel="noreferrer"><Eye size={15} /> Voir la page publique</a></div></div>
+    <section className="storefront-hero"><div className="storefront-hero-art" aria-hidden="true"><span>ORION</span><i>✳</i><b>O</b></div><div className="storefront-hero-content"><div className="storefront-brand">{store.logo ? <img src={getUploadUrl(store.logo)} alt={`Logo ${store.nom}`} /> : <span><Store size={27} /></span>}<div><span className="storefront-eyebrow">BOUTIQUE ORION <i /> {store.category || "CRÉATEUR INDÉPENDANT"}</span><h1>{store.nom}</h1><p>{store.address ? <><MapPin size={14} /> {store.address}</> : store.location && /^https?:\/\//i.test(store.location) ? <a className="storefront-map-link" href={store.location} target="_blank" rel="noreferrer"><MapPin size={14} /> Voir la localisation</a> : store.location ? <><MapPin size={14} /> {store.location}</> : "Une boutique locale sur Orion"}</p></div></div><div className="storefront-hero-count"><strong>{products.length}</strong><span>produit{products.length === 1 ? "" : "s"}<br />visible{products.length === 1 ? "" : "s"}</span></div></div>{store.description ? <p className="storefront-description">{store.description}</p> : null}</section>
+    <div className="storefront-share-link"><span>Votre lien public</span><a href={publicUrl} target="_blank" rel="noreferrer">{publicUrl}</a><button type="button" onClick={() => void copyLink()}>Copier</button></div>
+    <div className="storefront-products-heading"><div><span className="public-kicker">CATALOGUE PUBLIC</span><h2>Produits visibles par vos clients</h2></div><span>{products.length} produit{products.length === 1 ? "" : "s"}</span></div>
+    {products.length ? <div className="public-products-grid">{products.map((product) => { const item = mapBackendProduct(product); return <article className="public-product-card marketplace-product-card" key={product.id} role="link" tabIndex={0} onClick={() => navigate(`/product/${product.id}`)} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); navigate(`/product/${product.id}`); } }}><div className="public-product-image"><Link className="public-product-image-link" to={`/product/${product.id}`}><img src={item.image} alt={item.name} /></Link></div><div className="public-product-info"><div><p className="public-product-category">{item.category}</p><Link to={`/product/${product.id}`}><h3>{item.name}</h3></Link></div><strong>{formatCfa(Number(product.prixPromotionnel || product.prix))}</strong></div></article>; })}</div> : <div className="store-list-empty"><ShoppingBag size={23} /><p>Aucun produit publié n’est encore visible dans votre boutique.</p><button type="button" className="button button-dark" onClick={() => window.location.assign("/dashboard/products")}>Gérer mes produits</button></div>}
+  </div>;
+}
+
 function ProductFormView({ edit = false }: { edit?: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1262,6 +1299,7 @@ export function DashboardRouteView({ pathname, role }: ManagementProps) {
     return <div className="management-view"><BackButton label="Opportunités" /><ManagementHeading eyebrow="OPPORTUNITÉ" title="Découvrez cette mission" description="Consultez le détail et poursuivez votre candidature depuis le site public." /><button type="button" className="button button-dark" onClick={() => window.location.assign(`/opportunities/${normalized.split("/").pop()}`)}>Voir le détail <ArrowRight size={15} /></button></div>;
   }
   if (normalized === "/dashboard/orders") return role === "COMMERCANT" ? <SellerOrdersView /> : <ClientOrdersView />;
+  if (normalized === "/dashboard/marketplace" && role === "COMMERCANT") return <MerchantStorefrontView />;
   if (normalized === "/dashboard/stores") return <StoresView />;
   if (normalized === "/dashboard/stores/add") return <StoreFormView />;
   if (normalized.startsWith("/dashboard/stores/edit/")) return <StoreFormView edit />;
@@ -1302,6 +1340,7 @@ export function getManagementPageCopy(pathname: string, role: UserRole = "COMMER
   if (normalized.includes("/stores/add")) return { eyebrow: "NOUVEL ESPACE DE VENTE", title: "Créer une boutique", description: "Présentez votre activité avec une identité claire et accueillante." };
   if (normalized.includes("/stores/edit")) return { eyebrow: "MODIFIER UNE BOUTIQUE", title: "Modifier la boutique", description: "Mettez à jour les informations de votre espace de vente." };
   if (normalized === "/dashboard/products") return { eyebrow: "CATALOGUE", title: "Mes produits", description: "Ajoutez, modifiez et suivez les produits de votre boutique active." };
+  if (normalized === "/dashboard/marketplace") return { eyebrow: "VOTRE BOUTIQUE", title: "Ma vitrine publique", description: "Prévisualisez et partagez la boutique telle que vos clients la voient." };
   if (normalized.includes("/products/add")) return { eyebrow: "NOUVEAU PRODUIT", title: "Ajouter un produit", description: "Donnez aux clients les bonnes informations pour choisir avec confiance." };
   if (normalized.includes("/products/edit")) return { eyebrow: "MODIFIER LE PRODUIT", title: "Modifier le produit", description: "Mettez à jour une fiche produit claire et utile." };
   if (normalized.includes("/products/")) return { eyebrow: "DÉTAIL PRODUIT", title: "Détail du produit", description: "Suivez la performance de ce produit dans votre boutique." };

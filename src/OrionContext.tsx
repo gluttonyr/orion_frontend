@@ -29,6 +29,9 @@ export type Product = {
   secondaryImages?: string[];
   status?: string;
   featured?: boolean;
+  country?: string;
+  ownerId?: number;
+  storeId?: number;
 };
 
 export type OpportunityRecord = {
@@ -140,7 +143,7 @@ export function mapBackendProduct(product: ProductRecord): Product {
   return {
     id: String(product.id),
     name: product.nom,
-    store: product.statut ?? "Boutique Orion",
+    store: product.boutiqueNom ?? "Boutique Orion",
     category: category || "Divers",
     price: Number.isFinite(price) ? price : 0,
     promotionalPrice: Number.isFinite(promotionalPrice) && promotionalPrice > 0 && promotionalPrice < price ? promotionalPrice : null,
@@ -150,6 +153,9 @@ export function mapBackendProduct(product: ProductRecord): Product {
     secondaryImages: (product.images_secondaires ?? []).map((image) => getUploadUrl(image)).filter(Boolean),
     status: product.statut,
     featured: true,
+    country: product.pays || undefined,
+    ownerId: product.proprietaireId ?? undefined,
+    storeId: product.boutiqueId ?? undefined,
   };
 }
 

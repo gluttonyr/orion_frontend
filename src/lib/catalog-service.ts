@@ -13,10 +13,20 @@ export type ProductRecord = {
   categorie?: string | { libellé?: string | null } | null;
   categorieId?: number;
   likesCount?: number;
+  pays?: string | null;
+  localisation?: string | null;
+  proprietaireId?: number | null;
+  boutiqueId?: number | null;
+  boutiqueNom?: string | null;
 };
 
 export async function getProducts() {
   return apiRequest<ProductRecord[]>("/produits");
+}
+
+export function searchProductSuggestions(query: string, limit = 5) {
+  const params = new URLSearchParams({ q: query, limit: String(Math.min(50, Math.max(1, limit))) });
+  return apiRequest<ProductRecord[]>(`/produits/search?${params.toString()}`);
 }
 
 export async function getProductsByOwner(ownerId: number, token: string) {
