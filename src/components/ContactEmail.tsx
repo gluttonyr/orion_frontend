@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import * as Popover from "@radix-ui/react-popover";
-import { Copy, ExternalLink, Mail } from "lucide-react";
+import { Copy, ExternalLink } from "lucide-react";
 import { toast } from "./ui/sonner";
 
-// A bare mailto: makes Windows ask which app to use when no mail client is set up, so offer copy and Gmail first.
+// No mailto: link: on desktop without a mail client it opens the OS « choose an app » dialog.
 export function ContactEmail({ email, className, children }: { email: string; className?: string; children: ReactNode }) {
   const copy = async (): Promise<void> => {
     try {
@@ -20,7 +20,6 @@ export function ContactEmail({ email, className, children }: { email: string; cl
       <strong className="contact-email-address">{email}</strong>
       <Popover.Close asChild><button type="button" onClick={() => void copy()}><Copy size={15} /> Copier l’adresse</button></Popover.Close>
       <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} /> Écrire avec Gmail</a>
-      <a href={`mailto:${email}`}><Mail size={15} /> Application de messagerie</a>
     </Popover.Content></Popover.Portal>
   </Popover.Root>;
 }

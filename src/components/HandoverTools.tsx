@@ -4,6 +4,7 @@ import { CheckCircle2, Download, QrCode, RefreshCw, ScanLine, Search, ShoppingBa
 import { useOrion } from '../OrionContext';
 import { confirmHandover, createHandoverQr, getSellerRemises, getSellerWallet, type SellerOrderRemise, type SellerWallet } from '../lib/wallet-service';
 import { OrionLoader } from "./OrionLoader";
+import { ListPagination, usePagination } from "./ListPagination";
 
 const money = (value: number) => `${Number(value ?? 0).toLocaleString('fr-FR')} FCFA`;
 
@@ -11,6 +12,7 @@ export function SellerHandoverWallet() {
   const { session } = useOrion();
   const [wallet, setWallet] = useState<SellerWallet | null>(null);
   const [orders, setOrders] = useState<SellerOrderRemise[]>([]);
+  const ordersPage = usePagination(orders);
   const [qr, setQr] = useState<{ content: string; qrDataUrl: string; venteId: number } | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ export function SellerHandoverWallet() {
     {wallet ? <p className="withdrawal-note"><span>{wallet.messageVersement}</span></p> : null}
     {error ? <p className="auth-error" role="alert">{error}</p> : null}
     {qr ? <section className="panel handover-qr-panel"><div><p className="eyebrow">COMMANDE #{qr.venteId}</p><h2>QR de remise</h2><p>Le client doit le scanner depuis son compte Orion pour libérer les fonds.</p><img src={qr.qrDataUrl} alt={`QR de remise pour la commande ${qr.venteId}`} width="240" height="240" /><a className="button button-dark" href={qr.qrDataUrl} download={`orion-commande-${qr.venteId}-qr.png`}><Download size={15} /> Télécharger le QR</a></div></section> : null}
-    <section className="panel"><div className="panel-heading"><div><p className="eyebrow">COMMANDES VENDEUR</p><h2>Remises et fonds</h2></div></div>{loading ? <p>Chargement…</p> : orders.length === 0 ? <p>Aucune commande payée pour le moment.</p> : <div className="handover-order-list">{orders.map((order) => <article className="handover-order" key={order.remiseId}><div><strong>Commande #{order.venteId} · {money(order.montant)}</strong><p>{order.articles.map((item) => `${item.nom} × ${item.quantite}`).join(', ')}</p>{order.commissionMontant > 0 ? <small>Brut {money(order.montantBrut)} · commission {order.commissionPourcentage}% ({money(order.commissionMontant)}) · net vendeur {money(order.montant)}</small> : null}<span className={`status-pill ${order.statut === 'liberee' ? 'status-green' : order.statut === 'bloquee' ? 'status-gold' : ''}`}>{order.statut === 'bloquee' ? 'Payée · fonds bloqués' : order.statut === 'liberee' ? 'Remise confirmée · fonds libérés' : 'Remboursée'}</span></div>{order.statut === 'bloquee' ? <button type="button" className="button button-dark" onClick={() => generate(order)}><QrCode size={15} /> Générer le QR</button> : null}</article>)}</div>}</section>
+    <section className="panel"><div className="panel-heading"><div><p className="eyebrow">COMMANDES VENDEUR</p><h2>Remises et fonds</h2></div></div>{loading ? <p>Chargement…</p> : orders.length === 0 ? <p>Aucune commande payée pour le moment.</p> : <div className="handover-order-list">{ordersPage.pageItems.map((order) => <article className="handover-order" key={order.remiseId}><div><strong>Commande #{order.venteId} · {money(order.montant)}</strong><p>{order.articles.map((item) => `${item.nom} × ${item.quantite}`).join(', ')}</p>{order.commissionMontant > 0 ? <small>Brut {money(order.montantBrut)} · commission {order.commissionPourcentage}% ({money(order.commissionMontant)}) · net vendeur {money(order.montant)}</small> : null}<span className={`status-pill ${order.statut === 'liberee' ? 'status-green' : order.statut === 'bloquee' ? 'status-gold' : ''}`}>{order.statut === 'bloquee' ? 'Payée · fonds bloqués' : order.statut === 'liberee' ? 'Remise confirmée · fonds libérés' : 'Remboursée'}</span></div>{order.statut === 'bloquee' ? <button type="button" className="button button-dark" onClick={() => generate(order)}><QrCode size={15} /> Générer le QR</button> : null}</article>)}<ListPagination {...ordersPage} /></div>}</section>
   </div>;
 }
 
@@ -67,6 +69,7 @@ export function SellerOrdersView() {
     const searchable = `${order.vente?.reference ?? ''} ${order.venteId} ${order.articles.map((item) => item.nom).join(' ')}`.toLowerCase();
     return matchesStatus && searchable.includes(query.toLowerCase().trim());
   });
+  const filteredOrdersPage = usePagination(filteredOrders);
   const paidOrders = orders.filter((order) => order.statut === 'bloquee' || order.statut === 'liberee');
   const paidTotal = paidOrders.reduce((total, order) => total + order.montant, 0);
   const waitingCount = orders.filter((order) => order.statut === 'bloquee').length;
@@ -77,11 +80,11 @@ export function SellerOrdersView() {
     <section className="panel seller-order-list-panel"><div className="panel-heading"><div><p className="eyebrow">VENTES DE VOTRE BOUTIQUE</p><h2>Commandes reçues</h2></div><button type="button" className="button button-quiet" onClick={() => void refresh()} disabled={loading}><RefreshCw size={15} /> Actualiser</button></div>
       <div className="seller-order-toolbar"><div className="public-search"><Search size={16} /><input aria-label="Rechercher une commande" placeholder="Référence, numéro ou produit" value={query} onChange={(event) => setQuery(event.target.value)} /></div><div className="seller-order-filters"><button type="button" className={filter === 'all' ? 'is-active' : ''} onClick={() => setFilter('all')}>Toutes</button><button type="button" className={filter === 'bloquee' ? 'is-active' : ''} onClick={() => setFilter('bloquee')}>À remettre</button><button type="button" className={filter === 'liberee' ? 'is-active' : ''} onClick={() => setFilter('liberee')}>Remises</button><button type="button" className={filter === 'remboursee' ? 'is-active' : ''} onClick={() => setFilter('remboursee')}>Remboursées</button></div></div>
       {error ? <p className="auth-error" role="alert">{error}</p> : null}
-      {loading ? <OrionLoader label="Chargement des commandes…" /> : filteredOrders.length === 0 ? <div className="seller-orders-empty"><ShoppingBag size={24} /><p>{orders.length ? 'Aucune commande ne correspond à ces filtres.' : 'Vous n’avez pas encore reçu de commande.'}</p></div> : <div className="seller-orders-list">{filteredOrders.map((order) => {
+      {loading ? <OrionLoader label="Chargement des commandes…" /> : filteredOrders.length === 0 ? <div className="seller-orders-empty"><ShoppingBag size={24} /><p>{orders.length ? 'Aucune commande ne correspond à ces filtres.' : 'Vous n’avez pas encore reçu de commande.'}</p></div> : <div className="seller-orders-list">{filteredOrdersPage.pageItems.map((order) => {
         const label = order.statut === 'bloquee' ? 'Payée · à remettre' : order.statut === 'liberee' ? 'Remise confirmée' : order.statut === 'remboursee' ? 'Remboursée' : 'En attente de paiement';
         const statusClass = order.statut === 'bloquee' ? 'status-gold' : order.statut === 'liberee' ? 'status-green' : order.statut === 'remboursee' ? 'status-coral' : '';
         return <article className="seller-order-card" key={order.remiseId}><div className="seller-order-card-main"><div className="seller-order-card-heading"><div><span className="public-kicker">{order.vente?.reference || `COMMANDE #${order.venteId}`}</span><small>{order.date ? new Date(order.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Date indisponible'}</small></div><span className={`status-pill ${statusClass}`}>{label}</span></div><div className="seller-order-articles">{order.articles.map((item, index) => <span key={`${item.nom}-${index}`}>{item.nom} <b>× {item.quantite}</b></span>)}</div></div><div className="seller-order-card-total"><strong>{money(order.montant)}</strong>{order.commissionMontant > 0 ? <small>{money(order.montantBrut)} − commission {order.commissionPourcentage}% ({money(order.commissionMontant)})</small> : null}{order.statut === 'bloquee' ? <button type="button" className="button button-dark" onClick={() => void generate(order)}><QrCode size={15} /> Générer le QR</button> : null}</div></article>;
-      })}</div>}
+      })}<ListPagination {...filteredOrdersPage} /></div>}
     </section>
   </div>;
 }

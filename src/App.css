@@ -2537,3 +2537,61 @@ html[data-theme="dark"] .orion-loader.is-full-page { background: #111318; }
 html[data-theme="dark"] .orion-loader-mark i { border-color: #2b2027; border-top-color: #f0a9bd; border-right-color: #c47c52; }
 .dashboard-gate-loading { display: flex; min-height: 100vh; min-height: 100dvh; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #f7f5f1; padding: 24px; color: #5d5254; font-size: 13px; text-align: center; }
 html[data-theme="dark"] .dashboard-gate-loading { background: #111318; color: var(--orion-dark-muted); }
+
+/* Dark mode: text in .app-frame is forced light, so every light surface it sits on needs a dark equivalent. */
+html[data-theme="dark"] .app-frame :is(.sidebar-profile,.sidebar-store-switcher,.messages-sidebar,.chat-context,.composer-tool,.product-image-drop,.product-secondary-list,.storefront-share-link,.withdrawal-note,.profile-role-locked,.admin-merchant-search,.admin-merchant-option,.admin-product-search,.admin-product-choice,.admin-product-choice-placeholder,.admin-image-grid,.button-cream,.management-opportunity-placeholder,.management-opportunity-detail-placeholder,.handover-qr-panel,.send-button:disabled,.management-heading > button:disabled) { background: var(--orion-dark-raised) !important; border-color: var(--orion-dark-border) !important; }
+html[data-theme="dark"] .app-frame :is(.admin-merchant-search,.admin-product-search,.form-grid,.management-form) :is(input,textarea,select) { background: var(--orion-dark-raised) !important; }
+html[data-theme="dark"] .app-frame :is(.sidebar-nav-item:hover,.sidebar-store-switcher:hover,.message-list-item:hover,.composer-tool:hover,.seller-period-presets button:hover,.table-actions button:hover,.store-location-button:hover,.admin-merchant-option:hover,.admin-product-choice:hover) { background: #2a2529 !important; }
+html[data-theme="dark"] .app-frame :is(.sidebar-nav-item.is-active,.message-list-item.is-selected) { background: rgba(143, 36, 72, .32) !important; }
+html[data-theme="dark"] .app-frame :is(.sidebar-nav-item.is-active,.sidebar-nav-item.is-active *,.sidebar-nav-item:hover,.sidebar-nav-item:hover *) { color: #f6c9d6 !important; }
+html[data-theme="dark"] .app-frame :is(.sidebar-store-icon,.sidebar-badge,.context-icon,.form-card-icon,.subscription-current-icon,.withdrawal-method-icon,.admin-user-avatar,.admin-team-initials,.purchase-status,.status-green,.tag-gold,.activity-coral,.activity-green,.symbol-coral,.avatar-burgundy,[class*="avatar-"],[class*="badge-"],[class*="tag-"]) { background-color: rgba(255, 255, 255, .09) !important; color: #f3c6d2 !important; filter: none; }
+html[data-theme="dark"] .app-frame :is(.seller-product-track,.admin-top-liked-row > div) { background: #2b2f38 !important; }
+html[data-theme="dark"] .app-frame .chat-day::before, html[data-theme="dark"] .app-frame .chat-day::after { background: var(--orion-dark-border) !important; }
+html[data-theme="dark"] .app-frame .auth-error { background: rgba(160, 75, 79, .22) !important; color: #f3b4b8 !important; }
+html[data-theme="dark"] .app-frame .table-icon-button.danger:hover { background: rgba(160, 59, 66, .3) !important; }
+/* Recharts tooltips draw an inline white box; in dark mode the forced light text made them unreadable. */
+html[data-theme="dark"] .recharts-default-tooltip { background: var(--orion-dark-surface) !important; border-color: var(--orion-dark-border) !important; box-shadow: 0 10px 24px rgba(0, 0, 0, .35); }
+html[data-theme="dark"] .recharts-default-tooltip :is(.recharts-tooltip-label, .recharts-tooltip-item, .recharts-tooltip-item span) { color: var(--orion-dark-text) !important; }
+html[data-theme="dark"] .recharts-default-tooltip .recharts-tooltip-item-name { color: var(--orion-dark-muted) !important; }
+html[data-theme="dark"] .recharts-tooltip-cursor { fill: rgba(255, 255, 255, .06); stroke: rgba(255, 255, 255, .18); }
+html[data-theme="dark"] .recharts-cartesian-grid line { stroke: #2f333c; }
+html[data-theme="dark"] .recharts-cartesian-axis-tick-value { fill: #a29daa; }
+/* Admin users: clickable rows, profile photos and detail dialog. */
+button.admin-users-row { width: 100%; border-top: 0; border-right: 0; border-left: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background .15s ease; }
+button.admin-users-row:hover { background: #fbf5f2; }
+button.admin-users-row:focus-visible { outline: 2px solid #c995a2; outline-offset: -2px; }
+.admin-user-avatar { overflow: hidden; font-size: 12px; font-weight: 800; }
+.admin-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.admin-management-view .admin-user-avatar.is-large, .admin-user-avatar.is-large { width: 76px; height: 76px; flex-basis: 76px; border-radius: 20px; font-size: 24px; }
+.admin-user-dialog-overlay { position: fixed; inset: 0; z-index: 80; background: rgba(28, 18, 22, .45); backdrop-filter: blur(2px); }
+.admin-user-dialog { position: fixed; top: 50%; left: 50%; z-index: 81; width: min(480px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow-y: auto; transform: translate(-50%, -50%); border: 1px solid #eee5dd; border-radius: 18px; background: #fffdfa; padding: 24px; box-shadow: 0 24px 60px rgba(40, 14, 24, .25); animation: admin-user-dialog-in .16s ease-out; }
+.admin-user-dialog-close { position: absolute; top: 14px; right: 14px; display: grid; width: 34px; height: 34px; place-items: center; border: 0; border-radius: 10px; background: transparent; color: #7a6e6f; cursor: pointer; }
+.admin-user-dialog-close:hover { background: #fbf2f3; color: #861438; }
+.admin-user-dialog-head { display: flex; align-items: center; gap: 16px; padding-right: 30px; }
+.admin-user-dialog-head h2 { margin: 7px 0 3px; color: #302528; font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+.admin-user-dialog-head small { color: #8d8080; font-size: 11px; }
+.admin-user-dialog-details { display: grid; gap: 2px; margin: 20px 0 0; border-top: 1px solid #f0e9e4; padding-top: 12px; }
+.admin-user-dialog-details > div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 8px 0; }
+.admin-user-dialog-details dt { color: #8d8080; font-size: 12px; }
+.admin-user-dialog-details dd { margin: 0; overflow-wrap: anywhere; color: #3a2f31; font-size: 13px; font-weight: 600; }
+@keyframes admin-user-dialog-in { from { opacity: 0; transform: translate(-50%, -48%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+@media (prefers-reduced-motion: reduce) { .admin-user-dialog { animation: none; } }
+@media (max-width: 520px) { .admin-user-dialog-details > div { grid-template-columns: 1fr; gap: 2px; } }
+html[data-theme="dark"] button.admin-users-row:hover { background: var(--orion-dark-raised) !important; }
+html[data-theme="dark"] .admin-user-dialog { border-color: var(--orion-dark-border); background: var(--orion-dark-surface); }
+html[data-theme="dark"] .admin-user-dialog :is(h2, dd) { color: var(--orion-dark-text); }
+html[data-theme="dark"] .admin-user-dialog :is(dt, small) { color: var(--orion-dark-muted); }
+html[data-theme="dark"] .admin-user-dialog-details { border-color: var(--orion-dark-border); }
+/* Shared list pagination (20 per page). Spans the full row when placed inside a grid of cards. */
+.list-pagination { display: flex; grid-column: 1 / -1; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-top: 14px; padding: 4px 2px; }
+.list-pagination-count { color: #8d8080; font-size: 12px; }
+.list-pagination > div { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.list-pagination button { display: inline-grid; min-width: 34px; height: 34px; place-items: center; border: 1px solid #e9e1db; border-radius: 9px; background: #fffdfa; color: #4f4546; padding: 0 9px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease; }
+.list-pagination button:hover:not(:disabled) { border-color: #c995a2; color: #861438; }
+.list-pagination button.is-active { border-color: #861438; background: #861438; color: #fff; }
+.list-pagination button:disabled { opacity: .4; cursor: default; }
+.list-pagination button:focus-visible { outline: 2px solid #c995a2; outline-offset: 2px; }
+.list-pagination-gap { min-width: 18px; color: #a39795; text-align: center; }
+html[data-theme="dark"] .list-pagination button { border-color: var(--orion-dark-border) !important; background: var(--orion-dark-raised) !important; color: var(--orion-dark-text) !important; }
+html[data-theme="dark"] .list-pagination button.is-active { border-color: #8f2448 !important; background: #8f2448 !important; color: #fff !important; }
+html[data-theme="dark"] .list-pagination :is(.list-pagination-count, .list-pagination-gap) { color: var(--orion-dark-muted) !important; }

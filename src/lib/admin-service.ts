@@ -1,6 +1,6 @@
 import { apiRequest } from './api';
 
-export type AdminUser = { id: number; nom: string; prenom: string; email: string; role: string; contact?: string; localisation?: string };
+export type AdminUser = { id: number; nom: string; prenom: string; email: string; role: string; contact?: string; localisation?: string; adresse?: string; pays?: string; image?: string; specialite?: string; date_naissance?: string };
 export type AdminOrder = { id: number; reference: string; date_achat: string; prix_total: number; statut: string; utilisateur?: { nom?: string; prenom?: string; email?: string } | null; produits?: Array<{ nom: string }> };
 export type AdminPlatformWallet = { solde: number; totalCommissions: number; totalRemboursements: number; updatedAt?: string | null };
 export type SiteSettingsRecord = { heroImages: string[]; carouselProductIds: number[]; updatedAt?: string };
