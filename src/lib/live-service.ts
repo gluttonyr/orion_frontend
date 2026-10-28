@@ -11,6 +11,7 @@ export async function createFedaPayPayment(payload: {
   produitIds: number[];
   quantites: number[];
   platform: 'web';
+  adresseLivraison: string;
   liveSessionId?: number;
 }, token: string) {
   return apiRequest<{ payment_url: string; reference: string; venteId: number }>(

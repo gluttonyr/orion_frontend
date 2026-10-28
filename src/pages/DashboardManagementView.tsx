@@ -13,7 +13,6 @@ import {
   Eye,
   ImagePlus,
   Landmark,
-  LoaderCircle,
   Mail,
   MapPin,
   MoreHorizontal,
@@ -40,7 +39,8 @@ import { createProduct, getProductsByOwner, publishProduct, updateProduct, type 
 import { apiRequest } from "../lib/api";
 import { createMission, formatMissionRemuneration, getMissionById, getMissionCandidates, getMissions, getMyApplications, getMyMissions, startMissionPublicationPayment, updateMission, updateMissionCandidateStatus, type MissionApplicationRecord, type MissionCandidate, type MissionRecord } from "../lib/mission-service";
 import { getMyPurchases, type PurchaseRecord } from "../lib/order-service";
-import { createStore, getMyStores, resolveStoreLocation, updateStore, type StoreRecord as BackendStoreRecord } from "../lib/store-service";
+import { createStore, getMyStores, updateStore, type StoreRecord as BackendStoreRecord } from "../lib/store-service";
+import { LocationField } from "../components/LocationField";
 import { getUploadUrl } from "../lib/api";
 import { getCurrentUser, updateUser, type AuthUser } from "../lib/auth-service";
 import { ClientHandoverScanner, SellerOrdersView } from "../components/HandoverTools";
@@ -125,11 +125,6 @@ function StoreFormView({ edit = false }: { edit?: boolean }) {
   const [categoryError, setCategoryError] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
-  const [locationFocused, setLocationFocused] = useState(false);
-  const [resolvedLocationLabel, setResolvedLocationLabel] = useState("");
-  const [resolvingLocation, setResolvingLocation] = useState(false);
-  const locationRequestId = useRef(0);
-  const [locatingPosition, setLocatingPosition] = useState(false);
   const updateField = (key: keyof typeof form, value: string): void => setForm((current) => ({ ...current, [key]: value }));
 
   useEffect(() => {
@@ -177,54 +172,7 @@ function StoreFormView({ edit = false }: { edit?: boolean }) {
     }
   };
 
-  const capturePosition = (): void => {
-    if (!navigator.geolocation) { window.alert("La géolocalisation n’est pas disponible sur cet appareil."); return; }
-    if (locatingPosition) return;
-    setLocatingPosition(true);
-    navigator.geolocation.getCurrentPosition(({ coords }) => {
-      locationRequestId.current += 1;
-      setResolvedLocationLabel("");
-      updateField("location", `https://www.google.com/maps?q=${coords.latitude},${coords.longitude}`);
-      setLocatingPosition(false);
-    }, () => {
-      window.alert("Position inaccessible. Autorisez la géolocalisation ou collez un lien Google Maps.");
-      setLocatingPosition(false);
-    }, { enableHighAccuracy: true, timeout: 12000 });
-  };
-
-  const handleLocationBlur = async (): Promise<void> => {
-    setLocationFocused(false);
-    const rawLocation = form.location.trim();
-    if (!rawLocation || !/^https:\/\//i.test(rawLocation) || !session?.token) return;
-    const requestId = ++locationRequestId.current;
-    setResolvingLocation(true);
-    try {
-      const result = await resolveStoreLocation(rawLocation, session.token);
-      if (locationRequestId.current === requestId && result.label) setResolvedLocationLabel(result.label);
-    } catch {
-      // Le lien reste enregistré et le résumé local sert de solution de repli.
-    } finally {
-      if (locationRequestId.current === requestId) setResolvingLocation(false);
-    }
-  };
-
-  const locationSummary = (value: string): string => {
-    if (resolvedLocationLabel) return resolvedLocationLabel;
-    if (!value.trim()) return "";
-    try {
-      const url = new URL(value);
-      const placeSegment = url.pathname.match(/\/place\/([^/]+)/i)?.[1];
-      const query = url.searchParams.get("query") || url.searchParams.get("q");
-      const candidate = placeSegment ? decodeURIComponent(placeSegment.replaceAll("+", " ")) : query;
-      if (candidate && !/^-?\d+(\.\d+)?[, ]+-?\d+(\.\d+)?$/.test(candidate.trim())) {
-        return candidate.replaceAll("+", " ").replace(/\s+/g, " ").trim();
-      }
-      if (/google\.[^/]+\/maps/i.test(value)) return form.address.trim() || "Position enregistrée";
-    } catch { /* Le texte saisi n’est pas une URL : il reste lisible tel quel. */ }
-    return value;
-  };
-
-  return <div className="management-view narrow-management-view"><BackButton label="Mes boutiques" /><ManagementHeading eyebrow={edit ? "MODIFIER UNE BOUTIQUE" : "NOUVEL ESPACE DE VENTE"} title={edit ? "Modifier la boutique" : "Créer une boutique"} description="Présentez votre activité avec une identité claire et accueillante." /><form className="management-form" onSubmit={submit}><div className="form-card"><div className="form-card-heading"><span className="form-card-icon"><Store size={18} /></span><div><h3>Informations principales</h3><p>Ces informations seront visibles par vos clients.</p></div></div><div className="form-grid"><label>Nom de la boutique<input required value={form.nom} onChange={(event) => updateField("nom", event.target.value)} placeholder="Ex. Atelier Naya" /></label><label>Catégorie<select required value={form.category} onChange={(event) => updateField("category", event.target.value)} disabled={!categories.length}><option value="">{categoryError ? "Erreur de chargement" : "Choisir une catégorie"}</option>{categories.map((category) => <option key={category.id} value={category.nom}>{category.nom}</option>)}</select>{categoryError ? <small className="auth-error">{categoryError}</small> : null}</label><label className="form-full">Description<textarea required value={form.description} onChange={(event) => updateField("description", event.target.value)} placeholder="Racontez ce que vous proposez..." /></label><div className="store-address-location-grid"><label>Adresse<input required value={form.address} onChange={(event) => updateField("address", event.target.value)} placeholder="Rue, quartier, ville" /></label><label>Localisation<span className="store-location-input-wrap"><input value={locationFocused ? form.location : resolvingLocation ? "Recherche du lieu…" : locationSummary(form.location)} onFocus={() => setLocationFocused(true)} onBlur={() => void handleLocationBlur()} onChange={(event) => { locationRequestId.current += 1; updateField("location", event.target.value); setResolvedLocationLabel(""); }} placeholder="Collez un lien Google Maps" /><button type="button" className="store-location-button" onClick={capturePosition} disabled={locatingPosition} aria-label={locatingPosition ? "Recherche de votre position" : "Utiliser ma position actuelle"} title={locatingPosition ? "Recherche de votre position…" : "Utiliser ma position actuelle"}>{locatingPosition ? <LoaderCircle className="store-location-spinner" size={16} /> : <MapPin size={16} />}</button></span></label></div><label className="store-logo-upload form-full">Logo ou image de la boutique<span className="store-logo-upload-control">{logoPreview ? <img src={logoPreview} alt="Aperçu du logo de la boutique" /> : <span className="store-logo-upload-placeholder"><ImagePlus size={22} /><span>Choisir une image</span></span>}<input type="file" accept="image/*" onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)} /><span className="store-logo-upload-hint">JPG, PNG ou WebP</span></span></label></div></div><div className="management-form-actions"><button type="button" className="button button-quiet" onClick={() => navigate(-1)}>Annuler</button><button type="submit" className="button button-dark" disabled={!categories.length}>{saved ? <><Check size={15} /> Enregistrée</> : <>{edit ? "Enregistrer les modifications" : "Créer la boutique"} <ArrowRight size={15} /></>}</button></div></form></div>;
+  return <div className="management-view narrow-management-view"><BackButton label="Mes boutiques" /><ManagementHeading eyebrow={edit ? "MODIFIER UNE BOUTIQUE" : "NOUVEL ESPACE DE VENTE"} title={edit ? "Modifier la boutique" : "Créer une boutique"} description="Présentez votre activité avec une identité claire et accueillante." /><form className="management-form" onSubmit={submit}><div className="form-card"><div className="form-card-heading"><span className="form-card-icon"><Store size={18} /></span><div><h3>Informations principales</h3><p>Ces informations seront visibles par vos clients.</p></div></div><div className="form-grid"><label>Nom de la boutique<input required value={form.nom} onChange={(event) => updateField("nom", event.target.value)} placeholder="Ex. Atelier Naya" /></label><label>Catégorie<select required value={form.category} onChange={(event) => updateField("category", event.target.value)} disabled={!categories.length}><option value="">{categoryError ? "Erreur de chargement" : "Choisir une catégorie"}</option>{categories.map((category) => <option key={category.id} value={category.nom}>{category.nom}</option>)}</select>{categoryError ? <small className="auth-error">{categoryError}</small> : null}</label><label className="form-full">Description<textarea required value={form.description} onChange={(event) => updateField("description", event.target.value)} placeholder="Racontez ce que vous proposez..." /></label><div className="store-address-location-grid"><label>Adresse<input required value={form.address} onChange={(event) => updateField("address", event.target.value)} placeholder="Rue, quartier, ville" /></label><label>Localisation<LocationField value={form.location} onChange={(value) => updateField("location", value)} token={session?.token} fallbackLabel={form.address} /></label></div><label className="store-logo-upload form-full">Logo ou image de la boutique<span className="store-logo-upload-control">{logoPreview ? <img src={logoPreview} alt="Aperçu du logo de la boutique" /> : <span className="store-logo-upload-placeholder"><ImagePlus size={22} /><span>Choisir une image</span></span>}<input type="file" accept="image/*" onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)} /><span className="store-logo-upload-hint">JPG, PNG ou WebP</span></span></label></div></div><div className="management-form-actions"><button type="button" className="button button-quiet" onClick={() => navigate(-1)}>Annuler</button><button type="submit" className="button button-dark" disabled={!categories.length}>{saved ? <><Check size={15} /> Enregistrée</> : <>{edit ? "Enregistrer les modifications" : "Créer la boutique"} <ArrowRight size={15} /></>}</button></div></form></div>;
 }
 function ProductsView() {
   const navigate = useNavigate();
