@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import * as SelectPrimitive from "@radix-ui/react-select";
 import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -206,13 +207,13 @@ export function PublicLayout() {
   </div>;
 }
 
-function PublicFooter() {
+export function PublicFooter() {
   return <footer className="public-footer"><div className="public-footer-main"><div className="public-footer-brand"><OrionLogo light /><p>Une marketplace africaine pour découvrir, acheter et faire grandir les idées locales.</p><div className="public-socials" aria-label="Réseaux sociaux">
     <a href="https://www.tiktok.com/@reginova_studio" target="_blank" rel="noopener noreferrer" aria-label="TikTok Orion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.6 7.1a5.2 5.2 0 0 1-3.3-3.8V3h-3.9v12.1a2.8 2.8 0 1 1-2-2.7V8.5a6.7 6.7 0 1 0 5.9 6.6V9.6a9 9 0 0 0 5 1.5V7.2c-.5 0-1.1 0-1.7-.1Z" fill="currentColor" /></svg></a>
     <a href="https://www.instagram.com/reginaldkadanga?utm_source=qr&obrf=aDBmamV2MnpjZGww" target="_blank" rel="noopener noreferrer" aria-label="Instagram Orion"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="17.6" cy="6.7" r="1.2" fill="currentColor" /></svg></a>
     <a href="https://www.linkedin.com/in/reno-graphiste-kadanga-35b21143a?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn Orion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 8.5H2.1V22h3.1V8.5ZM3.7 2A1.8 1.8 0 1 0 3.7 5.6 1.8 1.8 0 0 0 3.7 2ZM22 14.3c0-4.1-2.2-6-5.1-6-2.4 0-3.5 1.3-4.1 2.2V8.5H9.7V22h3.1v-6.7c0-1.8.3-3.5 2.6-3.5s2.4 2 2.4 3.6V22H22v-7.7Z" fill="currentColor" /></svg></a>
     <a href="https://x.com/RginaldKad8l" target="_blank" rel="noopener noreferrer" aria-label="X Orion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.7 5.6 22H2.4l7.3-8.4L1.9 2h6.5l4.4 6.7L18.9 2Zm-1.1 17.8h1.7L7.3 4.1H5.5l12.3 15.7Z" fill="currentColor" /></svg></a>
-  </div></div><div className="public-footer-column"><p>EXPLORER</p><Link to="/marketplace">Marketplace</Link><Link to="/opportunities">Opportunités</Link><Link to="/register">Rejoindre Orion</Link></div><div className="public-footer-column"><p>ORION</p><Link to="/login">Connexion</Link><Link to="/profile-selection">Choisir son profil</Link><Link to="/a-propos">À propos</Link></div><div className="public-footer-column"><p>SUPPORT</p><a href="mailto:bonjour@orion.africa">Nous contacter</a><a href="mailto:support@orion.africa">Centre d'aide</a><a href="#terms">Conditions</a></div></div><div className="public-footer-bottom"><span>© 2026 Orion Africa</span><span>Fait avec soin pour les personnes qui font avancer les choses.</span></div></footer>;
+  </div></div><div className="public-footer-column"><p>EXPLORER</p><Link to="/marketplace">Marketplace</Link><Link to="/opportunities">Opportunités</Link><Link to="/register">Rejoindre Orion</Link></div><div className="public-footer-column"><p>ORION</p><Link to="/login">Connexion</Link><Link to="/profile-selection">Choisir son profil</Link><Link to="/a-propos">À propos</Link></div><div className="public-footer-column"><p>SUPPORT</p><a href="mailto:bonjour@orion.africa">Nous contacter</a><Link to="/aide">Centre d'aide</Link><Link to="/conditions">Conditions</Link></div></div><div className="public-footer-bottom"><span>© 2026 Orion Africa</span><span>Fait avec soin pour les personnes qui font avancer les choses.</span></div></footer>;
 }
 
 export function HomePage() {
@@ -299,6 +300,8 @@ export function AboutPage() {
     <section className="about-join"><span className="about-eyebrow">FAISONS GRANDIR LES IDÉES</span><h2>La suite s’écrit<br /><em>avec vous.</em></h2><p>Rejoignez ORION et prenez part à une communauté qui entreprend, partage et crée des opportunités.</p><Link to="/register" className="about-hero-button">Rejoindre ORION <ArrowRight size={17} /></Link></section>
   </main><PublicFooter /></>;
 }
+
+const marketplaceSortOptions = ['Plus récents', 'Prix croissant', 'Prix décroissant', 'Nom A–Z'];
 
 const marketplacePriceRanges = [
   { id: 'under-10000', label: 'Moins de 10 000 FCFA', test: (price: number) => price < 10000 },
@@ -401,7 +404,7 @@ export function MarketplacePage() {
       </aside>
 
       <div className="marketplace-results">
-        <div className="marketplace-toolbar"><div className="marketplace-result-count"><strong>{filteredProducts.length}</strong> produit{filteredProducts.length === 1 ? '' : 's'}<span>sur {products.length} au catalogue</span></div><div className="marketplace-toolbar-actions"><button type="button" className={`marketplace-mobile-filter ${mobileFiltersOpen ? 'is-active' : ''}`} onClick={() => setMobileFiltersOpen((current) => !current)}><Filter size={15} /> Filtres{hasActiveFilters ? <i /> : null}</button><label className="marketplace-sort"><span>Trier par</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option>Plus récents</option><option>Prix croissant</option><option>Prix décroissant</option><option>Nom A–Z</option></select><ChevronDown size={14} /></label><div className="marketplace-view-toggle" aria-label="Disposition des produits"><button type="button" className={viewMode === 'grid' ? 'is-active' : ''} aria-label="Affichage en grille" aria-pressed={viewMode === 'grid'} onClick={() => setViewMode('grid')}><Grid2X2 size={17} /></button><button type="button" className={viewMode === 'list' ? 'is-active' : ''} aria-label="Affichage en liste" aria-pressed={viewMode === 'list'} onClick={() => setViewMode('list')}><List size={18} /></button></div></div></div>
+        <div className="marketplace-toolbar"><div className="marketplace-result-count"><strong>{filteredProducts.length}</strong> produit{filteredProducts.length === 1 ? '' : 's'}<span>sur {products.length} au catalogue</span></div><div className="marketplace-toolbar-actions"><button type="button" className={`marketplace-mobile-filter ${mobileFiltersOpen ? 'is-active' : ''}`} onClick={() => setMobileFiltersOpen((current) => !current)}><Filter size={15} /> Filtres{hasActiveFilters ? <i /> : null}</button><div className="marketplace-sort"><span id="marketplace-sort-label">Trier par</span><SelectPrimitive.Root value={sort} onValueChange={setSort}><SelectPrimitive.Trigger className="marketplace-sort-trigger" aria-labelledby="marketplace-sort-label"><SelectPrimitive.Value /><SelectPrimitive.Icon><ChevronDown size={14} /></SelectPrimitive.Icon></SelectPrimitive.Trigger><SelectPrimitive.Portal><SelectPrimitive.Content className="marketplace-sort-menu" position="popper" side="bottom" align="end" sideOffset={6}><SelectPrimitive.Viewport>{marketplaceSortOptions.map((option) => <SelectPrimitive.Item key={option} value={option} className="marketplace-sort-option"><SelectPrimitive.ItemText>{option}</SelectPrimitive.ItemText><SelectPrimitive.ItemIndicator><Check size={14} /></SelectPrimitive.ItemIndicator></SelectPrimitive.Item>)}</SelectPrimitive.Viewport></SelectPrimitive.Content></SelectPrimitive.Portal></SelectPrimitive.Root></div><div className="marketplace-view-toggle" aria-label="Disposition des produits"><button type="button" className={viewMode === 'grid' ? 'is-active' : ''} aria-label="Affichage en grille" aria-pressed={viewMode === 'grid'} onClick={() => setViewMode('grid')}><Grid2X2 size={17} /></button><button type="button" className={viewMode === 'list' ? 'is-active' : ''} aria-label="Affichage en liste" aria-pressed={viewMode === 'list'} onClick={() => setViewMode('list')}><List size={18} /></button></div></div></div>
         {hasActiveFilters ? <div className="marketplace-active-filters">{selectedCategories.map((item) => <button type="button" key={`category-${item}`} onClick={() => toggleCategory(item)}>{item} <X size={12} /></button>)}{selectedCountries.map((item) => <button type="button" key={`country-${item}`} onClick={() => toggleCountry(item)}>{item} <X size={12} /></button>)}{selectedPriceRanges.map((id) => { const range = marketplacePriceRanges.find((item) => item.id === id); return range ? <button type="button" key={id} onClick={() => togglePriceRange(id)}>{range.label} <X size={12} /></button> : null; })}{query.trim() ? <button type="button" onClick={() => { setQuery(''); navigate('/marketplace'); }}>« {query} » <X size={12} /></button> : null}<button type="button" className="marketplace-clear-filters" onClick={clearFilters}>Tout effacer</button></div> : null}
         {filteredProducts.length ? <div className={`public-products-grid public-marketplace-grid ${viewMode === 'list' ? 'is-list' : ''}`}>{filteredProducts.map((product) => <ProductCard product={product} marketplace list={viewMode === 'list'} key={product.id} />)}</div> : <div className="marketplace-empty"><Search size={23} /><h2>Aucun produit trouvé</h2><p>Essaie de modifier ta recherche ou les filtres sélectionnés.</p><button type="button" className="button button-dark" onClick={clearFilters}>Réinitialiser les filtres</button></div>}
       </div>
@@ -437,15 +440,24 @@ export function ProductPage() {
   const location = useLocation();
   const { addToCart, products, setLiveAttribution } = useOrion();
   const [product, setProduct] = useState<Product | null>(() => products.find((item) => item.id === id) ?? null);
+  const [productLoading, setProductLoading] = useState<boolean>(true);
+  const productsRef = useRef(products);
+  productsRef.current = products;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [sellerStoreId, setSellerStoreId] = useState<number | null>(null);
   const [sellerStoreName, setSellerStoreName] = useState<string | null>(null);
   useEffect(() => {
     if (!id) return;
+    // Show the cached card instantly, then replace it with the fresh record; ignore responses for a previous id.
+    let active = true;
+    setProduct(productsRef.current.find((item) => item.id === id) ?? null);
+    setProductLoading(true);
     getProductById(Number(id))
-      .then((record) => setProduct(mapBackendProduct(record)))
-      .catch(() => setProduct(products.find((item) => item.id === id) ?? null));
-  }, [id, products]);
+      .then((record) => { if (active) setProduct(mapBackendProduct(record)); })
+      .catch(() => { if (active) setProduct(productsRef.current.find((item) => item.id === id) ?? null); })
+      .finally(() => { if (active) setProductLoading(false); });
+    return () => { active = false; };
+  }, [id]);
   useEffect(() => {
     let active = true;
     setSellerStoreName(null);
@@ -483,6 +495,14 @@ export function ProductPage() {
   const [quantity, setQuantity] = useState<number>(1);
   const [added, setAdded] = useState<boolean>(false);
   const { isFavorite, toggleFavorite } = useFavoriteProduct(product?.id);
+  useEffect(() => { setQuantity(1); setAdded(false); }, [id]);
+  useEffect(() => {
+    // The catalog may arrive after a failed detail request: use it instead of leaving « introuvable ».
+    if (product || productLoading) return;
+    const cached = products.find((item) => item.id === id);
+    if (cached) setProduct(cached);
+  }, [products, product, productLoading, id]);
+  if (!product && productLoading) return <main className="public-page"><p role="status" className="product-detail-loading">Chargement du produit…</p></main>;
   if (!product) return <main className="public-page"><EmptyState title="Produit introuvable" copy="Ce produit n'est pas disponible actuellement." action="Retour à la marketplace" onAction={() => navigate("/marketplace")} /></main>;
   const productImages = Array.from(new Set([product.image, ...(product.secondaryImages ?? [])].filter(Boolean)));
   const addProduct = (): void => { addToCart(product, quantity); setAdded(true); toast.success(`${quantity} × ${product.name} ajouté${quantity > 1 ? 's' : ''} au panier.`); };
@@ -806,7 +826,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
       setIsSubmitting(false);
     }
   };
-  return <main className="auth-shell"><div className="auth-visual"><OrionLogo light /><span className="auth-visual-kicker">ORION AFRICA</span><h1>Construire<br /><em>ensemble.</em></h1><p>Une marketplace pour les produits qui comptent et les opportunités qui ouvrent des portes.</p><div className="auth-visual-orbit"><Globe2 size={34} strokeWidth={1} /><span>18 pays · une même énergie</span></div></div><div className="auth-form-side"><Link to="/" className="auth-close"><X size={19} /></Link><div className="auth-form-wrap"><span className="public-kicker">{register ? "BIENVENUE DANS LE RÉSEAU" : "BON RETOUR"}</span><h1>{register ? "Créer votre espace." : "Ravi de vous revoir."}</h1><p>{register ? "Choisissez le profil qui correspond le mieux à votre projet." : "Connectez-vous pour retrouver vos boutiques, vos messages et vos opportunités."}</p><form onSubmit={submit}><label>Email professionnel<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="vous@exemple.com" /></label><label>Mot de passe<input type="password" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" /></label>{register ? <div className="auth-role-picker"><span>Je suis...</span><div><button type="button" className={role === "COMMERCANT" ? "is-active" : ""} onClick={() => setRole("COMMERCANT")}><Store size={17} /><strong>Commerçant</strong><small>Je vends et je développe mon commerce</small></button><button type="button" className={role === "UTILISATEUR" ? "is-active" : ""} onClick={() => setRole("UTILISATEUR")}><BriefcaseBusiness size={17} /><strong>Jeune entrepreneur</strong><small>Je cherche des missions et des connexions</small></button></div></div> : <button type="button" className="auth-forgot">Mot de passe oublié ?</button>}{error ? <p className="auth-error">{error}</p> : null}<button type="submit" className="public-primary-button auth-submit" disabled={isSubmitting}>{isSubmitting ? "Chargement..." : register ? "Créer mon espace" : "Se connecter"} <ArrowRight size={17} /></button></form><div className="auth-switch"><span className="auth-switch-divider">ou</span><p>{register ? "Vous avez déjà un compte ?" : "Pas encore de compte ? L’inscription est gratuite."}</p><Link to={register ? "/login" : "/register"} className="public-secondary-button auth-switch-button">{register ? "Se connecter" : "Créer mon compte"} <ArrowRight size={16} /></Link></div><div className="auth-legal">En continuant, vous acceptez les <a href="#terms">conditions d'utilisation</a> et la <a href="#privacy">politique de confidentialité</a>.</div></div></div></main>;
+  return <main className="auth-shell"><div className="auth-visual"><OrionLogo light /><span className="auth-visual-kicker">ORION AFRICA</span><h1>Construire<br /><em>ensemble.</em></h1><p>Une marketplace pour les produits qui comptent et les opportunités qui ouvrent des portes.</p><div className="auth-visual-orbit"><Globe2 size={34} strokeWidth={1} /><span>18 pays · une même énergie</span></div></div><div className="auth-form-side"><Link to="/" className="auth-close"><X size={19} /></Link><div className="auth-form-wrap"><span className="public-kicker">{register ? "BIENVENUE DANS LE RÉSEAU" : "BON RETOUR"}</span><h1>{register ? "Créer votre espace." : "Ravi de vous revoir."}</h1><p>{register ? "Choisissez le profil qui correspond le mieux à votre projet." : "Connectez-vous pour retrouver vos boutiques, vos messages et vos opportunités."}</p><form onSubmit={submit}><label>Email professionnel<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="vous@exemple.com" /></label><label>Mot de passe<input type="password" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" /></label>{register ? <div className="auth-role-picker"><span>Je suis...</span><div><button type="button" className={role === "COMMERCANT" ? "is-active" : ""} onClick={() => setRole("COMMERCANT")}><Store size={17} /><strong>Commerçant</strong><small>Je vends et je développe mon commerce</small></button><button type="button" className={role === "UTILISATEUR" ? "is-active" : ""} onClick={() => setRole("UTILISATEUR")}><BriefcaseBusiness size={17} /><strong>Jeune entrepreneur</strong><small>Je cherche des missions et des connexions</small></button></div></div> : <button type="button" className="auth-forgot">Mot de passe oublié ?</button>}{error ? <p className="auth-error">{error}</p> : null}<button type="submit" className="public-primary-button auth-submit" disabled={isSubmitting}>{isSubmitting ? "Chargement..." : register ? "Créer mon espace" : "Se connecter"} <ArrowRight size={17} /></button></form><div className="auth-switch"><span className="auth-switch-divider">ou</span><p>{register ? "Vous avez déjà un compte ?" : "Pas encore de compte ? L’inscription est gratuite."}</p><Link to={register ? "/login" : "/register"} className="public-secondary-button auth-switch-button">{register ? "Se connecter" : "Créer mon compte"} <ArrowRight size={16} /></Link></div><div className="auth-legal">En continuant, vous acceptez les <Link to="/conditions">conditions d'utilisation</Link> et la <Link to="/conditions">politique de confidentialité</Link>.</div></div></div></main>;
 }
 
 export function ProfileSelectionPage() {

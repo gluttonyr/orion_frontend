@@ -26,6 +26,7 @@ import {
   StoreSelectionPage,
   StorefrontPage,
 } from "./pages/PublicPages";
+import { ConditionsPage, HelpPage } from "./pages/SupportPages";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,8 @@ const App = () => (
             <Route element={<PublicLayout />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/a-propos" element={<AboutPage />} />
+              <Route path="/aide" element={<HelpPage />} />
+              <Route path="/conditions" element={<ConditionsPage />} />
               <Route path="/marketplace" element={<MarketplacePage />} />
               <Route path="/product/:id" element={<ProductPage />} />
               <Route path="/store/:id" element={<StorefrontPage />} />
