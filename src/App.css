@@ -2524,3 +2524,16 @@ html[data-theme="dark"] :is(.admin-help-category-heading strong, .admin-help-que
 html[data-theme="dark"] :is(.admin-help-question p, .admin-help-category-heading small) { color: var(--orion-dark-muted); }
 html[data-theme="dark"] .admin-help-form :is(input, textarea) { border-color: var(--orion-dark-border); background: var(--orion-dark-surface); color: var(--orion-dark-text); }
 @media (max-width: 760px) { .admin-help-add { flex-direction: column; align-items: stretch; } .admin-help-questions { padding-left: 8px; } }
+.orion-loader { display: flex; min-height: 240px; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 32px 16px; color: #8e7f7f; font-size: 12px; font-weight: 600; text-align: center; }
+.orion-loader.is-full-page { min-height: 100vh; min-height: 100dvh; background: #f7f5f1; }
+.orion-loader-mark { position: relative; display: grid; width: 74px; height: 74px; place-items: center; }
+.orion-loader-mark i { position: absolute; inset: 0; border: 3px solid #f1e3e6; border-top-color: #861438; border-right-color: #c47c52; border-radius: 50%; animation: orion-loader-spin .9s linear infinite; }
+.orion-loader-mark img { width: 52px; height: 52px; border-radius: 15px; object-fit: cover; box-shadow: 0 8px 22px rgba(126, 17, 51, .18); animation: orion-loader-pulse 1.6s ease-in-out infinite; }
+@keyframes orion-loader-spin { to { transform: rotate(360deg); } }
+@keyframes orion-loader-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(.92); } }
+@media (prefers-reduced-motion: reduce) { .orion-loader-mark i, .orion-loader-mark img { animation: none; } }
+html[data-theme="dark"] .orion-loader { color: var(--orion-dark-muted); }
+html[data-theme="dark"] .orion-loader.is-full-page { background: #111318; }
+html[data-theme="dark"] .orion-loader-mark i { border-color: #2b2027; border-top-color: #f0a9bd; border-right-color: #c47c52; }
+.dashboard-gate-loading { display: flex; min-height: 100vh; min-height: 100dvh; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #f7f5f1; padding: 24px; color: #5d5254; font-size: 13px; text-align: center; }
+html[data-theme="dark"] .dashboard-gate-loading { background: #111318; color: var(--orion-dark-muted); }

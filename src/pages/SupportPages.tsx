@@ -5,6 +5,7 @@ import { PublicFooter } from "./PublicPages";
 import { ContactEmail } from "../components/ContactEmail";
 import { getHelpCategories, type HelpCategory } from "../lib/help-service";
 import "../support.css";
+import { OrionLoader } from "../components/OrionLoader";
 
 // Same address as the footer « Centre d'aide » link.
 const SUPPORT_EMAIL = "orionmarket9@gmail.com";
@@ -107,7 +108,7 @@ export function HelpPage() {
       {categories.map((category) => <button type="button" key={category.id} className={active === category.id ? "is-active" : ""} aria-pressed={active === category.id} onClick={() => setActive(category.id)}>{category.titre}</button>)}
     </nav>
     <div className="support-faq">
-      {loading ? <p className="support-empty" role="status">Chargement de l’aide…</p> : loadError ? <p className="support-empty" role="alert">{loadError}</p> : results.length === 0 ? <p className="support-empty">{query.trim() ? `Aucune réponse ne correspond à « ${query} ». Essaie un autre mot, ou contacte le support ci-dessous.` : "Aucune question d’aide pour le moment. Contacte le support ci-dessous."}</p> : null}
+      {loading ? <OrionLoader label="Chargement de l’aide…" /> : loadError ? <p className="support-empty" role="alert">{loadError}</p> : results.length === 0 ? <p className="support-empty">{query.trim() ? `Aucune réponse ne correspond à « ${query} ». Essaie un autre mot, ou contacte le support ci-dessous.` : "Aucune question d’aide pour le moment. Contacte le support ci-dessous."}</p> : null}
       {results.map((category) => <section key={category.id} className="support-faq-section">
         <div className="support-faq-heading">{category.description ? <span className="public-kicker">{category.description.toUpperCase()}</span> : null}<h2>{category.titre}</h2></div>
         <div className="support-faq-list">{category.questions.map((question) => <details key={question.id} className="support-faq-item"><summary>{question.titre}<ChevronDown size={16} /></summary><p>{question.description}</p></details>)}</div>

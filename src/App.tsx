@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { OrionLoader } from "./components/OrionLoader";
 
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -66,7 +67,7 @@ function DashboardGate() {
   const isStoreManagementPath = /^\/dashboard\/stores(\/|$)/.test(location.pathname);
   if (session.role === "COMMERCANT" && !isStoreManagementPath) {
     if (storeLoadError) return <div className="dashboard-gate-loading" role="alert"><p>Impossible de vérifier vos boutiques : {storeLoadError}</p><button type="button" className="button button-dark" onClick={() => setStoreRetry((current) => current + 1)}>Réessayer</button></div>;
-    if (ownedStoreIds === null) return <div className="dashboard-gate-loading" role="status">Chargement de votre boutique…</div>;
+    if (ownedStoreIds === null) return <OrionLoader fullPage label="Chargement de votre boutique…" />;
     if (!activeStoreId || !ownedStoreIds.includes(activeStoreId)) {
       return <Navigate to="/store-selection" replace state={{ from: location.pathname }} />;
     }
