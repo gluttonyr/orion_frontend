@@ -22,6 +22,7 @@ import {
   Home,
   Info,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   MapPin,
   MessagesSquare,
@@ -64,7 +65,7 @@ import { SellerHandoverWallet, SellerOrdersView } from "../components/HandoverTo
 import { ThemeModeButton } from "../ThemeMode";
 import { toast } from "../components/ui/sonner";
 
-type Section = "home" | "marketplace" | "opportunities" | "messages" | "wallet" | "analytics" | "orders" | "users" | "settings" | "store-categories" | "product-categories" | "mission-types";
+type Section = "home" | "marketplace" | "opportunities" | "messages" | "wallet" | "analytics" | "orders" | "users" | "settings" | "store-categories" | "product-categories" | "mission-types" | "help";
 type MessageSender = "me" | "them";
 
 type ChatMessage = {
@@ -144,6 +145,7 @@ const adminNavItems: DashboardNavItem[] = [
   { id: "store-categories", label: "Catégories boutique", path: "/dashboard/store-categories", section: "store-categories", icon: Tags },
   { id: "product-categories", label: "Catégories produits", path: "/dashboard/product-categories", section: "product-categories", icon: Tags },
   { id: "mission-types", label: "Types de mission", path: "/dashboard/mission-types", section: "mission-types", icon: BriefcaseBusiness },
+  { id: "help", label: "Centre d’aide", path: "/dashboard/help", section: "help", icon: LifeBuoy },
 ];
 
 const opportunities: Opportunity[] = [
@@ -194,10 +196,12 @@ const sectionTitles: Record<Section, { eyebrow: string; title: string; descripti
   settings: { eyebrow: "ADMINISTRATION", title: "Réglages du site", description: "Choisissez les images affichées sur la page d’accueil." },
   "store-categories": { eyebrow: "ADMINISTRATION", title: "Catégories boutique", description: "Gérez les catégories proposées lors de la création d’une boutique." },
   "product-categories": { eyebrow: "ADMINISTRATION", title: "Catégories produits", description: "Gérez les catégories proposées lors de la création d’un produit." },
+  help: { eyebrow: "ADMINISTRATION", title: "Centre d’aide", description: "Gérez les catégories et les questions de la page Aide." },
   "mission-types": { eyebrow: "ADMINISTRATION", title: "Types de mission", description: "Gérez les types proposés lors de la création d’une opportunité." },
 };
 
 function sectionFromPath(pathname: string): Section {
+  if (pathname.includes("/dashboard/help")) return "help";
   if (pathname.includes("store-categories")) return "store-categories";
   if (pathname.includes("product-categories")) return "product-categories";
   if (pathname.includes("mission-types")) return "mission-types";
@@ -213,6 +217,7 @@ function sectionFromPath(pathname: string): Section {
 }
 
 function dashboardPathForSection(section: Section): string {
+  if (section === "help") return "/dashboard/help";
   if (section === "store-categories") return "/dashboard/store-categories";
   if (section === "product-categories") return "/dashboard/product-categories";
   if (section === "mission-types") return "/dashboard/mission-types";
@@ -488,7 +493,6 @@ function ClientHomeView({ session, conversations, onNavigate, onOpenConversation
   const tooltipStyle = { border: "1px solid #eee5dd", borderRadius: 12, fontSize: 12 };
   const value = (amount: string | number) => loading ? "…" : amount;
   return <>
-    <div className="opportunity-dashboard-intro"><div><span className="public-kicker">VOTRE ESPACE PERSONNEL</span><h3>Vos achats et vos projets,<br /><em>au même endroit.</em></h3><p>Suivez vos candidatures, retrouvez vos commandes et poursuivez vos échanges sur Orion.</p></div><div className="opportunity-dashboard-score"><strong>OR</strong><span>compte actif</span></div></div>
     <div className="admin-dashboard-kpis client-dashboard-kpis">
       <article><span><CircleDollarSign size={17} /> Total dépensé</span><strong>{value(formatCfa(stats.totalSpent))}</strong><small>Achats payés sur Orion</small></article>
       <article><span><ShoppingBag size={17} /> Commandes payées</span><strong>{value(stats.paidOrders)}</strong><button type="button" className="text-link" onClick={() => onNavigate("orders")}>Retrouver mes achats <ArrowUpRight size={13} /></button></article>

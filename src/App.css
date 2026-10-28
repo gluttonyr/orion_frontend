@@ -1205,8 +1205,8 @@ html[data-theme="dark"] .app-frame textarea { background-color: #20232b; border-
 .public-socials svg { width: 17px; height: 17px; }
 .public-footer-column { display: flex; flex-direction: column; gap: 11px; }
 .public-footer-column p { margin: 0 0 5px; color: #c8a16e; font-size: 8px; font-weight: 800; letter-spacing: 0.15em; }
-.public-footer-column a { color: rgba(255, 244, 230, 0.63); font-size: 10px; text-decoration: none; }
-.public-footer-column a:hover { color: #fff5e8; }
+.public-footer-column a, .public-footer-link-button { color: rgba(255, 244, 230, 0.63); font-size: 10px; text-decoration: none; }
+.public-footer-column a:hover, .public-footer-link-button:hover { color: #fff5e8; }
 .public-footer-bottom { display: flex; justify-content: space-between; border-top: 1px solid rgba(255,244,230,0.13); padding-top: 18px; color: rgba(255, 244, 230, 0.4); font-size: 8px; }
 
 /* Public internal pages */
@@ -1450,7 +1450,7 @@ html[data-theme="dark"] .app-frame textarea { background-color: #20232b; border-
 .icon-store { background: #f5e0dc; color: #a35857; }
 .icon-entrepreneur { background: #e1ecdf; color: #628a6f; }
 .onboarding-footnote { margin: 28px 0 0; color: #ada39b; font-size: 9px; }
-.onboarding-footnote a { color: #841438; text-decoration: none; }
+.onboarding-footnote a, .onboarding-footnote-link { color: #841438; text-decoration: none; }
 .store-selection-shell .onboarding-center { max-width: 710px; }
 .store-selection-grid { grid-template-columns: repeat(2, 1fr); }
 .store-selection-card { position: relative; min-height: 145px; align-items: flex-start; }
@@ -1610,8 +1610,8 @@ html[data-theme="dark"] .app-frame textarea { background-color: #20232b; border-
 .candidate-row > div { display: flex; flex: 1; flex-direction: column; gap: 3px; }
 .candidate-profile-photo { width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; object-fit: cover; }
 .candidate-contact-line { display: inline-flex; align-items: center; gap: 4px; overflow-wrap: anywhere; }
-.candidate-contact-line a { color: inherit; text-decoration: none; }
-.candidate-contact-line a:hover { color: #841438; text-decoration: underline; }
+.candidate-contact-line a, .candidate-email-button { color: inherit; text-decoration: none; }
+.candidate-contact-line a:hover, .candidate-email-button:hover { color: #841438; text-decoration: underline; }
 .candidate-row > div strong { color: #4d4142; font-size: 10px; }
 .candidate-row > div span, .candidate-time { color: #a49991; font-size: 8px; }
 .candidate-time { margin-right: 5px; }
@@ -2486,3 +2486,41 @@ html[data-theme="dark"] :is(.client-dashboard-kpis article > strong,.client-dash
 html[data-theme="dark"] :is(.client-dashboard-kpis article > span,.client-dashboard-kpis article > small,.client-dashboard-charts .admin-role-legend > div) { color:var(--orion-dark-muted); }
 @media(max-width:1050px) { .admin-dashboard-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } .client-dashboard-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:760px) { .admin-management-view { gap:18px; } .admin-management-view .store-category-add { align-items:stretch; flex-direction:column; } .admin-management-view .store-category-add .button { align-self:flex-start; } .admin-management-view .admin-wallet-metrics { grid-template-columns:1fr; } .admin-management-view .admin-team-row { flex-wrap:wrap; } .admin-management-view .admin-team-row > div { min-width:calc(100% - 70px); } .admin-management-view .admin-team-row button { flex:1; } .admin-dashboard-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .admin-dashboard-chart-grid { grid-template-columns:1fr; } .admin-dashboard-panel { min-height:285px; padding:16px; } .admin-dashboard-footnote { align-items:flex-start; line-height:1.5; } }
+.public-footer-link-button, .onboarding-footnote-link, .candidate-email-button { border: 0; background: none; padding: 0; font: inherit; text-align: left; cursor: pointer; }
+.public-footer-link-button { font-size: 10px; }
+.contact-email-menu { z-index: 70; display: grid; width: 250px; gap: 2px; border: 1px solid #eee7e1; border-radius: 12px; background: #fffdfa; padding: 12px 6px 6px; box-shadow: 0 14px 34px rgba(63, 26, 38, .16); animation: contact-email-in .14s ease-out; }
+.contact-email-label { padding: 0 8px; color: #a18e83; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.contact-email-address { overflow-wrap: anywhere; padding: 3px 8px 9px; color: #2f2729; font-size: 13px; }
+.contact-email-menu button, .contact-email-menu a { display: flex; align-items: center; gap: 9px; border: 0; border-radius: 8px; background: transparent; color: #4f4546; padding: 9px 8px; font: inherit; font-size: 12px; font-weight: 650; text-align: left; text-decoration: none; cursor: pointer; }
+.contact-email-menu button:hover, .contact-email-menu a:hover, .contact-email-menu :focus-visible { background: #fbf2f3; color: #861438; outline: none; }
+.contact-email-menu svg { color: #861438; }
+@keyframes contact-email-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .contact-email-menu { animation: none; } }
+html[data-theme="dark"] .contact-email-menu { border-color: var(--orion-dark-border); background: var(--orion-dark-surface); }
+html[data-theme="dark"] .contact-email-address, html[data-theme="dark"] .contact-email-menu :is(button, a) { color: var(--orion-dark-text); }
+html[data-theme="dark"] .contact-email-menu :is(button, a):hover { background: var(--orion-dark-raised); color: #f0a9bd; }
+.admin-help-add { width: min(100%, 980px); }
+.admin-help-add label { flex: 1; }
+.admin-help-list { display: grid; width: min(100%, 980px); gap: 14px; }
+.admin-help-category { border: 1px solid #eee5dd; border-radius: 15px; background: #fffdfa; padding: 16px 18px; box-shadow: 0 5px 16px rgba(63, 26, 38, .025); }
+.admin-help-category-heading, .admin-help-question { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.admin-help-category-heading > div:first-child { display: grid; gap: 3px; }
+.admin-help-category-heading strong { color: #302528; font-size: 15px; font-weight: 800; }
+.admin-help-category-heading small { color: #8d8080; font-size: 11px; }
+.admin-help-category-heading > div:last-child, .admin-help-question > div:last-child { display: flex; flex: none; gap: 6px; }
+.admin-help-questions { display: grid; gap: 8px; margin-top: 14px; padding-left: 14px; border-left: 2px solid #f2e4e7; }
+.admin-help-question { border: 1px solid #f0e9e4; border-radius: 11px; background: #fffefc; padding: 11px 12px; }
+.admin-help-question strong { color: #3a2f31; font-size: 13px; }
+.admin-help-question p { margin: 5px 0 0; color: #74686a; font-size: 12px; line-height: 1.55; white-space: pre-line; }
+.admin-help-empty { margin: 0; color: #998b8c; font-size: 12px; }
+.admin-help-add-question { justify-self: start; }
+.admin-help-form { display: grid; gap: 10px; border: 1px solid #ead8dc; border-radius: 12px; background: #fbf2f3; padding: 12px; }
+.admin-help-form label { display: grid; gap: 6px; color: #493b3d; font-size: 12px; font-weight: 700; }
+.admin-help-form :is(input, textarea) { width: 100%; border: 1px solid #e4dbd5; border-radius: 9px; background: #fffdfa; padding: 9px 11px; font: inherit; font-size: 13px; font-weight: 500; resize: vertical; }
+.admin-help-form > div { display: flex; gap: 8px; }
+html[data-theme="dark"] :is(.admin-help-category, .admin-help-question) { border-color: var(--orion-dark-border); background: var(--orion-dark-surface); }
+html[data-theme="dark"] .admin-help-form { border-color: var(--orion-dark-border); background: var(--orion-dark-raised); }
+html[data-theme="dark"] :is(.admin-help-category-heading strong, .admin-help-question strong, .admin-help-form label) { color: var(--orion-dark-text); }
+html[data-theme="dark"] :is(.admin-help-question p, .admin-help-category-heading small) { color: var(--orion-dark-muted); }
+html[data-theme="dark"] .admin-help-form :is(input, textarea) { border-color: var(--orion-dark-border); background: var(--orion-dark-surface); color: var(--orion-dark-text); }
+@media (max-width: 760px) { .admin-help-add { flex-direction: column; align-items: stretch; } .admin-help-questions { padding-left: 8px; } }

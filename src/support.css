@@ -1,5 +1,8 @@
 /* Centre d'aide et conditions d'utilisation : bandeau marketplace + cartes crème Orion. */
-.support-hero { min-height:190px; }
+.support-page { padding-bottom:86px; }
+/* Full-bleed band; inner padding keeps the text aligned with the 1320px content column below. */
+.support-page .support-hero { min-height:220px; border-radius:0; padding-block:34px; padding-inline:max(32px, calc((100% - 1320px) / 2 + 34px)); }
+.support-body { width:min(1320px, calc(100% - 64px)); margin:0 auto; }
 .support-hero-copy { position:relative; z-index:1; width:min(100%,560px); }
 .support-search { display:flex; height:46px; align-items:center; gap:10px; margin-top:18px; border:1px solid rgba(255,248,244,.28); border-radius:12px; background:#fffdfa; padding:0 14px; color:#861438; box-shadow:0 12px 28px rgba(40,6,18,.22); }
 .support-search input { flex:1; min-width:0; border:0; outline:0; background:transparent; color:#2f2729; font-size:13px; }
@@ -24,7 +27,7 @@
 .support-faq-item[open] summary { color:#841438; }
 .support-faq-item[open] summary svg { transform:rotate(180deg); }
 .support-faq-item summary:focus-visible { outline:2px solid #c995a2; outline-offset:2px; border-radius:11px; }
-.support-faq-item p { margin:0; padding:0 14px 14px; color:#655b5b; font-size:13px; line-height:1.65; }
+.support-faq-item p { margin:0; padding:0 14px 14px; white-space:pre-line; color:#655b5b; font-size:13px; line-height:1.65; }
 .support-empty { border:1px dashed #e3d9d4; border-radius:12px; background:#fffdfa; color:#8e7f7f; padding:28px; font-size:13px; text-align:center; }
 
 .support-contact { display:flex; align-items:center; gap:18px; margin-top:22px; border-radius:14px; background:linear-gradient(105deg,#fbf2f3 0%,#fffdfa 100%); border:1px solid #ead8dc; padding:22px 24px; }
@@ -63,8 +66,10 @@ html[data-theme="dark"] .support-tabs button.is-active { border-color:#8a1538; b
   .support-contact { flex-wrap:wrap; }
   .support-contact-actions { margin-left:0; }
 }
+@media (max-width:900px) { .support-body { width:min(100% - 36px, 760px); } }
 @media (max-width:620px) {
-  .support-hero { min-height:170px; }
+  .support-page .support-hero { min-height:180px; padding:24px 14px; }
+  .support-body { width:calc(100% - 28px); }
   .support-tabs { flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
   .support-tabs button { flex:none; }
   .conditions-article { grid-template-columns:1fr; padding:18px; }

@@ -1,72 +1,17 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ChevronDown, FileText, LifeBuoy, Mail, Search } from "lucide-react";
+import { ArrowRight, ChevronDown, FileText, LifeBuoy, Mail, MessageCircle, Search } from "lucide-react";
 import { PublicFooter } from "./PublicPages";
+import { ContactEmail } from "../components/ContactEmail";
+import { getHelpCategories, type HelpCategory } from "../lib/help-service";
 import "../support.css";
 
 // Same address as the footer « Centre d'aide » link.
-const SUPPORT_EMAIL = "support@orion.africa";
+const SUPPORT_EMAIL = "orionmarket9@gmail.com";
+// Togo number (+228); WhatsApp avoids the OS « choose an app » dialog that tel:/mailto: open on desktop.
+const SUPPORT_PHONE = "+228 97 79 01 49";
+const SUPPORT_WHATSAPP_URL = `https://wa.me/22897790149?text=${encodeURIComponent("Bonjour, j’ai besoin d’aide sur Orion.")}`;
 const CONDITIONS_LAST_UPDATE = "28 octobre 2026";
-
-type Faq = { q: string; a: string };
-type HelpCategory = { id: string; title: string; hint: string; faqs: Faq[] };
-
-const HELP_CATEGORIES: HelpCategory[] = [
-  {
-    id: "compte",
-    title: "Compte et connexion",
-    hint: "Créer un compte, se connecter, modifier son profil",
-    faqs: [
-      { q: "Comment créer un compte sur Orion ?", a: "Clique sur « Créer mon compte » depuis la page de connexion, renseigne ton e-mail et un mot de passe, puis choisis ton profil : Commerçant ou Jeune entrepreneur. Tu peux ensuite compléter ton profil à tout moment." },
-      { q: "Puis-je changer de profil après l’inscription ?", a: "Non. Le profil Commerçant ou Jeune entrepreneur est choisi à l’inscription et reste définitif. Si tu as besoin d’un autre profil, contacte le support." },
-      { q: "J’ai oublié mon mot de passe. Que faire ?", a: `Écris au support à ${SUPPORT_EMAIL} depuis l’adresse e-mail de ton compte : l’équipe t’aidera à retrouver l’accès.` },
-      { q: "Comment modifier mes informations personnelles ?", a: "Depuis ton tableau de bord, ouvre « Profil » pour mettre à jour ton nom, tes coordonnées et ta photo." },
-    ],
-  },
-  {
-    id: "acheter",
-    title: "Acheter un produit",
-    hint: "Commander, payer, recevoir sa commande",
-    faqs: [
-      { q: "Comment passer une commande ?", a: "Ajoute les produits à ton panier depuis la marketplace, puis ouvre le panier et clique sur « Payer ». Tu dois être connecté pour finaliser la commande." },
-      { q: "Comment indiquer mon adresse de livraison ?", a: "Au moment du paiement, colle un lien Google Maps de ton adresse ou utilise le bouton de position pour partager ta position actuelle." },
-      { q: "Quels modes de paiement sont acceptés ?", a: "Le paiement se fait sur la page sécurisée de FedaPay, avec les moyens qu’elle propose (Mobile Money notamment). Orion ne collecte aucune donnée bancaire." },
-      { q: "Quand ma commande est-elle confirmée ?", a: "Dès que FedaPay confirme le paiement, la commande passe au statut payé et apparaît dans « Mes commandes ». Tu n’as aucune référence à saisir." },
-      { q: "Comment confirmer la réception de ma commande ?", a: "À la remise, le vendeur te montre un QR code. Scanne-le depuis « Mes commandes » (ou importe une photo du QR) : cela confirme la réception et libère le paiement au vendeur. Ne scanne le QR qu’une fois la commande reçue." },
-    ],
-  },
-  {
-    id: "vendre",
-    title: "Vendre sur Orion",
-    hint: "Boutique, produits, commandes reçues",
-    faqs: [
-      { q: "Comment devenir commerçant ?", a: "Choisis le profil Commerçant lors de ton inscription, puis crée ta boutique depuis ton tableau de bord." },
-      { q: "Combien coûte l’ouverture d’une boutique ?", a: "L’offre Standard est gratuite : elle comprend une boutique et jusqu’à 40 produits." },
-      { q: "Comment publier un produit ?", a: "Dans ton tableau de bord, ouvre « Mes produits » et ajoute un produit : nom, prix, catégorie, stock, description et photos. Tu peux aussi définir un prix promotionnel." },
-      { q: "Quand suis-je payé ?", a: "Le montant d’une commande payée est bloqué jusqu’à la remise. Génère le QR de remise depuis tes commandes reçues et fais-le scanner par le client : le montant est alors libéré dans ton portefeuille Orion." },
-    ],
-  },
-  {
-    id: "opportunites",
-    title: "Opportunités",
-    hint: "Postuler, publier une mission",
-    faqs: [
-      { q: "Que sont les opportunités ?", a: "Ce sont des missions publiées par des commerçants : emploi, collaboration, prestation. Les jeunes entrepreneurs peuvent y postuler directement." },
-      { q: "Comment postuler à une opportunité ?", a: "Ouvre l’offre et envoie ta candidature. Tu suis sa réponse (en attente, acceptée ou refusée) dans « Mes candidatures »." },
-      { q: "Combien coûte la publication d’une mission ?", a: "La publication coûte 500 FCFA, payés via FedaPay. La mission devient visible dès que le paiement est confirmé." },
-    ],
-  },
-  {
-    id: "securite",
-    title: "Sécurité et litiges",
-    hint: "Arnaques, problème avec un vendeur",
-    faqs: [
-      { q: "Comment éviter les arnaques ?", a: "Paie toujours dans Orion, jamais en dehors de la plateforme. Ne scanne le QR de remise qu’après avoir reçu ta commande et ne partage jamais ton code secret Mobile Money." },
-      { q: "J’ai un problème avec un vendeur. Que faire ?", a: `Contacte d’abord le vendeur par la messagerie. Si le problème persiste, écris à ${SUPPORT_EMAIL} avec ta référence de commande et des captures d’écran.` },
-      { q: "Comment signaler un produit ou un compte suspect ?", a: `Écris à ${SUPPORT_EMAIL} en indiquant le lien du produit ou de la boutique concernée. L’équipe examine chaque signalement.` },
-    ],
-  },
-];
 
 type Article = { id: string; title: string; paragraphs: string[] };
 
@@ -127,42 +72,56 @@ function SupportHero({ kicker, title, copy, children }: { kicker: string; title:
 }
 
 function SupportContact({ title, copy, secondary }: { title: string; copy: string; secondary: { to: string; label: string } }) {
-  return <aside className="support-contact"><span className="support-contact-icon"><LifeBuoy size={22} /></span><div><h2>{title}</h2><p>{copy}</p></div><div className="support-contact-actions"><a className="public-primary-button" href={`mailto:${SUPPORT_EMAIL}`}><Mail size={16} /> Écrire au support</a><Link className="public-secondary-button" to={secondary.to}>{secondary.label} <ArrowRight size={15} /></Link></div></aside>;
+  return <aside className="support-contact"><span className="support-contact-icon"><LifeBuoy size={22} /></span><div><h2>{title}</h2><p>{copy}</p></div><div className="support-contact-actions"><ContactEmail email={SUPPORT_EMAIL} className="public-primary-button"><Mail size={16} /> Écrire au support</ContactEmail><a className="public-secondary-button" href={SUPPORT_WHATSAPP_URL} target="_blank" rel="noopener noreferrer"><MessageCircle size={16} /> WhatsApp · {SUPPORT_PHONE}</a><Link className="public-secondary-button" to={secondary.to}>{secondary.label} <ArrowRight size={15} /></Link></div></aside>;
 }
 
 export function HelpPage() {
   const [query, setQuery] = useState("");
-  const [active, setActive] = useState("all");
+  const [active, setActive] = useState<number | "all">("all");
+  const [categories, setCategories] = useState<HelpCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  useEffect(() => {
+    let isMounted = true;
+    getHelpCategories()
+      .then((rows) => { if (isMounted) setCategories(rows); })
+      .catch((error: unknown) => { if (isMounted) setLoadError(error instanceof Error ? error.message : "Impossible de charger l’aide."); })
+      .finally(() => { if (isMounted) setLoading(false); });
+    return () => { isMounted = false; };
+  }, []);
   const results = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("fr-FR");
-    return HELP_CATEGORIES
+    return categories
       .filter((category) => active === "all" || category.id === active)
-      .map((category) => ({ ...category, faqs: category.faqs.filter((faq) => !normalized || `${faq.q} ${faq.a}`.toLocaleLowerCase("fr-FR").includes(normalized)) }))
-      .filter((category) => category.faqs.length > 0);
-  }, [query, active]);
+      .map((category) => ({ ...category, questions: category.questions.filter((question) => !normalized || `${question.titre} ${question.description}`.toLocaleLowerCase("fr-FR").includes(normalized)) }))
+      .filter((category) => category.questions.length > 0);
+  }, [categories, query, active]);
 
-  return <><main className="marketplace-page support-page">
+  return <><main className="support-page">
     <SupportHero kicker="CENTRE D’AIDE ORION" title="Comment pouvons-nous t’aider ?" copy="Trouve une réponse rapide, ou écris-nous directement.">
       <label className="support-search"><Search size={17} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Paiement, commande, boutique, compte…" aria-label="Rechercher dans l’aide" /></label>
     </SupportHero>
+    <div className="support-body">
     <nav className="support-tabs" aria-label="Catégories d’aide">
       <button type="button" className={active === "all" ? "is-active" : ""} aria-pressed={active === "all"} onClick={() => setActive("all")}>Tout</button>
-      {HELP_CATEGORIES.map((category) => <button type="button" key={category.id} className={active === category.id ? "is-active" : ""} aria-pressed={active === category.id} onClick={() => setActive(category.id)}>{category.title}</button>)}
+      {categories.map((category) => <button type="button" key={category.id} className={active === category.id ? "is-active" : ""} aria-pressed={active === category.id} onClick={() => setActive(category.id)}>{category.titre}</button>)}
     </nav>
     <div className="support-faq">
-      {results.length === 0 ? <p className="support-empty">Aucune réponse ne correspond à « {query} ». Essaie un autre mot, ou contacte le support ci-dessous.</p> : null}
+      {loading ? <p className="support-empty" role="status">Chargement de l’aide…</p> : loadError ? <p className="support-empty" role="alert">{loadError}</p> : results.length === 0 ? <p className="support-empty">{query.trim() ? `Aucune réponse ne correspond à « ${query} ». Essaie un autre mot, ou contacte le support ci-dessous.` : "Aucune question d’aide pour le moment. Contacte le support ci-dessous."}</p> : null}
       {results.map((category) => <section key={category.id} className="support-faq-section">
-        <div className="support-faq-heading"><span className="public-kicker">{category.hint.toUpperCase()}</span><h2>{category.title}</h2></div>
-        <div className="support-faq-list">{category.faqs.map((faq) => <details key={faq.q} className="support-faq-item"><summary>{faq.q}<ChevronDown size={16} /></summary><p>{faq.a}</p></details>)}</div>
+        <div className="support-faq-heading">{category.description ? <span className="public-kicker">{category.description.toUpperCase()}</span> : null}<h2>{category.titre}</h2></div>
+        <div className="support-faq-list">{category.questions.map((question) => <details key={question.id} className="support-faq-item"><summary>{question.titre}<ChevronDown size={16} /></summary><p>{question.description}</p></details>)}</div>
       </section>)}
     </div>
     <SupportContact title="Tu n’as pas trouvé ta réponse ?" copy="Notre équipe te répond généralement dans la journée." secondary={{ to: "/conditions", label: "Conditions d’utilisation" }} />
+    </div>
   </main><PublicFooter /></>;
 }
 
 export function ConditionsPage() {
-  return <><main className="marketplace-page support-page">
+  return <><main className="support-page">
     <SupportHero kicker="CONDITIONS D’UTILISATION" title="Les règles d’Orion" copy={`Dernière mise à jour : ${CONDITIONS_LAST_UPDATE}. Elles protègent les acheteurs, les commerçants et la plateforme.`} />
+    <div className="support-body">
     <div className="conditions-layout">
       <nav className="conditions-toc" aria-label="Sommaire"><div className="conditions-toc-heading"><FileText size={15} /><strong>Sommaire</strong></div><ol>{CONDITIONS.map((article, index) => <li key={article.id}><a href={`#${article.id}`}><span>{String(index + 1).padStart(2, "0")}</span>{article.title}</a></li>)}</ol></nav>
       <div className="conditions-articles">
@@ -170,5 +129,6 @@ export function ConditionsPage() {
       </div>
     </div>
     <SupportContact title="Une question sur ces conditions ?" copy="Notre équipe peut t’expliquer n’importe quel point." secondary={{ to: "/aide", label: "Voir le centre d’aide" }} />
+    </div>
   </main><PublicFooter /></>;
 }

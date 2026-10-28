@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowDownLeft,
   ArrowRight,
@@ -41,6 +41,8 @@ import { createMission, formatMissionRemuneration, getMissionById, getMissionCan
 import { getMyPurchases, type PurchaseRecord } from "../lib/order-service";
 import { createStore, getMyStores, updateStore, type StoreRecord as BackendStoreRecord } from "../lib/store-service";
 import { LocationField } from "../components/LocationField";
+import { ContactEmail } from "../components/ContactEmail";
+import { createHelpCategory, createHelpQuestion, deleteHelpCategory, deleteHelpQuestion, getHelpCategories, updateHelpCategory, updateHelpQuestion, type HelpCategory, type HelpQuestion } from "../lib/help-service";
 import { getUploadUrl } from "../lib/api";
 import { getCurrentUser, updateUser, type AuthUser } from "../lib/auth-service";
 import { ClientHandoverScanner, SellerOrdersView } from "../components/HandoverTools";
@@ -115,11 +117,16 @@ function StoresView() {
   const limitReached = stores.length >= 1;
   return <div className="management-view"><ManagementHeading eyebrow="COMMERCE" title="Mes boutiques" description="Chaque compte commerçant peut gérer une seule boutique." action={limitReached ? "Limite d’une boutique atteinte" : "Ajouter une boutique"} actionDisabled={limitReached} onAction={() => navigate("/dashboard/stores/add")} />{loadError ? <p className="auth-error">{loadError}</p> : stores.length === 0 ? <div className="store-list-empty"><Store size={22} /><p>Vous n’avez pas encore créé de boutique.</p></div> : <div className="store-management-grid">{stores.map((store) => <article className="store-management-card" key={store.id}><div className={`store-management-art ${store.color}`}>{store.logo ? <img src={store.logo} alt={`Logo de ${store.name}`} /> : <Store size={29} />}<button type="button" aria-label={`Modifier ${store.name}`} onClick={() => navigate(`/dashboard/stores/edit/${store.id}`)}><Edit3 size={15} /></button></div><div className="store-management-copy"><div><span className={`status-pill ${store.status === "Active" ? "status-green" : "status-gold"}`}><Check size={12} /> {store.status}</span><h3>{store.name}</h3><p>{store.category}</p>{store.description ? <p className="store-management-description">{store.description}</p> : null}<span><MapPin size={13} /> {store.address || store.location || "Adresse non renseignée"}</span></div><div className="store-management-stats"><span><strong>{store.products}</strong> produits</span><span><strong>{store.revenue}</strong></span></div></div><button type="button" className="store-manage-link" onClick={() => navigate("/dashboard/products")}>Gérer la boutique <ArrowRight size={15} /></button></article>)}</div>}</div>;
 }
+// The dashboard is mounted on /dashboard/* and matches paths by hand, so useParams() has no :id; read the last segment.
+function useDashboardRouteId(): string | undefined {
+  return useLocation().pathname.replace(/\/$/, "").split("/").pop() || undefined;
+}
+
 function StoreFormView({ edit = false }: { edit?: boolean }) {
   const navigate = useNavigate();
   const { session } = useOrion();
   const [saved, setSaved] = useState<boolean>(false);
-  const { id } = useParams<{ id: string }>();
+  const id = useDashboardRouteId();
   const [form, setForm] = useState({ nom: "", category: "", description: "", address: "", location: "" });
   const [categories, setCategories] = useState<StoreCategory[]>([]);
   const [categoryError, setCategoryError] = useState("");
@@ -392,7 +399,7 @@ function ProductFormView({ edit = false }: { edit?: boolean }) {
 
 function ProductManagementDetail() {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const id = useDashboardRouteId();
   const { session } = useOrion();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -540,7 +547,7 @@ function formatRequirementLines(value: string): string {
 
 function OpportunityFormView({ edit = false }: { edit?: boolean }) {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const id = useDashboardRouteId();
   const { session } = useOrion();
   const [saved, setSaved] = useState<boolean>(false);
   const [existingMission, setExistingMission] = useState<MissionRecord | null>(null);
@@ -700,7 +707,7 @@ function OpportunityManagementDetail({ id }: { id: string }) {
     const initials = name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
     const statusLabel = candidate.statut === "acceptee" ? "Acceptée" : candidate.statut === "refusee" ? "Refusée" : "En attente";
     const acceptedExists = candidates.some((item) => item.userId !== candidate.userId && item.statut === "acceptee");
-    return <div className="candidate-row" key={candidate.userId}>{candidate.candidat?.image ? <img className="candidate-profile-photo" src={getUploadUrl(candidate.candidat.image)} alt={`Photo de ${name}`} /> : <span className="avatar avatar-default avatar-rose">{initials}</span>}<div className="candidate-profile-copy"><strong>{name}</strong>{candidate.candidat?.specialite ? <span>{candidate.candidat.specialite}</span> : null}{candidate.candidat?.email ? <span className="candidate-contact-line"><Mail size={12} /> <a href={`mailto:${candidate.candidat.email}`}>{candidate.candidat.email}</a></span> : null}{candidate.candidat?.telephone ? <span className="candidate-contact-line"><Phone size={12} /> <a href={`tel:${candidate.candidat.telephone}`}>{candidate.candidat.telephone}</a></span> : null}{candidate.candidat?.adresse ? <span className="candidate-contact-line"><MapPin size={12} /> {candidate.candidat.adresse}</span> : null}{candidate.message ? <small>{candidate.message}</small> : null}</div><span className="candidate-time">{new Date(candidate.dateCandidature).toLocaleDateString("fr-FR")}</span><span className={`status-pill ${candidate.statut === "acceptee" ? "status-green" : candidate.statut === "refusee" ? "status-gold" : ""}`}>{statusLabel}</span>{candidate.statut !== "refusee" ? <><button type="button" className="button button-quiet" disabled={updatingUserId !== null} onClick={() => changeCandidateStatus(candidate, "refusee")}>{updatingUserId === candidate.userId ? "Mise à jour…" : "Refuser"}</button>{candidate.statut === "en_attente" ? <button type="button" className="button button-dark" disabled={updatingUserId !== null || acceptedExists} title={acceptedExists ? "Refusez d’abord la candidature acceptée." : undefined} onClick={() => changeCandidateStatus(candidate, "acceptee")}>{updatingUserId === candidate.userId ? "Mise à jour…" : "Accepter"}</button> : null}</> : null}</div>;
+    return <div className="candidate-row" key={candidate.userId}>{candidate.candidat?.image ? <img className="candidate-profile-photo" src={getUploadUrl(candidate.candidat.image)} alt={`Photo de ${name}`} /> : <span className="avatar avatar-default avatar-rose">{initials}</span>}<div className="candidate-profile-copy"><strong>{name}</strong>{candidate.candidat?.specialite ? <span>{candidate.candidat.specialite}</span> : null}{candidate.candidat?.email ? <span className="candidate-contact-line"><Mail size={12} /> <ContactEmail email={candidate.candidat.email} className="candidate-email-button">{candidate.candidat.email}</ContactEmail></span> : null}{candidate.candidat?.telephone ? <span className="candidate-contact-line"><Phone size={12} /> <a href={`tel:${candidate.candidat.telephone}`}>{candidate.candidat.telephone}</a></span> : null}{candidate.candidat?.adresse ? <span className="candidate-contact-line"><MapPin size={12} /> {candidate.candidat.adresse}</span> : null}{candidate.message ? <small>{candidate.message}</small> : null}</div><span className="candidate-time">{new Date(candidate.dateCandidature).toLocaleDateString("fr-FR")}</span><span className={`status-pill ${candidate.statut === "acceptee" ? "status-green" : candidate.statut === "refusee" ? "status-gold" : ""}`}>{statusLabel}</span>{candidate.statut !== "refusee" ? <><button type="button" className="button button-quiet" disabled={updatingUserId !== null} onClick={() => changeCandidateStatus(candidate, "refusee")}>{updatingUserId === candidate.userId ? "Mise à jour…" : "Refuser"}</button>{candidate.statut === "en_attente" ? <button type="button" className="button button-dark" disabled={updatingUserId !== null || acceptedExists} title={acceptedExists ? "Refusez d’abord la candidature acceptée." : undefined} onClick={() => changeCandidateStatus(candidate, "acceptee")}>{updatingUserId === candidate.userId ? "Mise à jour…" : "Accepter"}</button> : null}</> : null}</div>;
   })}</section></div>;
 }
 
@@ -917,6 +924,71 @@ function AdminUsersView() {
   }, [session?.token]);
   const filtered = users.filter((user) => `${user.prenom ?? ""} ${user.nom ?? ""} ${user.email ?? ""} ${user.role ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()));
   return <div className="management-view admin-management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Tous les utilisateurs" description={`${users.length} compte${users.length === 1 ? "" : "s"} enregistré${users.length === 1 ? "" : "s"} sur Orion.`} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input aria-label="Rechercher un utilisateur" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom, e-mail ou rôle" /></div></div>{error ? <p className="auth-error" role="alert">{error}</p> : loading ? <p role="status">Chargement des utilisateurs…</p> : <ManagementTable><div className="management-table-head admin-users-head"><span>UTILISATEUR</span><span>E-MAIL</span><span>RÔLE</span><span>LOCALISATION</span></div>{filtered.length === 0 ? <div className="admin-users-empty">{users.length === 0 ? "Aucun utilisateur n’est encore enregistré." : "Aucun utilisateur ne correspond à cette recherche."}</div> : filtered.map((user, index) => <div className="management-table-row admin-users-row" key={user.id ?? `user-${index}`}><div className="management-product-cell"><span className="admin-user-avatar"><UserRound size={16} /></span><div><strong>{[user.prenom, user.nom].filter(Boolean).join(" ") || "Sans nom"}</strong><small>Compte #{user.id}</small></div></div><span>{user.email || "—"}</span><span className="status-pill">{user.role === "ADMIN" ? "Administrateur" : user.role === "COMMERCANT" ? "Commerçant" : "Utilisateur"}</span><span>{user.localisation || "—"}</span></div>)}</ManagementTable>}</div>;
+}
+
+type HelpDraft = { kind: "category" | "question"; id: number | null; categoryId?: number; titre: string; description: string };
+
+function AdminHelpView() {
+  const { session } = useOrion();
+  const [categories, setCategories] = useState<HelpCategory[]>([]);
+  const [draft, setDraft] = useState<HelpDraft | null>(null);
+  const [newCategory, setNewCategory] = useState({ titre: "", description: "" });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const reload = async () => {
+    setError("");
+    try { setCategories(await getHelpCategories()); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Impossible de charger l’aide."); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { void reload(); }, []);
+
+  const run = async (action: (token: string) => Promise<unknown>, success: string) => {
+    if (!session?.token) return false;
+    setSaving(true);
+    try { await action(session.token); await reload(); toast.success(success); return true; }
+    catch (reason) { const message = reason instanceof Error ? reason.message : "L’opération a échoué."; setError(message); toast.error(message); return false; }
+    finally { setSaving(false); }
+  };
+  const addCategory = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (await run((token) => createHelpCategory(newCategory, token), "Catégorie ajoutée.")) setNewCategory({ titre: "", description: "" });
+  };
+  const saveDraft = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!draft) return;
+    const payload = { titre: draft.titre, description: draft.description };
+    const saved = draft.kind === "category"
+      ? await run((token) => draft.id ? updateHelpCategory(draft.id, payload, token) : createHelpCategory(payload, token), "Catégorie enregistrée.")
+      : await run((token) => draft.id ? updateHelpQuestion(draft.id, payload, token) : createHelpQuestion(draft.categoryId ?? 0, payload, token), "Question enregistrée.");
+    if (saved) setDraft(null);
+  };
+  const removeCategory = (category: HelpCategory) => { if (window.confirm(`Supprimer la catégorie « ${category.titre} » et ses ${category.questions.length} question(s) ?`)) void run((token) => deleteHelpCategory(category.id, token), "Catégorie supprimée."); };
+  const removeQuestion = (question: HelpQuestion) => { if (window.confirm(`Supprimer la question « ${question.titre} » ?`)) void run((token) => deleteHelpQuestion(question.id, token), "Question supprimée."); };
+  const isEditing = (kind: HelpDraft["kind"], id: number | null, categoryId?: number) => draft?.kind === kind && draft.id === id && (id !== null || draft.categoryId === categoryId);
+  const draftForm = (questionMode: boolean) => draft ? <form className="admin-help-form" onSubmit={saveDraft}>
+    <label>{questionMode ? "Question" : "Titre"}<input required autoFocus maxLength={questionMode ? 255 : 150} value={draft.titre} onChange={(event) => setDraft({ ...draft, titre: event.target.value })} /></label>
+    <label>{questionMode ? "Réponse" : "Description"}{questionMode ? <textarea required maxLength={5000} rows={4} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /> : <input maxLength={500} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />}</label>
+    <div><button className="button button-dark" disabled={saving || !draft.titre.trim() || (questionMode && !draft.description.trim())}>Enregistrer</button><button type="button" className="button button-quiet" onClick={() => setDraft(null)}>Annuler</button></div>
+  </form> : null;
+
+  return <div className="management-view admin-management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Centre d’aide" description="Les catégories et questions ci-dessous sont affichées sur la page publique Aide." />
+    <form className="store-category-add admin-help-add" onSubmit={addCategory}><label>Nouvelle catégorie<input required maxLength={150} value={newCategory.titre} onChange={(event) => setNewCategory({ ...newCategory, titre: event.target.value })} placeholder="Ex. Livraison" /></label><label>Description<input maxLength={500} value={newCategory.description} onChange={(event) => setNewCategory({ ...newCategory, description: event.target.value })} placeholder="Ex. Délais, adresse, suivi" /></label><button className="button button-dark" disabled={saving || !newCategory.titre.trim()}><Plus size={15} /> Ajouter</button></form>
+    {error ? <p className="auth-error" role="alert">{error}</p> : null}
+    {loading ? <p role="status">Chargement de l’aide…</p> : <div className="admin-help-list">
+      {categories.map((category) => <section className="admin-help-category" key={category.id}>
+        {isEditing("category", category.id) ? draftForm(false) : <div className="admin-help-category-heading"><div><strong>{category.titre}</strong>{category.description ? <small>{category.description}</small> : null}</div><div><button type="button" className="table-icon-button" aria-label={`Modifier ${category.titre}`} onClick={() => setDraft({ kind: "category", id: category.id, titre: category.titre, description: category.description })}><Pencil size={15} /></button><button type="button" className="table-icon-button danger" aria-label={`Supprimer ${category.titre}`} disabled={saving} onClick={() => removeCategory(category)}><Trash2 size={15} /></button></div></div>}
+        <div className="admin-help-questions">
+          {category.questions.map((question) => isEditing("question", question.id) ? <div key={question.id}>{draftForm(true)}</div> : <article className="admin-help-question" key={question.id}><div><strong>{question.titre}</strong><p>{question.description}</p></div><div><button type="button" className="table-icon-button" aria-label={`Modifier ${question.titre}`} onClick={() => setDraft({ kind: "question", id: question.id, categoryId: category.id, titre: question.titre, description: question.description })}><Pencil size={15} /></button><button type="button" className="table-icon-button danger" aria-label={`Supprimer ${question.titre}`} disabled={saving} onClick={() => removeQuestion(question)}><Trash2 size={15} /></button></div></article>)}
+          {!category.questions.length ? <p className="admin-help-empty">Aucune question dans cette catégorie.</p> : null}
+          {isEditing("question", null, category.id) ? draftForm(true) : <button type="button" className="button button-quiet admin-help-add-question" onClick={() => setDraft({ kind: "question", id: null, categoryId: category.id, titre: "", description: "" })}><Plus size={15} /> Ajouter une question</button>}
+        </div>
+      </section>)}
+      {!categories.length ? <p>Aucune catégorie d’aide pour le moment.</p> : null}
+    </div>}
+  </div>;
 }
 
 function AdminStoreCategoriesView() {
@@ -1235,6 +1307,7 @@ export function DashboardRouteView({ pathname, role }: ManagementProps) {
     if (normalized === "/dashboard/overview" || normalized === "/dashboard") return <AdminDashboardView />;
     if (normalized === "/dashboard/users") return <AdminUsersView />;
     if (normalized === "/dashboard/store-categories") return <AdminStoreCategoriesView />;
+    if (normalized === "/dashboard/help") return <AdminHelpView />;
     if (normalized === "/dashboard/product-categories") return <AdminProductCategoriesView />;
     if (normalized === "/dashboard/mission-types") return <AdminMissionTypesView />;
     if (normalized === "/dashboard/orders") return <AdminOrdersView />;
@@ -1275,6 +1348,7 @@ export function getManagementPageCopy(pathname: string, role: UserRole = "COMMER
   const normalized: string = pathname.replace(/\/$/, "");
   if (role === "ADMIN") {
     if (normalized === "/dashboard/overview" || normalized === "/dashboard") return { eyebrow: "ADMINISTRATION", title: "Tableau de bord", description: "Suivez les ventes, les comptes, le catalogue et l’engagement sur Orion." };
+    if (normalized === "/dashboard/help") return { eyebrow: "ADMINISTRATION", title: "Centre d’aide", description: "Gérez les catégories et les questions de la page Aide." };
     if (normalized === "/dashboard/store-categories") return { eyebrow: "ADMINISTRATION", title: "Catégories de boutique", description: "Ajoutez et gérez les catégories proposées aux commerçants." };
     if (normalized === "/dashboard/product-categories") return { eyebrow: "ADMINISTRATION", title: "Catégories de produits", description: "Ajoutez et gérez les catégories proposées aux commerçants." };
     if (normalized === "/dashboard/mission-types") return { eyebrow: "ADMINISTRATION", title: "Types de mission", description: "Ajoutez et gérez les types proposés lors de la création d’une opportunité." };
