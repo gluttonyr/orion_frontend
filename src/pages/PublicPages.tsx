@@ -15,6 +15,7 @@ import {
   CircleHelp,
   CreditCard,
   Filter,
+  Flag,
   Globe2,
   Heart,
   Grid2X2,
@@ -51,7 +52,7 @@ import { mapBackendProduct } from "../OrionContext";
 import { getUploadUrl } from "../lib/api";
 import { applyToMission, formatMissionRemuneration, getMissionById, getMissions, getMyMissionApplication, type MissionRecord } from "../lib/mission-service";
 import { checkFedaPayPayment, createFedaPayPayment, recordLiveProductVisit } from "../lib/live-service";
-import { getMyStores, getStoreById, getStores, type StoreRecord } from "../lib/store-service";
+import { getMyStores, getStoreById, getStores, reportStore, type StoreRecord } from "../lib/store-service";
 import { getCurrentUser, type AuthUser } from "../lib/auth-service";
 import { getAboutTeam, getSiteSettings, type AboutTeamMember } from "../lib/admin-service";
 import { getMyPurchases, type PurchaseRecord } from "../lib/order-service";
@@ -418,9 +419,10 @@ export function MarketplacePage() {
 
 export function StorefrontPage() {
   const { id = "" } = useParams();
-  const { products } = useOrion();
+  const { products, session } = useOrion();
   const [store, setStore] = useState<StoreRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reportReason, setReportReason] = useState("");
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -429,11 +431,35 @@ export function StorefrontPage() {
   }, [id]);
   const storeProducts = useMemo(() => store?.proprietaireId == null ? [] : products.filter((product) => product.ownerId === store.proprietaireId), [products, store?.proprietaireId]);
   const storeProductsPage = usePagination(storeProducts);
+  const submitReport = async () => {
+    if (!session?.token) {
+      toast.error("Connectez-vous pour signaler cette boutique.");
+      return;
+    }
+    if (!reportReason.trim()) {
+      toast.error("Précisez le motif du signalement.");
+      return;
+    }
+    try {
+      await reportStore(Number(id), reportReason.trim(), session.token);
+      toast.success("Le signalement a bien été envoyé à l’administration.");
+      setReportReason("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Impossible d’envoyer le signalement.");
+    }
+  };
   if (loading) return <main className="public-page storefront-page"><OrionLoader label="Chargement de la boutique…" /></main>;
   if (!store) return <main className="public-page"><EmptyState title="Boutique introuvable" copy="Cette boutique n’est pas disponible actuellement." action="Retour au marketplace" onAction={() => window.location.assign("/marketplace")} /></main>;
   return <main className="public-page storefront-page">
     <nav className="storefront-breadcrumb" aria-label="Fil d’Ariane"><Link to="/marketplace">Marketplace</Link><span>/</span><span>{store.nom}</span></nav>
     <section className="storefront-hero"><div className="storefront-hero-art" aria-hidden="true"><span>ORION</span><i>✳</i><b>O</b></div><div className="storefront-hero-content"><div className="storefront-brand">{store.logo ? <img src={getUploadUrl(store.logo)} alt={`Logo ${store.nom}`} /> : <span><Store size={27} /></span>}<div><span className="storefront-eyebrow">BOUTIQUE ORION <i /> {store.category || "CRÉATEUR INDÉPENDANT"}</span><h1>{store.nom}</h1><p>{store.address ? <><MapPin size={14} /> {store.address}</> : store.location && /^https?:\/\//i.test(store.location) ? <a className="storefront-map-link" href={store.location} target="_blank" rel="noreferrer"><MapPin size={14} /> Voir la localisation</a> : store.location ? <><MapPin size={14} /> {store.location}</> : "Une boutique locale sur Orion"}</p></div></div><div className="storefront-hero-count"><strong>{storeProducts.length}</strong><span>produit{storeProducts.length === 1 ? "" : "s"}<br />disponible{storeProducts.length === 1 ? "" : "s"}</span></div></div>{store.description ? <p className="storefront-description">{store.description}</p> : null}</section>
+    <div className="storefront-report-box">
+      <div><span className="public-kicker">MODÉRATION</span><h3>Signaler cette boutique</h3></div>
+      <div className="storefront-report-form">
+        <textarea value={reportReason} onChange={(event) => setReportReason(event.target.value)} placeholder="Décrivez le problème observé (contenu interdit, fraude, boutique inactive, etc.)" rows={3} />
+        <button type="button" className="button button-secondary" onClick={() => void submitReport()}><Flag size={15} /> Envoyer le signalement</button>
+      </div>
+    </div>
     <div className="storefront-products-heading"><div><span className="public-kicker">LA SÉLECTION DE LA BOUTIQUE</span><h2>Nos produits</h2></div><span>{storeProducts.length} produit{storeProducts.length === 1 ? "" : "s"}</span></div>
     {storeProducts.length ? <div className="public-products-grid">{storeProductsPage.pageItems.map((product) => <ProductCard key={product.id} product={{ ...product, store: store.nom }} marketplace />)}<ListPagination {...storeProductsPage} /></div> : <EmptyState title="Aucun produit publié" copy="Cette boutique n’a pas encore de produit disponible." action="Explorer le marketplace" onAction={() => window.location.assign("/marketplace")} />}
   </main>;

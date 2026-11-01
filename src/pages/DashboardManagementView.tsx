@@ -21,6 +21,7 @@ import {
   Phone,
   Plus,
   Search,
+  ShieldAlert,
   Settings2,
   ShieldCheck,
   ShoppingBag,
@@ -40,7 +41,7 @@ import { createProduct, getProductsByOwner, publishProduct, updateProduct, type 
 import { apiRequest } from "../lib/api";
 import { createMission, formatMissionRemuneration, getMissionById, getMissionCandidates, getMissions, getMyApplications, getMyMissions, startMissionPublicationPayment, updateMission, updateMissionCandidateStatus, type MissionApplicationRecord, type MissionCandidate, type MissionRecord } from "../lib/mission-service";
 import { getMyPurchases, type PurchaseRecord } from "../lib/order-service";
-import { createStore, getMyStores, updateStore, type StoreRecord as BackendStoreRecord } from "../lib/store-service";
+import { createStore, getMyStores, getStoreReports, setStoreActivation, updateStore, type StoreRecord as BackendStoreRecord } from "../lib/store-service";
 import { LocationField } from "../components/LocationField";
 import { ContactEmail } from "../components/ContactEmail";
 import { createHelpCategory, createHelpQuestion, deleteHelpCategory, deleteHelpQuestion, getHelpCategories, updateHelpCategory, updateHelpQuestion, type HelpCategory, type HelpQuestion } from "../lib/help-service";
@@ -1200,6 +1201,65 @@ function AdminWalletView() {
   return <div className="management-view admin-management-view"><ManagementHeading eyebrow="FINANCES ORION" title="Portefeuille plateforme" description="Suivez les commissions retenues sur les commandes et les remboursements enregistrés." />{error ? <p className="auth-error">{error}</p> : !wallet ? <OrionLoader label="Chargement du portefeuille…" /> : <><section className="wallet-metrics admin-wallet-metrics"><article className="stat-card"><span>Solde plateforme</span><strong>{formatCfa(wallet.solde)}</strong><small>Commissions nettes après remboursements</small></article><article className="stat-card"><span>Commissions cumulées</span><strong>{formatCfa(wallet.totalCommissions)}</strong><small>Retenues comptabilisées</small></article><article className="stat-card"><span>Commissions remboursées</span><strong>{formatCfa(wallet.totalRemboursements)}</strong><small>Reprises lors des remboursements</small></article></section>{wallet.updatedAt ? <p className="withdrawal-note">Dernière mise à jour : {new Date(wallet.updatedAt).toLocaleString("fr-FR")}</p> : null}</>}</div>;
 }
 
+function AdminReportsView() {
+  const { session } = useOrion();
+  const [reports, setReports] = useState<Array<{ id: number; boutiqueId: number; motif: string; dateCreation: string; boutique?: { id: number; nom: string; active?: boolean } }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    if (!session?.token) return;
+    setLoading(true);
+    try {
+      const payload = await getStoreReports(session.token);
+      setReports(payload.map((report) => ({
+        id: report.id,
+        boutiqueId: report.boutiqueId,
+        motif: report.motif,
+        dateCreation: report.dateCreation,
+        boutique: report.boutique ? { id: report.boutique.id, nom: report.boutique.nom, active: report.boutique.active } : undefined,
+      })));
+      setError("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Impossible de charger les signalements.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { void load(); }, [session?.token]);
+
+  const toggleState = async (boutiqueId: number, active: boolean) => {
+    if (!session?.token) return;
+    try {
+      await setStoreActivation(boutiqueId, active, session.token);
+      await load();
+      toast.success(active ? "La boutique a été réactivée." : "La boutique a été désactivée et n’est plus visible sur le site.");
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "Impossible de modifier le statut de la boutique.";
+      toast.error(message);
+    }
+  };
+
+  return <div className="management-view admin-management-view"><ManagementHeading eyebrow="MODÉRATION" title="Signalements de boutiques" description="Consultez les boutiques signalées et désactivez-les sans jamais les supprimer définitivement." />
+    {error ? <p className="auth-error" role="alert">{error}</p> : null}
+    {loading ? <OrionLoader label="Chargement des signalements…" /> : (
+      <ManagementTable>
+        <div className="management-table-head admin-users-head"><span>BOUTIQUE</span><span>MOTIF</span><span>DATE</span><span>STATUT</span><span>ACTION</span></div>
+        {reports.length === 0 ? <div className="admin-users-empty">Aucun signalement en attente.</div> : reports.map((report) => (
+          <div className="management-table-row admin-orders-row" key={report.id}>
+            <div><strong>{report.boutique?.nom ?? `Boutique #${report.boutiqueId}`}</strong><small>#{report.boutiqueId}</small></div>
+            <span>{report.motif}</span>
+            <span>{new Date(report.dateCreation).toLocaleDateString("fr-FR")}</span>
+            <span className={`status-pill ${report.boutique?.active === false ? "status-gold" : "status-green"}`}>{report.boutique?.active === false ? "Désactivée" : "Active"}</span>
+            <div className="table-actions"><button type="button" className="button button-secondary" onClick={() => void toggleState(report.boutiqueId, !(report.boutique?.active === false))}>{report.boutique?.active === false ? "Réactiver" : "Désactiver"}</button></div>
+          </div>
+        ))}
+      </ManagementTable>
+    )}
+  </div>;
+}
+
 function AdminAboutTeamSection() {
   const { session } = useOrion();
   const [members, setMembers] = useState<AboutTeamMember[]>([]);
@@ -1355,6 +1415,7 @@ export function DashboardRouteView({ pathname, role }: ManagementProps) {
     if (normalized === "/dashboard/mission-types") return <AdminMissionTypesView />;
     if (normalized === "/dashboard/orders") return <AdminOrdersView />;
     if (normalized === "/dashboard/wallet") return <AdminWalletView />;
+    if (normalized === "/dashboard/reports") return <AdminReportsView />;
     if (normalized === "/dashboard/settings") return <AdminSettingsView />;
     return null;
   }
@@ -1363,6 +1424,8 @@ export function DashboardRouteView({ pathname, role }: ManagementProps) {
     return <div className="management-view"><BackButton label="Opportunités" /><ManagementHeading eyebrow="OPPORTUNITÉ" title="Découvrez cette mission" description="Consultez le détail et poursuivez votre candidature depuis le site public." /><button type="button" className="button button-dark" onClick={() => window.location.assign(`/opportunities/${normalized.split("/").pop()}`)}>Voir le détail <ArrowRight size={15} /></button></div>;
   }
   if (normalized === "/dashboard/orders") return role === "COMMERCANT" ? <SellerOrdersView /> : <ClientOrdersView />;
+  if (normalized === "/dashboard/wallet") return <WalletView />;
+  if (normalized === "/dashboard/analytics") return role === "COMMERCANT" ? <AnalyticsView /> : <ClientOrdersView />;
   if (normalized === "/dashboard/marketplace" && role === "COMMERCANT") return <MerchantStorefrontView />;
   if (normalized === "/dashboard/stores") return <StoresView />;
   if (normalized === "/dashboard/stores/add") return <StoreFormView />;
@@ -1398,6 +1461,7 @@ export function getManagementPageCopy(pathname: string, role: UserRole = "COMMER
     if (normalized === "/dashboard/users") return { eyebrow: "ADMINISTRATION", title: "Utilisateurs", description: "Consultez tous les comptes Orion et leurs profils." };
     if (normalized === "/dashboard/orders") return { eyebrow: "ADMINISTRATION", title: "Commandes", description: "Suivez toutes les commandes de la plateforme." };
     if (normalized === "/dashboard/wallet") return { eyebrow: "ADMINISTRATION", title: "Portefeuille plateforme", description: "Consultez les commissions et le solde global d’Orion." };
+    if (normalized === "/dashboard/reports") return { eyebrow: "MODÉRATION", title: "Signalements de boutiques", description: "Passez en revue les boutiques signalées et réglez les problèmes sans supprimer les données." };
     if (normalized === "/dashboard/settings") return { eyebrow: "ADMINISTRATION", title: "Réglages du site", description: "Gérez les images affichées sur la page d’accueil." };
     return null;
   }
@@ -1413,6 +1477,8 @@ export function getManagementPageCopy(pathname: string, role: UserRole = "COMMER
   if (normalized === "/dashboard/orders") return role === "COMMERCANT"
     ? { eyebrow: "VENTES DE VOTRE BOUTIQUE", title: "Commandes reçues", description: "Consultez les achats de vos produits et gérez les remises aux clients." }
     : { eyebrow: "VOTRE PARCOURS D'ACHAT", title: "Mes commandes", description: "Consultez les achats liés à votre compte Orion." };
+  if (normalized === "/dashboard/wallet") return { eyebrow: "VOTRE ARGENT", title: role === "COMMERCANT" ? "Portefeuille" : "Mon portefeuille", description: "Suivez vos revenus, vos paiements et l’activité de votre compte." };
+  if (normalized === "/dashboard/analytics") return { eyebrow: "VUE D'ENSEMBLE", title: role === "COMMERCANT" ? "Analyses" : "Mes analyses", description: "Comprenez ce qui crée de la valeur dans votre activité Orion." };
   if (normalized.includes("/opportunities/create")) return { eyebrow: "NOUVELLE OPPORTUNITÉ", title: "Créer une opportunité", description: "Un brief précis attire des candidatures plus pertinentes." };
   if (normalized.includes("/opportunities/edit")) return { eyebrow: "MODIFIER L'OPPORTUNITÉ", title: "Modifier l'opportunité", description: "Mettez à jour les conditions de votre mission." };
   if (normalized.includes("/opportunities/")) return { eyebrow: "CANDIDATURES", title: "Détail de l'opportunité", description: "Consultez les profils et traitez les candidatures." };

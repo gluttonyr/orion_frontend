@@ -33,6 +33,7 @@ import {
   Plus,
   Search,
   Send,
+  ShieldAlert,
   Settings2,
   ShoppingBag,
   ShoppingCart,
@@ -66,7 +67,7 @@ import { ThemeModeButton } from "../ThemeMode";
 import { toast } from "../components/ui/sonner";
 import { ListPagination, usePagination } from "../components/ListPagination";
 
-type Section = "home" | "marketplace" | "opportunities" | "messages" | "wallet" | "analytics" | "orders" | "users" | "settings" | "store-categories" | "product-categories" | "mission-types" | "help";
+type Section = "home" | "marketplace" | "opportunities" | "messages" | "wallet" | "analytics" | "orders" | "users" | "settings" | "store-categories" | "product-categories" | "mission-types" | "help" | "reports";
 type MessageSender = "me" | "them";
 
 type ChatMessage = {
@@ -142,6 +143,7 @@ const adminNavItems: DashboardNavItem[] = [
   { id: "users", label: "Utilisateurs", path: "/dashboard/users", section: "users", icon: UsersRound },
   { id: "orders", label: "Commandes", path: "/dashboard/orders", section: "orders", icon: ShoppingCart },
   { id: "wallet", label: "Portefeuille plateforme", path: "/dashboard/wallet", section: "wallet", icon: WalletCards },
+  { id: "reports", label: "Signalements", path: "/dashboard/reports", section: "reports", icon: ShieldAlert },
   { id: "settings", label: "Réglages du site", path: "/dashboard/settings", section: "settings", icon: Settings2 },
   { id: "store-categories", label: "Catégories boutique", path: "/dashboard/store-categories", section: "store-categories", icon: Tags },
   { id: "product-categories", label: "Catégories produits", path: "/dashboard/product-categories", section: "product-categories", icon: Tags },
@@ -194,6 +196,7 @@ const sectionTitles: Record<Section, { eyebrow: string; title: string; descripti
   analytics: { eyebrow: "VUE D'ENSEMBLE", title: "Analytiques", description: "Comprenez ce qui crée le plus de valeur dans votre espace Orion." },
   orders: { eyebrow: "VOTRE PARCOURS D'ACHAT", title: "Mes commandes", description: "Retrouvez les commandes et les achats associés à votre compte." },
   users: { eyebrow: "ADMINISTRATION", title: "Utilisateurs", description: "Consultez les comptes inscrits sur Orion." },
+  reports: { eyebrow: "MODÉRATION", title: "Signalements", description: "Surveillez les boutiques signalées et réglez les incidents rapidement." },
   settings: { eyebrow: "ADMINISTRATION", title: "Réglages du site", description: "Choisissez les images affichées sur la page d’accueil." },
   "store-categories": { eyebrow: "ADMINISTRATION", title: "Catégories boutique", description: "Gérez les catégories proposées lors de la création d’une boutique." },
   "product-categories": { eyebrow: "ADMINISTRATION", title: "Catégories produits", description: "Gérez les catégories proposées lors de la création d’un produit." },
@@ -203,6 +206,7 @@ const sectionTitles: Record<Section, { eyebrow: string; title: string; descripti
 
 function sectionFromPath(pathname: string): Section {
   if (pathname.includes("/dashboard/help")) return "help";
+  if (pathname.includes("/dashboard/reports")) return "reports";
   if (pathname.includes("store-categories")) return "store-categories";
   if (pathname.includes("product-categories")) return "product-categories";
   if (pathname.includes("mission-types")) return "mission-types";
@@ -219,6 +223,7 @@ function sectionFromPath(pathname: string): Section {
 
 function dashboardPathForSection(section: Section): string {
   if (section === "help") return "/dashboard/help";
+  if (section === "reports") return "/dashboard/reports";
   if (section === "store-categories") return "/dashboard/store-categories";
   if (section === "product-categories") return "/dashboard/product-categories";
   if (section === "mission-types") return "/dashboard/mission-types";

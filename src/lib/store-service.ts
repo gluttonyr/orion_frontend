@@ -14,6 +14,16 @@ export type StoreRecord = {
   nombreProduits?: number;
 };
 
+export type StoreReportRecord = {
+  id: number;
+  boutiqueId: number;
+  motif: string;
+  dateCreation: string;
+  resolu: boolean;
+  utilisateurId?: number | null;
+  boutique?: StoreRecord;
+};
+
 export async function getStores() {
   return apiRequest<StoreRecord[]>("/boutique");
 }
@@ -24,6 +34,28 @@ export async function getStoreById(id: string | number) {
 
 export async function getMyStores(token: string) {
   return apiRequest<StoreRecord[]>("/boutique/mine", { headers: { Authorization: `Bearer ${token}` } });
+}
+
+export async function reportStore(id: number, reason: string, token: string) {
+  return apiRequest<{ ok: boolean; boutiqueId: number; motif: string; reported: boolean }>(`/boutique/${id}/signaler`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ motif: reason }),
+  });
+}
+
+export async function getStoreReports(token: string) {
+  return apiRequest<StoreReportRecord[]>("/boutique/admin/signalements", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function setStoreActivation(id: number, active: boolean, token: string) {
+  return apiRequest<StoreRecord>(`/boutique/admin/${id}/activation`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ active }),
+  });
 }
 
 export async function resolveStoreLocation(url: string, token: string) {

@@ -58,9 +58,9 @@ function DashboardGate() {
   }, [session?.token, session?.role, storeRetry]);
 
   if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  const adminPath = /^\/dashboard\/(overview|users|orders|wallet|settings|store-categories|product-categories|mission-types|help)(\/|$)/.test(location.pathname);
-  if (session.role === "ADMIN" && (!adminPath || location.pathname === "/dashboard")) return <Navigate to="/dashboard/overview" replace />;
-  if (session.role !== "ADMIN" && adminPath) return <Navigate to="/dashboard" replace />;
+  const adminOnlyPath = /^\/dashboard\/(overview|users|reports|settings|store-categories|product-categories|mission-types|help)(\/|$)/.test(location.pathname);
+  if (session.role === "ADMIN" && (location.pathname === "/dashboard" || location.pathname === "/dashboard/")) return <Navigate to="/dashboard/overview" replace />;
+  if (session.role !== "ADMIN" && adminOnlyPath) return <Navigate to="/dashboard" replace />;
   const merchantOnlyPath: boolean = /^\/dashboard\/(stores|products|marketplace|subscriptions|wallet|withdrawal-methods|analytics)(\/|$)/.test(location.pathname);
   if (merchantOnlyPath && session.role !== "COMMERCANT" && session.role !== "ADMIN") return <Navigate to="/dashboard" replace />;
   // Store management must remain reachable so a merchant can create/select their first store.
