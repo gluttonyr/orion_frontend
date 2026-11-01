@@ -1521,6 +1521,7 @@ html[data-theme="dark"] .app-frame textarea { background-color: #20232b; border-
 .management-toolbar .public-search { max-width: 350px; }
 .management-table { overflow: hidden; border: 1px solid #e7dfd8; border-radius: 13px; background: #fffdfa; }
 .management-table-head, .management-table-row { display: grid; grid-template-columns: 2fr 1fr 0.9fr 1.2fr 1fr 86px; align-items: center; gap: 12px; padding: 0 16px; }
+.product-management-detail .management-kpi-grid { display: none; }
 .management-table-head { min-height: 38px; border-bottom: 1px solid #eee8e2; color: #b2a8a1; font-size: 8px; font-weight: 800; letter-spacing: 0.1em; }
 .management-table-row { min-height: 70px; border-bottom: 1px solid #f0ebe6; color: #998e87; font-size: 9px; }
 .management-table-row:last-child { border-bottom: 0; }

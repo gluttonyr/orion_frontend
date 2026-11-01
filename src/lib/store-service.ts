@@ -17,11 +17,13 @@ export type StoreRecord = {
 export type StoreReportRecord = {
   id: number;
   boutiqueId: number;
+  produitId?: number | null;
   motif: string;
   dateCreation: string;
   resolu: boolean;
   utilisateurId?: number | null;
   boutique?: StoreRecord;
+  produit?: { id: number; nom: string } | null;
 };
 
 export async function getStores() {
@@ -38,6 +40,14 @@ export async function getMyStores(token: string) {
 
 export async function reportStore(id: number, reason: string, token: string) {
   return apiRequest<{ ok: boolean; boutiqueId: number; motif: string; reported: boolean }>(`/boutique/${id}/signaler`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ motif: reason }),
+  });
+}
+
+export async function reportProduct(id: number, reason: string, token: string) {
+  return apiRequest<{ ok: boolean; boutiqueId: number; produitId: number; motif: string; reported: boolean; reportId: number }>(`/produits/${id}/signaler`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ motif: reason }),

@@ -20,6 +20,20 @@ export type ProductRecord = {
   boutiqueNom?: string | null;
 };
 
+export type ProductReview = {
+  id: number;
+  note: number;
+  commentaire: string | null;
+  dateCreation: string;
+  auteur: string;
+};
+
+export type ProductReviews = {
+  moyenne: number;
+  nombre: number;
+  avis: ProductReview[];
+};
+
 export async function getProducts() {
   return apiRequest<ProductRecord[]>("/produits");
 }
@@ -41,6 +55,18 @@ export async function getProductsByOwner(ownerId: number, token: string) {
 
 export async function getProductById(id: number) {
   return apiRequest<ProductRecord>(`/produits/${id}`);
+}
+
+export function getProductReviews(id: number) {
+  return apiRequest<ProductReviews>(`/produits/${id}/avis`);
+}
+
+export function saveProductReview(id: number, note: number, commentaire: string, token: string) {
+  return apiRequest<{ ok: boolean; moyenne: number; nombre: number; avis: ProductReview[] }>(`/produits/${id}/avis`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ note, commentaire }),
+  });
 }
 
 export function setProductLike(id: number, visitorId: string, liked: boolean) {

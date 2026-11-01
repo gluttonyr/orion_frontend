@@ -47,7 +47,7 @@ import { ContactEmail } from "../components/ContactEmail";
 import { createHelpCategory, createHelpQuestion, deleteHelpCategory, deleteHelpQuestion, getHelpCategories, updateHelpCategory, updateHelpQuestion, type HelpCategory, type HelpQuestion } from "../lib/help-service";
 import { getUploadUrl } from "../lib/api";
 import { getCurrentUser, updateUser, type AuthUser } from "../lib/auth-service";
-import { ClientHandoverScanner, SellerOrdersView } from "../components/HandoverTools";
+import { ClientHandoverScanner, SellerHandoverWallet, SellerOrdersView } from "../components/HandoverTools";
 import { deleteAboutTeamMember, getAboutTeam, getAdminCarouselProducts, getAdminMerchantProducts, getAdminMerchants, getAdminOrders, getAdminUsers, getAdminWallet, getAdminDashboardStats, getSiteSettings, saveAboutTeamMember, saveSiteSettings, type AboutTeamMember, type AdminMerchant, type AdminMerchantProduct, type AdminOrder, type AdminPlatformWallet, type AdminUser, type AdminDashboardStats, type SiteSettingsRecord } from "../lib/admin-service";
 import { toast } from "../components/ui/sonner";
 import { createStoreCategory, deleteStoreCategory, getStoreCategories, updateStoreCategory, type StoreCategory } from "../lib/store-category-service";
@@ -431,7 +431,7 @@ function ProductManagementDetail() {
   if (error || !product) return <div className="management-view"><BackButton label="Mes produits" /><p className="auth-error" role="alert">{error || "Produit introuvable."}</p></div>;
   const galleryImages = Array.from(new Set([product.image, ...(product.secondaryImages ?? [])].filter(Boolean)));
   const isDraft = product.status === "Brouillon";
-  return <div className="management-view"><BackButton label="Mes produits" /><div className="management-detail-hero"><div className="management-detail-gallery"><img className="management-detail-main-image" src={selectedImage || product.image} alt={product.name} />{galleryImages.length > 1 ? <div className="management-detail-thumbs">{galleryImages.map((image, index) => <button type="button" key={`${image}-${index}`} className={(selectedImage || product.image) === image ? "is-active" : ""} onClick={() => setSelectedImage(image)} aria-label={`Afficher l’image ${index + 1} de ${product.name}`}><img src={image} alt="" /></button>)}</div> : null}</div><div><span className={`status-pill ${isDraft ? "status-gold" : "status-green"}`}>{isDraft ? "Brouillon" : <><Check size={12} /> {product.status === "Rupture de stock" ? "Rupture de stock" : "En ligne"}</>}</span><span className="public-kicker">{product.category}</span><h2>{product.name}</h2><p>{product.description}</p><div className="management-detail-price">{formatCfa(product.price)} <small>· {product.stock} en stock</small></div><div className="management-detail-actions"><button type="button" className="button button-dark" onClick={() => navigate(`/dashboard/products/edit/${product.id}`)}><Pencil size={15} /> Modifier</button></div></div></div><div className="management-kpi-grid"><div className="management-kpi"><TrendingUp size={18} /><span>Vues produit</span><strong>2 840</strong><small>+18,4% ce mois</small></div><div className="management-kpi"><Package size={18} /><span>Commandes</span><strong>48</strong><small>+12 depuis le mois dernier</small></div><div className="management-kpi"><Star size={18} /><span>Note moyenne</span><strong>4,9 / 5</strong><small>24 avis vérifiés</small></div></div></div>;
+  return <div className="management-view product-management-detail"><BackButton label="Mes produits" /><div className="management-detail-hero"><div className="management-detail-gallery"><img className="management-detail-main-image" src={selectedImage || product.image} alt={product.name} />{galleryImages.length > 1 ? <div className="management-detail-thumbs">{galleryImages.map((image, index) => <button type="button" key={`${image}-${index}`} className={(selectedImage || product.image) === image ? "is-active" : ""} onClick={() => setSelectedImage(image)} aria-label={`Afficher l’image ${index + 1} de ${product.name}`}><img src={image} alt="" /></button>)}</div> : null}</div><div><span className={`status-pill ${isDraft ? "status-gold" : "status-green"}`}>{isDraft ? "Brouillon" : <><Check size={12} /> {product.status === "Rupture de stock" ? "Rupture de stock" : "En ligne"}</>}</span><span className="public-kicker">{product.category}</span><h2>{product.name}</h2><p>{product.description}</p><div className="management-detail-price">{formatCfa(product.price)} <small>· {product.stock} en stock</small></div><div className="management-detail-actions"><button type="button" className="button button-dark" onClick={() => navigate(`/dashboard/products/edit/${product.id}`)}><Pencil size={15} /> Modifier</button></div></div></div><div className="management-kpi-grid"><div className="management-kpi"><TrendingUp size={18} /><span>Vues produit</span><strong>2 840</strong><small>+18,4% ce mois</small></div><div className="management-kpi"><Package size={18} /><span>Commandes</span><strong>48</strong><small>+12 depuis le mois dernier</small></div><div className="management-kpi"><Star size={18} /><span>Note moyenne</span><strong>4,9 / 5</strong><small>24 avis vérifiés</small></div></div></div>;
 }
 
 function OpportunityManagementView() {
@@ -1203,7 +1203,7 @@ function AdminWalletView() {
 
 function AdminReportsView() {
   const { session } = useOrion();
-  const [reports, setReports] = useState<Array<{ id: number; boutiqueId: number; motif: string; dateCreation: string; boutique?: { id: number; nom: string; active?: boolean } }>>([]);
+  const [reports, setReports] = useState<Array<{ id: number; boutiqueId: number; produitId?: number | null; motif: string; dateCreation: string; boutique?: { id: number; nom: string; active?: boolean }; produit?: { id: number; nom: string } | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -1215,9 +1215,11 @@ function AdminReportsView() {
       setReports(payload.map((report) => ({
         id: report.id,
         boutiqueId: report.boutiqueId,
+        produitId: report.produitId,
         motif: report.motif,
         dateCreation: report.dateCreation,
         boutique: report.boutique ? { id: report.boutique.id, nom: report.boutique.nom, active: report.boutique.active } : undefined,
+        produit: report.produit ? { id: report.produit.id, nom: report.produit.nom } : null,
       })));
       setError("");
     } catch (reason) {
@@ -1244,12 +1246,13 @@ function AdminReportsView() {
   return <div className="management-view admin-management-view"><ManagementHeading eyebrow="MODÉRATION" title="Signalements de boutiques" description="Consultez les boutiques signalées et désactivez-les sans jamais les supprimer définitivement." />
     {error ? <p className="auth-error" role="alert">{error}</p> : null}
     {loading ? <OrionLoader label="Chargement des signalements…" /> : (
-      <ManagementTable>
-        <div className="management-table-head admin-users-head"><span>BOUTIQUE</span><span>MOTIF</span><span>DATE</span><span>STATUT</span><span>ACTION</span></div>
-        {reports.length === 0 ? <div className="admin-users-empty">Aucun signalement en attente.</div> : reports.map((report) => (
-          <div className="management-table-row admin-orders-row" key={report.id}>
+      <ManagementTable className="admin-reports-table">
+        <div className="management-table-head admin-reports-head"><span>BOUTIQUE</span><span>PRODUIT</span><span>MOTIF</span><span>DATE</span><span>STATUT</span><span>ACTION</span></div>
+        {reports.length === 0 ? <div className="admin-users-empty">Aucun signalement pour le moment.</div> : reports.map((report) => (
+          <div className="management-table-row admin-reports-row" key={report.id}>
             <div><strong>{report.boutique?.nom ?? `Boutique #${report.boutiqueId}`}</strong><small>#{report.boutiqueId}</small></div>
-            <span>{report.motif}</span>
+            <div>{report.produit ? <><strong>{report.produit.nom}</strong><small>Produit #{report.produit.id}</small></> : <span className="admin-report-store-only">Boutique entière</span>}</div>
+            <span>{report.motif || "Aucun détail fourni"}</span>
             <span>{new Date(report.dateCreation).toLocaleDateString("fr-FR")}</span>
             <span className={`status-pill ${report.boutique?.active === false ? "status-gold" : "status-green"}`}>{report.boutique?.active === false ? "Désactivée" : "Active"}</span>
             <div className="table-actions"><button type="button" className="button button-secondary" onClick={() => void toggleState(report.boutiqueId, !(report.boutique?.active === false))}>{report.boutique?.active === false ? "Réactiver" : "Désactiver"}</button></div>
@@ -1424,7 +1427,7 @@ export function DashboardRouteView({ pathname, role }: ManagementProps) {
     return <div className="management-view"><BackButton label="Opportunités" /><ManagementHeading eyebrow="OPPORTUNITÉ" title="Découvrez cette mission" description="Consultez le détail et poursuivez votre candidature depuis le site public." /><button type="button" className="button button-dark" onClick={() => window.location.assign(`/opportunities/${normalized.split("/").pop()}`)}>Voir le détail <ArrowRight size={15} /></button></div>;
   }
   if (normalized === "/dashboard/orders") return role === "COMMERCANT" ? <SellerOrdersView /> : <ClientOrdersView />;
-  if (normalized === "/dashboard/wallet") return <WalletView />;
+  if (normalized === "/dashboard/wallet") return role === "COMMERCANT" ? <SellerHandoverWallet /> : <ClientOrdersView />;
   if (normalized === "/dashboard/analytics") return role === "COMMERCANT" ? <AnalyticsView /> : <ClientOrdersView />;
   if (normalized === "/dashboard/marketplace" && role === "COMMERCANT") return <MerchantStorefrontView />;
   if (normalized === "/dashboard/stores") return <StoresView />;
