@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { OrionLoader } from "./components/OrionLoader";
@@ -30,6 +30,23 @@ import {
 import { ConditionsPage, HelpPage } from "./pages/SupportPages";
 
 const queryClient = new QueryClient();
+
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+
+  useLayoutEffect(() => {
+    if (hash) {
+      const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+      if (target) {
+        target.scrollIntoView();
+        return;
+      }
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname, hash]);
+
+  return null;
+}
 
 function DashboardGate() {
   const { session, activeStoreId } = useOrion();
@@ -81,6 +98,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <ScrollToTop />
           <Routes>
             <Route element={<PublicLayout />}>
               <Route path="/" element={<HomePage />} />
