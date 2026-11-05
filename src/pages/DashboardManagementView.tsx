@@ -1428,7 +1428,7 @@ export function DashboardRouteView({ pathname, role }: ManagementProps) {
   }
   if (normalized === "/dashboard/orders") return role === "COMMERCANT" ? <SellerOrdersView /> : <ClientOrdersView />;
   if (normalized === "/dashboard/wallet") return role === "COMMERCANT" ? <SellerHandoverWallet /> : <ClientOrdersView />;
-  if (normalized === "/dashboard/analytics") return role === "COMMERCANT" ? <AnalyticsView /> : <ClientOrdersView />;
+  if (normalized === "/dashboard/analytics") return role === "COMMERCANT" ? null : <ClientOrdersView />;
   if (normalized === "/dashboard/marketplace" && role === "COMMERCANT") return <MerchantStorefrontView />;
   if (normalized === "/dashboard/stores") return <StoresView />;
   if (normalized === "/dashboard/stores/add") return <StoreFormView />;
@@ -1481,7 +1481,7 @@ export function getManagementPageCopy(pathname: string, role: UserRole = "COMMER
     ? { eyebrow: "VENTES DE VOTRE BOUTIQUE", title: "Commandes reçues", description: "Consultez les achats de vos produits et gérez les remises aux clients." }
     : { eyebrow: "VOTRE PARCOURS D'ACHAT", title: "Mes commandes", description: "Consultez les achats liés à votre compte Orion." };
   if (normalized === "/dashboard/wallet") return { eyebrow: "VOTRE ARGENT", title: role === "COMMERCANT" ? "Portefeuille" : "Mon portefeuille", description: "Suivez vos revenus, vos paiements et l’activité de votre compte." };
-  if (normalized === "/dashboard/analytics") return { eyebrow: "VUE D'ENSEMBLE", title: role === "COMMERCANT" ? "Analyses" : "Mes analyses", description: "Comprenez ce qui crée de la valeur dans votre activité Orion." };
+  if (normalized === "/dashboard/analytics") return role === "COMMERCANT" ? null : { eyebrow: "VUE D'ENSEMBLE", title: "Mes analyses", description: "Comprenez ce qui crée de la valeur dans votre activité Orion." };
   if (normalized.includes("/opportunities/create")) return { eyebrow: "NOUVELLE OPPORTUNITÉ", title: "Créer une opportunité", description: "Un brief précis attire des candidatures plus pertinentes." };
   if (normalized.includes("/opportunities/edit")) return { eyebrow: "MODIFIER L'OPPORTUNITÉ", title: "Modifier l'opportunité", description: "Mettez à jour les conditions de votre mission." };
   if (normalized.includes("/opportunities/")) return { eyebrow: "CANDIDATURES", title: "Détail de l'opportunité", description: "Consultez les profils et traitez les candidatures." };
