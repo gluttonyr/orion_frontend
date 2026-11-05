@@ -671,7 +671,7 @@ export function CheckoutPage() {
     const callbackReference = new URLSearchParams(location.search).get("fedapay_reference");
     if (!session?.token) {
       setProfileLoading(false);
-      if (!callbackReference) navigate("/login", { replace: true, state: { from: "/checkout" } });
+      if (!callbackReference) navigate("/login", { replace: true, state: { from: `${location.pathname}${location.search}` } });
       return;
     }
     let isMounted = true;
@@ -682,7 +682,7 @@ export function CheckoutPage() {
         const message = error instanceof Error ? error.message : "Impossible de charger ton profil.";
         if (/token invalide|token.*expir|jwt expired/i.test(message)) {
           logout();
-          navigate("/login", { replace: true, state: { from: "/checkout" } });
+          navigate("/login", { replace: true, state: { from: `${location.pathname}${location.search}` } });
           return;
         }
         setCheckoutError(message);
@@ -694,6 +694,9 @@ export function CheckoutPage() {
   useEffect(() => {
     const reference = new URLSearchParams(location.search).get("fedapay_reference");
     if (!reference) return;
+    const checkingToastId = `fedapay-check-${reference}`;
+    toast.loading("Vérification de votre paiement…", { id: checkingToastId });
+    setCheckoutError("");
     const returnToMobile = () => {
       if (new URLSearchParams(location.search).get("orion_mobile") === "1") {
         const missionPayment = new URLSearchParams(location.search).get('purpose') === 'mission';
@@ -731,13 +734,14 @@ export function CheckoutPage() {
           if (returnToMobile()) return;
           clearCart();
           setLiveAttribution(null);
-          navigate("/purchases", { replace: true });
+          toast.dismiss(checkingToastId);
+          navigate(`/purchases?payment=confirmed&reference=${encodeURIComponent(reference)}`, { replace: true });
           return;
         }
         if (transaction.status === "FAILED" || transaction.status === "REFUNDED" || transaction.vente?.statut === "echouee" || transaction.vente?.statut === "remboursee") {
           setCheckoutError("Le paiement n’a pas été confirmé. Tu peux réessayer depuis ton panier.");
           if (returnToMobile()) return;
-          navigate("/checkout", { replace: true });
+          toast.error("Le paiement n’a pas été confirmé.", { id: checkingToastId });
           return;
         }
       } catch (error) {
@@ -748,12 +752,13 @@ export function CheckoutPage() {
       else {
         setCheckoutError("Le paiement est encore en attente de confirmation FedaPay. Réactualise cette page dans quelques instants.");
         if (returnToMobile()) return;
-        navigate("/checkout", { replace: true });
+        toast("Le paiement est encore en cours de vérification. La référence est conservée pour réessayer.", { id: checkingToastId });
       }
     };
     void check();
     return () => {
       isMounted = false;
+      toast.dismiss(checkingToastId);
       if (timeout !== undefined) window.clearTimeout(timeout);
     };
   }, [location.search, clearCart, navigate, setLiveAttribution]);
@@ -801,11 +806,20 @@ export function CheckoutPage() {
 
 export function PurchasesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { session } = useOrion();
   const [purchases, setPurchases] = useState<PurchaseRecord[]>([]);
   const purchasesPage = usePagination(purchases);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("payment") !== "confirmed") return;
+    const reference = params.get("reference");
+    toast.success(reference ? `Paiement confirmé · commande ${reference}` : "Paiement confirmé. Votre commande est dans Mes achats.");
+    navigate("/purchases", { replace: true });
+  }, [location.search, navigate]);
 
   useEffect(() => {
     if (!session?.token) {

@@ -192,22 +192,32 @@ function ProductsView() {
   const [query, setQuery] = useState<string>("");
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [publishingId, setPublishingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
 
-    if (!session?.token || !session.userId) { setProducts([]); return () => { isMounted = false; }; }
+    if (!session?.token || !session.userId) { setProducts([]); setLoading(false); return () => { isMounted = false; }; }
+    setLoading(true);
+    setLoadError("");
     getProductsByOwner(Number(session.userId), session.token)
       .then((response) => {
         if (!isMounted) return;
         setProducts(response);
       })
-      .catch(() => { if (isMounted) setProducts([]); });
+      .catch((error: unknown) => {
+        if (!isMounted) return;
+        setProducts([]);
+        setLoadError(error instanceof Error ? error.message : "Impossible de charger vos produits.");
+      })
+      .finally(() => { if (isMounted) setLoading(false); });
 
     return () => {
       isMounted = false;
     };
-  }, [session?.token, session?.userId]);
+  }, [session?.token, session?.userId, reloadKey]);
 
   const filtered = products.filter((product) => `${product.nom} ${product.categorie ?? ""}`.toLowerCase().includes(query.toLowerCase()));
   const filteredPage = usePagination(filtered);
@@ -223,6 +233,9 @@ function ProductsView() {
       toast.error(error instanceof Error ? error.message : "Impossible de publier ce produit.");
     } finally { setPublishingId(null); }
   };
+
+  if (loading) return <div className="management-view"><ManagementHeading eyebrow="CATALOGUE" title="Mes produits" description="Chargement de votre catalogue." /><OrionLoader label="Chargement de vos produits…" /></div>;
+  if (loadError) return <div className="management-view"><ManagementHeading eyebrow="CATALOGUE" title="Mes produits" description="Le catalogue n’a pas pu être chargé." /><p className="auth-error" role="alert">{loadError}</p><button type="button" className="button button-dark" onClick={() => setReloadKey((current) => current + 1)}>Réessayer</button></div>;
 
   return <div className="management-view"><ManagementHeading eyebrow="CATALOGUE" title="Mes produits" description={`Forfait Standard : ${products.length}/40 produits dans votre boutique.`} action={products.length >= 40 ? "Limite de 40 produits atteinte" : "Ajouter un produit"} actionDisabled={products.length >= 40} onAction={() => navigate("/dashboard/products/add")} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans mes produits" /></div><button type="button" className="button button-quiet"><Settings2 size={15} /> Filtres</button></div><ManagementTable className="product-management-table"><div className="management-table-head"><span>PRODUIT</span><span>CATÉGORIE</span><span>STOCK</span><span>PRIX</span><span>STATUT</span><span /></div>{filteredPage.pageItems.map((product) => { const isDraft = product.statut === "Brouillon"; return <div className="management-table-row" key={product.id}><div className="management-product-cell"><img src={getUploadUrl(product.image) || "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=88"} alt="" /><div><strong>{product.nom}</strong><small>{Number(product.likesCount ?? 0)} j’aime</small></div></div><span>{product.categorie ?? "Divers"}</span><span className={Number(product.stock) < 10 ? "table-warning" : ""}>{Number(product.stock)} unités</span><ProductAdminPrice price={Number(product.prix ?? 0)} promotionalPrice={product.prixPromotionnel} /><span className={`status-pill ${isDraft ? "status-gold" : "status-green"}`}>{isDraft ? "Brouillon" : <><Check size={12} /> {Number(product.stock) > 0 ? "En ligne" : "Rupture"}</>}</span><div className="table-actions">{isDraft ? <button type="button" className="product-publish-button" disabled={publishingId !== null} onClick={() => void publish(product)}>{publishingId === product.id ? "Publication…" : "Publier"}</button> : null}<button type="button" onClick={() => navigate(`/dashboard/products/${product.id}`)} aria-label="Voir"><Eye size={15} /></button><button type="button" onClick={() => navigate(`/dashboard/products/edit/${product.id}`)} aria-label="Modifier"><Pencil size={15} /></button></div></div>; })}<ListPagination {...filteredPage} /></ManagementTable></div>;
 }
@@ -372,7 +385,7 @@ function ProductFormView({ edit = false }: { edit?: boolean }) {
       }
       setSaved(true);
       toast.success(edit ? "Votre produit a bien été modifié." : "Votre produit a bien été créé.");
-      setTimeout(() => navigate("/dashboard/products"), 500);
+      navigate("/dashboard/products");
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Impossible d’enregistrer ce produit.");
     } finally {
