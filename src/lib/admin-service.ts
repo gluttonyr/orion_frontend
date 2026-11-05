@@ -1,7 +1,23 @@
 import { apiRequest } from './api';
 
 export type AdminUser = { id: number; nom: string; prenom: string; email: string; role: string; contact?: string; localisation?: string; adresse?: string; pays?: string; image?: string; specialite?: string; date_naissance?: string };
-export type AdminOrder = { id: number; reference: string; date_achat: string; prix_total: number; statut: string; utilisateur?: { nom?: string; prenom?: string; email?: string } | null; produits?: Array<{ nom: string }> };
+export type AdminOrder = {
+  id: number;
+  reference: string;
+  date_achat: string;
+  prix_total: number;
+  statut: string;
+  quantites?: number[];
+  prix_unitaires?: number[] | null;
+  clientPrenom?: string | null;
+  clientNom?: string | null;
+  clientEmail?: string | null;
+  clientTelephone?: string | null;
+  adresseLivraison?: string | null;
+  utilisateur?: { id?: number; nom?: string; prenom?: string; email?: string; contact?: string } | null;
+  vendeurs?: Array<{ id: number; nom: string; prenom: string; email: string; contact?: string }>;
+  produits?: Array<{ id: number; nom: string; image?: string; prix?: number; proprietaireId?: number | null }>;
+};
 export type AdminPlatformWallet = { solde: number; totalCommissions: number; totalRemboursements: number; updatedAt?: string | null };
 export type SiteSettingsRecord = { heroImages: string[]; carouselProductIds: number[]; updatedAt?: string };
 export type AdminMerchant = { id: number; nom: string; prenom: string; email: string };
@@ -19,6 +35,7 @@ function auth(token: string): HeadersInit { return { Authorization: `Bearer ${to
 
 export const getAdminUsers = (token: string) => apiRequest<AdminUser[]>('/admin/users', { headers: auth(token) });
 export const getAdminOrders = (token: string) => apiRequest<AdminOrder[]>('/admin/orders', { headers: auth(token) });
+export const completeAdminOrder = (id: number, token: string) => apiRequest<{ id: number; reference: string; statut: string }>(`/admin/orders/${id}/complete`, { method: 'PATCH', headers: auth(token) });
 export const getAdminWallet = (token: string) => apiRequest<AdminPlatformWallet>('/admin/wallet', { headers: auth(token) });
 export const getAdminDashboardStats = (token: string) => apiRequest<AdminDashboardStats>('/admin/dashboard-stats', { headers: auth(token) });
 export const getSiteSettings = () => apiRequest<SiteSettingsRecord>('/site-settings');

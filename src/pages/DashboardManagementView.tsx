@@ -49,6 +49,7 @@ import { getUploadUrl } from "../lib/api";
 import { getCurrentUser, updateUser, type AuthUser } from "../lib/auth-service";
 import { ClientHandoverScanner, SellerHandoverWallet, SellerOrdersView } from "../components/HandoverTools";
 import { deleteAboutTeamMember, getAboutTeam, getAdminCarouselProducts, getAdminMerchantProducts, getAdminMerchants, getAdminOrders, getAdminUsers, getAdminWallet, getAdminDashboardStats, getSiteSettings, saveAboutTeamMember, saveSiteSettings, type AboutTeamMember, type AdminMerchant, type AdminMerchantProduct, type AdminOrder, type AdminPlatformWallet, type AdminUser, type AdminDashboardStats, type SiteSettingsRecord } from "../lib/admin-service";
+import { completeAdminOrder } from "../lib/admin-service";
 import { toast } from "../components/ui/sonner";
 import { createStoreCategory, deleteStoreCategory, getStoreCategories, updateStoreCategory, type StoreCategory } from "../lib/store-category-service";
 import { createProductCategory, deleteProductCategory, getProductCategories, updateProductCategory, type ProductCategory } from "../lib/product-category-service";
@@ -1194,13 +1195,76 @@ function AdminOrdersView() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [orderToComplete, setOrderToComplete] = useState<AdminOrder | null>(null);
+  const [updatingOrder, setUpdatingOrder] = useState(false);
+
+  const loadOrders = async () => {
+    if (!session?.token) return;
+    setLoading(true);
+    try {
+      setOrders(await getAdminOrders(session.token));
+      setError("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Impossible de charger les commandes.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!session?.token) return;
-    getAdminOrders(session.token).then(setOrders).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Impossible de charger les commandes."));
+    void loadOrders();
   }, [session?.token]);
-  const filtered = orders.filter((order) => `${order.reference} ${order.id} ${order.utilisateur?.email ?? ""} ${order.statut}`.toLowerCase().includes(query.trim().toLowerCase()));
+
+  const completeOrder = async () => {
+    if (!session?.token || !orderToComplete || orderToComplete.statut === "terminee") return;
+    setUpdatingOrder(true);
+    try {
+      await completeAdminOrder(orderToComplete.id, session.token);
+      setOrders((current) => current.map((order) => order.id === orderToComplete.id ? { ...order, statut: "terminee" } : order));
+      setSelectedOrderId(null);
+      toast.success(`La commande ${orderToComplete.reference || `#${orderToComplete.id}`} est terminée.`);
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : "Impossible de terminer cette commande.");
+    } finally {
+      setUpdatingOrder(false);
+      setOrderToComplete(null);
+    }
+  };
+
+  const filtered = orders.filter((order) => {
+    const sellers = order.vendeurs?.map((seller) => `${seller.prenom} ${seller.nom} ${seller.email}`).join(" ") ?? "";
+    return `${order.reference} ${order.id} ${order.utilisateur?.email ?? order.clientEmail ?? ""} ${sellers} ${order.statut}`.toLowerCase().includes(query.trim().toLowerCase());
+  });
   const filteredPage = usePagination(filtered);
-  return <div className="management-view admin-management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Toutes les commandes" description={`${orders.length} commande${orders.length === 1 ? "" : "s"}, tous les comptes confondus.`} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input aria-label="Rechercher une commande" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Référence, client ou statut" /></div></div>{error ? <p className="auth-error">{error}</p> : <ManagementTable><div className="management-table-head admin-orders-head"><span>COMMANDE</span><span>CLIENT</span><span>PRODUITS</span><span>DATE</span><span>TOTAL</span><span>STATUT</span></div>{filteredPage.pageItems.map((order) => <div className="management-table-row admin-orders-row" key={order.id}><div><strong>{order.reference || `Commande #${order.id}`}</strong><small>#{order.id}</small></div><span>{[order.utilisateur?.prenom, order.utilisateur?.nom].filter(Boolean).join(" ") || order.utilisateur?.email || "Client invité"}</span><span>{order.produits?.map((product) => product.nom).join(", ") || "—"}</span><span>{order.date_achat ? new Date(order.date_achat).toLocaleDateString("fr-FR") : "—"}</span><strong>{formatCfa(Number(order.prix_total ?? 0))}</strong><span className={`status-pill ${order.statut === "payee" ? "status-green" : order.statut === "remboursee" ? "status-coral" : "status-gold"}`}>{order.statut}</span></div>)}<ListPagination {...filteredPage} /></ManagementTable>}</div>;
+  return <div className="management-view admin-management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Toutes les commandes" description={`${orders.length} commande${orders.length === 1 ? "" : "s"}, tous les comptes confondus.`} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input aria-label="Rechercher une commande" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Référence, client, vendeur ou statut" /></div></div>{error ? <p className="auth-error" role="alert">{error}</p> : loading ? <OrionLoader label="Chargement des commandes…" /> : <ManagementTable className="admin-order-table"><div className="management-table-head admin-order-head"><span>COMMANDE</span><span>CLIENT</span><span>VENDEUR(S)</span><span>PRODUITS</span><span>TOTAL</span><span>STATUT</span><span /></div>{filteredPage.pageItems.map((order) => {
+    const customerName = [order.clientPrenom ?? order.utilisateur?.prenom, order.clientNom ?? order.utilisateur?.nom].filter(Boolean).join(" ") || order.clientEmail || order.utilisateur?.email || "Client invité";
+    const sellerNames = order.vendeurs?.map((seller) => `${seller.prenom} ${seller.nom}`.trim()).filter(Boolean).join(", ") || "—";
+    const isComplete = order.statut === "terminee";
+    return <React.Fragment key={order.id}>
+      <div className="management-table-row admin-order-row">
+        <div><strong>{order.reference || `Commande #${order.id}`}</strong><small>#{order.id} · {order.date_achat ? new Date(order.date_achat).toLocaleDateString("fr-FR") : "Date inconnue"}</small></div>
+        <span>{customerName}</span>
+        <span>{sellerNames}</span>
+        <span>{order.produits?.map((product) => product.nom).join(", ") || "—"}</span>
+        <strong>{formatCfa(Number(order.prix_total ?? 0))}</strong>
+        <span className={`status-pill ${isComplete ? "status-green" : order.statut === "remboursee" ? "status-coral" : "status-gold"}`}>{isComplete ? "Terminée" : order.statut}</span>
+        <div className="table-actions"><button type="button" className="button button-quiet" onClick={() => setSelectedOrderId(selectedOrderId === order.id ? null : order.id)}>{selectedOrderId === order.id ? "Fermer" : "Détails"}</button>{!isComplete ? <button type="button" className="button button-dark" onClick={() => setOrderToComplete(order)}>Terminer</button> : null}</div>
+      </div>
+      {selectedOrderId === order.id ? <div className="admin-order-detail">
+        <div className="admin-order-detail-section"><span className="public-kicker">CLIENT</span><strong>{customerName}</strong><span>{order.clientEmail ?? order.utilisateur?.email ?? "E-mail indisponible"}</span><span>{order.clientTelephone ?? order.utilisateur?.contact ?? "Téléphone indisponible"}</span></div>
+        <div className="admin-order-detail-section"><span className="public-kicker">VENDEUR(S)</span>{order.vendeurs?.length ? order.vendeurs.map((seller) => <div className="admin-order-contact" key={seller.id}><strong>{[seller.prenom, seller.nom].filter(Boolean).join(" ")}</strong><span>{seller.email}</span><span>{seller.contact || "Téléphone indisponible"}</span></div>) : <span>Vendeur indisponible</span>}</div>
+        <div className="admin-order-detail-section"><span className="public-kicker">LIVRAISON</span><span>{order.adresseLivraison || "Adresse indisponible"}</span></div>
+        <div className="admin-order-detail-section admin-order-detail-products"><span className="public-kicker">ARTICLES</span>{order.produits?.map((product, index) => <div className="admin-order-product-line" key={`${product.id}-${index}`}><span>{product.nom} × {Number(order.quantites?.[index] ?? 1)}</span><strong>{formatCfa(Number(order.prix_unitaires?.[index] ?? product.prix ?? 0) * Number(order.quantites?.[index] ?? 1))}</strong></div>)}</div>
+      </div> : null}
+    </React.Fragment>;
+  })}<ListPagination {...filteredPage} /></ManagementTable>}
+    <AlertDialog open={Boolean(orderToComplete)} onOpenChange={(open) => { if (!open && !updatingOrder) setOrderToComplete(null); }}>
+      <AlertDialogContent className="admin-order-complete-dialog"><AlertDialogHeader><AlertDialogTitle>Terminer cette commande ?</AlertDialogTitle><AlertDialogDescription>Cette action est définitive. Une commande terminée ne pourra plus changer de statut. {orderToComplete?.reference || ""}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={updatingOrder}>Annuler</AlertDialogCancel><AlertDialogAction disabled={updatingOrder} onClick={(event) => { event.preventDefault(); void completeOrder(); }}>{updatingOrder ? "Enregistrement…" : "Confirmer la fin"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+    </AlertDialog>
+  </div>;
 }
 
 function AdminWalletView() {
