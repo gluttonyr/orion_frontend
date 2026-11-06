@@ -2612,3 +2612,10 @@ html[data-theme="dark"] .admin-user-dialog-details { border-color: var(--orion-d
 html[data-theme="dark"] .list-pagination button { border-color: var(--orion-dark-border) !important; background: var(--orion-dark-raised) !important; color: var(--orion-dark-text) !important; }
 html[data-theme="dark"] .list-pagination button.is-active { border-color: #8f2448 !important; background: #8f2448 !important; color: #fff !important; }
 html[data-theme="dark"] .list-pagination :is(.list-pagination-count, .list-pagination-gap) { color: var(--orion-dark-muted) !important; }
+
+/* Boutons texte dans les colonnes d'action : la règle des boutons-icônes (28 px) ne doit pas s'y appliquer. */
+.table-actions .button { display: inline-flex; width: auto; height: auto; min-height: 32px; flex: 0 0 auto; align-items: center; justify-content: center; padding: 0 12px; white-space: nowrap; }
+.table-actions { flex-wrap: nowrap; }
+.admin-order-head, .admin-order-row { grid-template-columns: 1fr 1.1fr 1.1fr 1.2fr .8fr .8fr minmax(176px, auto); }
+.admin-reports-head, .admin-reports-row { grid-template-columns: 1.1fr 1.1fr 1.35fr .75fr .8fr minmax(118px, .9fr); }
+.admin-reports-row .table-actions, .admin-order-row .table-actions { justify-content: flex-end; }

@@ -63,6 +63,9 @@ const withdrawalMethods: WithdrawalMethod[] = [
   { id: "bank-ci", type: "Compte bancaire", label: "NSIA Banque · •••• 4812", detail: "Abidjan, Côte d'Ivoire", status: "Vérifié" },
 ];
 
+const ORDER_STATUS_LABELS: Record<string, string> = { en_attente: "En attente", payee: "Payée", echouee: "Échouée", remboursee: "Remboursée", terminee: "Terminée", annulee: "Annulée" };
+const orderStatusLabel = (status?: string | null) => (status ? ORDER_STATUS_LABELS[status] ?? status.replace(/_/g, " ") : "—");
+
 function ManagementHeading({ eyebrow, title, description, action, onAction, actionDisabled = false }: { eyebrow: string; title: string; description: string; action?: string; onAction?: () => void; actionDisabled?: boolean }) {
   return <div className="management-heading"><div><span className="public-kicker">{eyebrow}</span><h2>{title}</h2><p>{description}</p></div>{action && onAction ? <button type="button" className="button button-dark" onClick={onAction} disabled={actionDisabled}><Plus size={15} /> {action}</button> : null}</div>;
 }
@@ -1244,7 +1247,7 @@ function AdminOrdersView() {
         <span>{sellerNames}</span>
         <span>{order.produits?.map((product) => product.nom).join(", ") || "—"}</span>
         <strong>{formatCfa(Number(order.prix_total ?? 0))}</strong>
-        <span className={`status-pill ${isComplete ? "status-green" : order.statut === "remboursee" ? "status-coral" : "status-gold"}`}>{isComplete ? "Terminée" : order.statut}</span>
+        <span className={`status-pill ${isComplete ? "status-green" : order.statut === "remboursee" ? "status-coral" : "status-gold"}`}>{isComplete ? "Terminée" : orderStatusLabel(order.statut)}</span>
         <div className="table-actions"><button type="button" className="button button-quiet" onClick={() => setSelectedOrderId(selectedOrderId === order.id ? null : order.id)}>{selectedOrderId === order.id ? "Fermer" : "Détails"}</button>{!isComplete ? <button type="button" className="button button-dark" onClick={() => setOrderToComplete(order)}>Terminer</button> : null}</div>
       </div>
       {selectedOrderId === order.id ? <div className="admin-order-detail">
