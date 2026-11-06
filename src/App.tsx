@@ -10,6 +10,8 @@ import Index from "./pages/index";
 import { ThemeModeProvider } from "./ThemeMode";
 import NotFound from "./pages/NotFound";
 import { AuthPage } from "./pages/AuthPages";
+import { ForgotPasswordPage, NewPasswordPage, PasswordResetDonePage, VerifyResetCodePage } from "./pages/PasswordResetPages";
+import "./password-reset.css";
 import { OrionProvider, useOrion } from "./OrionContext";
 import { getMyStores } from "./lib/store-service";
 import {
@@ -116,6 +118,10 @@ const App = () => (
             </Route>
             <Route path="/login" element={<AuthPage />} />
             <Route path="/register" element={<AuthPage register />} />
+            <Route path="/mot-de-passe-oublie" element={<ForgotPasswordPage />} />
+            <Route path="/mot-de-passe-oublie/code" element={<VerifyResetCodePage />} />
+            <Route path="/mot-de-passe-oublie/nouveau" element={<NewPasswordPage />} />
+            <Route path="/mot-de-passe-oublie/termine" element={<PasswordResetDonePage />} />
             <Route path="/profile-selection" element={<ProfileSelectionPage />} />
             <Route path="/store-selection" element={<StoreSelectionPage />} />
             <Route path="/dashboard/*" element={<DashboardGate />} />

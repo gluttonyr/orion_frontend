@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BrowserQRCodeReader } from '@zxing/browser';
+import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
 import { CheckCircle2, Download, QrCode, RefreshCw, ScanLine, Search, ShoppingBag } from 'lucide-react';
 import { useOrion } from '../OrionContext';
 import { confirmHandover, createHandoverQr, getSellerRemises, getSellerWallet, type SellerOrderRemise, type SellerWallet } from '../lib/wallet-service';
@@ -91,15 +91,15 @@ export function SellerOrdersView() {
 
 export function ClientHandoverScanner({ token, orderId, onConfirmed }: { token: string; orderId: number; onConfirmed: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<BrowserQRCodeReader | null>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
   const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  useEffect(() => () => readerRef.current?.reset(), []);
+  useEffect(() => () => controlsRef.current?.stop(), []);
   const submitContent = async (content: string) => {
     if (!content.startsWith('ORION-HANDOVER:')) { setError('Ce QR ne correspond pas à une remise Orion.'); return; }
     try {
-      const result = await confirmHandover(content, orderId, token);
+      await confirmHandover(content, orderId, token);
       setMessage('Remise confirmée. Le montant a été libéré pour le vendeur.');
       setError(''); onConfirmed();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de confirmer cette remise.'); }
@@ -108,10 +108,10 @@ export function ClientHandoverScanner({ token, orderId, onConfirmed }: { token: 
     if (!videoRef.current) return;
     try {
       setError(''); setScanning(true);
-      const reader = new BrowserQRCodeReader(); readerRef.current = reader;
-      await reader.decodeFromVideoDevice(undefined, videoRef.current, (result) => {
+      const reader = new BrowserQRCodeReader();
+      controlsRef.current = await reader.decodeFromVideoDevice(undefined, videoRef.current, (result, _error, controls) => {
         if (!result) return;
-        reader.reset(); setScanning(false); void submitContent(result.getText());
+        controls.stop(); setScanning(false); void submitContent(result.getText());
       });
     } catch { setScanning(false); setError('Caméra indisponible. Autorisez son accès ou importez une image du QR.'); }
   };

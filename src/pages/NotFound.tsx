@@ -1,5 +1,8 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { ArrowLeft, Compass } from "lucide-react";
+import { OrionBrand } from "../components/OrionBrand";
+import "../password-reset.css";
 
 const NotFound = () => {
   const location = useLocation();
@@ -9,15 +12,18 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">404</h1>
-        <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>
-        <a href="/" className="text-primary underline hover:text-primary/90">
-          Return to Home
-        </a>
+    <main className="not-found-shell">
+      <header><OrionBrand /></header>
+      <div className="not-found-center">
+        <span className="not-found-code">404</span>
+        <h1>Page introuvable</h1>
+        <p>La page que vous cherchez n’existe pas ou a été déplacée. Revenez à l’accueil ou explorez la marketplace Orion.</p>
+        <div className="not-found-actions">
+          <Link to="/" className="public-primary-button"><ArrowLeft size={16} /> Retour à l’accueil</Link>
+          <Link to="/marketplace" className="public-secondary-button"><Compass size={16} /> Explorer la marketplace</Link>
+        </div>
       </div>
-    </div>
+    </main>
   );
 };
 

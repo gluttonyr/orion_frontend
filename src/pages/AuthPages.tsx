@@ -1,13 +1,12 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, BriefcaseBusiness, ChevronDown, Eye, EyeOff, Store, X } from "lucide-react";
 import { toast } from "../components/ui/sonner";
 import { useOrion, type UserRole } from "../OrionContext";
 import { countryCallingCodes, countryFlagImageUrl } from "../lib/country-calling-codes";
+import { OrionBrand } from "../components/OrionBrand";
+import "../password-reset.css";
 
-function OrionLogo({ light = false }: { light?: boolean }) {
-  return <Link to="/" className={`orion-public-logo ${light ? "is-light" : ""}`} aria-label="Orion accueil"><img src="/orion.jpeg" alt="Logo Orion" /></Link>;
-}
 
 type RegistrationFields = {
   nom: string;
@@ -52,8 +51,8 @@ export function AuthPage({ register = false }: { register?: boolean }) {
     event.preventDefault();
     setError("");
 
-    if (password.length < 4) {
-      const message = "Le mot de passe doit contenir au moins 4 caractères.";
+    if (register && password.length < 8) {
+      const message = "Le mot de passe doit contenir au moins 8 caractères.";
       setError(message);
       toast.error(message);
       return;
@@ -86,7 +85,6 @@ export function AuthPage({ register = false }: { register?: boolean }) {
           role: role!,
           nom: fields.nom,
           prenom: fields.prenom,
-          adresse: fields.adresse,
           contact: `${countryDialCode} ${fields.contact.trim()}`,
           indicatifPays: countryDialCode,
         });
@@ -110,8 +108,8 @@ export function AuthPage({ register = false }: { register?: boolean }) {
   );
 
   return <main className="auth-shell">
-    <div className="auth-visual"><OrionLogo light /><span className="auth-visual-kicker">ORION AFRICA</span><h1>Construire<br /><em>ensemble.</em></h1><p>Une marketplace pour les produits qui comptent et les opportunités qui ouvrent des portes.</p></div>
-    <div className="auth-form-side"><Link to="/" className="auth-close"><X size={19} /></Link><div className="auth-form-wrap">
+    <div className="auth-visual"><OrionBrand tone="light" /><span className="auth-visual-kicker">ORION AFRICA</span><h1>Construire<br /><em>ensemble.</em></h1><p>Une marketplace pour les produits qui comptent et les opportunités qui ouvrent des portes.</p></div>
+    <div className="auth-form-side"><header className="auth-form-header"><Link to="/" className="auth-close" aria-label="Fermer"><X size={19} /></Link></header><div className="auth-form-wrap">
       <span className="public-kicker">{register ? registrationStep === 1 ? "ÉTAPE 1 SUR 2 · VOS INFORMATIONS" : "ÉTAPE 2 SUR 2 · VOTRE PROJET" : "BON RETOUR"}</span><h1>{register ? registrationStep === 1 ? "Créer votre espace." : "Bienvenue sur Orion." : "Ravi de vous revoir."}</h1><p>{register ? registrationStep === 1 ? "Renseignez vos informations de compte pour continuer." : "Choisissez ce que vous souhaitez faire sur Orion pour finaliser votre inscription." : "Connectez-vous pour retrouver vos boutiques, vos messages et vos opportunités."}</p>
       <form onSubmit={submit}>
         {register && registrationStep === 1 ? <>
@@ -130,7 +128,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
         </> : <>
           <label>Email professionnel<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="vous@exemple.com" /></label>
           {passwordField("Mot de passe", password, setPassword, showPassword, () => setShowPassword((value) => !value))}
-          <button type="button" className="auth-forgot">Mot de passe oublié ?</button>
+          <Link to="/mot-de-passe-oublie" className="auth-forgot">Mot de passe oublié ?</Link>
         </>}
         {error ? <p className="auth-error">{error}</p> : null}<button type="submit" className="public-primary-button auth-submit" disabled={isSubmitting}>{isSubmitting ? "Chargement..." : register ? registrationStep === 1 ? "Suivant" : "Finaliser mon inscription" : "Se connecter"} <ArrowRight size={17} /></button>
       </form>
