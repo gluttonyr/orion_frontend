@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
-import { CheckCircle2, Download, QrCode, RefreshCw, ScanLine, Search, ShoppingBag } from 'lucide-react';
+import { CheckCircle2, Download, Info, Lock, QrCode, RefreshCw, RotateCcw, ScanLine, Search, ShoppingBag, Wallet } from 'lucide-react';
+import '../wallet.css';
 import { useOrion } from '../OrionContext';
 import { confirmHandover, createHandoverQr, getSellerRemises, getSellerWallet, type SellerOrderRemise, type SellerWallet } from '../lib/wallet-service';
 import { OrionLoader } from "./OrionLoader";
@@ -30,13 +31,54 @@ export function SellerHandoverWallet() {
     try { setQr(await createHandoverQr(order.remiseId, session.token)); setError(''); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de générer le QR.'); }
   };
-  return <div className="view-stack">
-    <div className="wallet-overview"><div><p className="card-overline light">SOLDE DISPONIBLE</p><div className="wallet-overview-amount">{money(wallet?.disponible ?? 0)}</div><p>En attente de remise : {money(wallet?.bloque ?? 0)}</p></div><button type="button" className="wallet-outline-button" onClick={refresh}><RefreshCw size={15} /> Actualiser</button></div>
-    <div className="wallet-metrics"><article className="stat-card"><span>Montant bloqué</span><strong>{money(wallet?.bloque ?? 0)}</strong><small>Libéré après validation du QR par le client</small></article><article className="stat-card"><span>Montant libéré</span><strong>{money(wallet?.disponible ?? 0)}</strong><small>Versement externe à configurer auprès de FedaPay</small></article><article className="stat-card"><span>Remboursé</span><strong>{money(wallet?.rembourse ?? 0)}</strong><small>Commandes remboursées</small></article></div>
-    {wallet ? <p className="withdrawal-note"><span>{wallet.messageVersement}</span></p> : null}
+  const totalEarned = (wallet?.disponible ?? 0) + (wallet?.bloque ?? 0);
+  const releasedCount = orders.filter((order) => order.statut === 'liberee').length;
+  const blockedCount = orders.filter((order) => order.statut === 'bloquee').length;
+  return <div className="view-stack seller-wallet">
+    <section className="seller-wallet-hero">
+      <div className="seller-wallet-hero-main">
+        <span className="seller-wallet-kicker"><Wallet size={14} /> SOLDE LIBÉRÉ</span>
+        <strong className="seller-wallet-balance">{loading && !wallet ? '…' : money(wallet?.disponible ?? 0)}</strong>
+        <p>Ventes confirmées par vos clients. Total gagné sur Orion : <b>{money(totalEarned)}</b></p>
+      </div>
+      <div className="seller-wallet-hero-side">
+        <div className="seller-wallet-pending"><span>À recevoir après remise</span><strong>{money(wallet?.bloque ?? 0)}</strong><small>{blockedCount} commande{blockedCount > 1 ? 's' : ''} à remettre</small></div>
+        <button type="button" className="seller-wallet-refresh" onClick={refresh} disabled={loading}><RefreshCw size={15} className={loading ? 'is-spinning' : ''} /> Actualiser</button>
+      </div>
+    </section>
+
+    <section className="seller-wallet-metrics">
+      <article className="seller-wallet-metric is-pending"><span className="seller-wallet-metric-icon"><Lock size={18} /></span><div><span className="seller-wallet-metric-label">Montant bloqué</span><strong>{money(wallet?.bloque ?? 0)}</strong><small>Libéré dès que le client scanne le QR de remise.</small></div></article>
+      <article className="seller-wallet-metric is-released"><span className="seller-wallet-metric-icon"><CheckCircle2 size={18} /></span><div><span className="seller-wallet-metric-label">Montant libéré</span><strong>{money(wallet?.disponible ?? 0)}</strong><small>{releasedCount} remise{releasedCount > 1 ? 's' : ''} confirmée{releasedCount > 1 ? 's' : ''} par vos clients.</small></div></article>
+      <article className="seller-wallet-metric is-refunded"><span className="seller-wallet-metric-icon"><RotateCcw size={18} /></span><div><span className="seller-wallet-metric-label">Remboursé</span><strong>{money(wallet?.rembourse ?? 0)}</strong><small>Commandes annulées et remboursées au client.</small></div></article>
+    </section>
+
+    <section className="seller-wallet-howto">
+      <div className="seller-wallet-howto-heading"><Info size={16} /><h3>Comment vous êtes payé</h3></div>
+      <ol>
+        <li><span>1</span><div><strong>Le client paie</strong><p>L’argent est sécurisé par Orion et apparaît en « Montant bloqué ».</p></div></li>
+        <li><span>2</span><div><strong>Vous remettez la commande</strong><p>Générez le QR ci-dessous : le client le scanne à la livraison et le montant passe en « libéré ».</p></div></li>
+        <li><span>3</span><div><strong>Versement sur votre Mobile Money</strong><p>{wallet?.versementAutomatiqueActif ? 'Le montant libéré est versé automatiquement sur votre compte Mobile Money.' : 'Le virement automatique n’est pas encore activé : l’équipe Orion vous verse vos montants libérés. Contactez le support pour organiser le versement.'}</p></div></li>
+      </ol>
+    </section>
+
     {error ? <p className="auth-error" role="alert">{error}</p> : null}
     {qr ? <section className="panel handover-qr-panel"><div><p className="eyebrow">COMMANDE #{qr.venteId}</p><h2>QR de remise</h2><p>Le client doit le scanner depuis son compte Orion pour libérer les fonds.</p><img src={qr.qrDataUrl} alt={`QR de remise pour la commande ${qr.venteId}`} width="240" height="240" /><a className="button button-dark" href={qr.qrDataUrl} download={`orion-commande-${qr.venteId}-qr.png`}><Download size={15} /> Télécharger le QR</a></div></section> : null}
-    <section className="panel"><div className="panel-heading"><div><p className="eyebrow">COMMANDES VENDEUR</p><h2>Remises et fonds</h2></div></div>{loading ? <p>Chargement…</p> : orders.length === 0 ? <p>Aucune commande payée pour le moment.</p> : <div className="handover-order-list">{ordersPage.pageItems.map((order) => <article className="handover-order" key={order.remiseId}><div><strong>Commande #{order.venteId} · {money(order.montant)}</strong><p>{order.articles.map((item) => `${item.nom} × ${item.quantite}`).join(', ')}</p>{order.commissionMontant > 0 ? <small>Brut {money(order.montantBrut)} · commission {order.commissionPourcentage}% ({money(order.commissionMontant)}) · net vendeur {money(order.montant)}</small> : null}<span className={`status-pill ${order.statut === 'liberee' ? 'status-green' : order.statut === 'bloquee' ? 'status-gold' : ''}`}>{order.statut === 'bloquee' ? 'Payée · fonds bloqués' : order.statut === 'liberee' ? 'Remise confirmée · fonds libérés' : 'Remboursée'}</span></div>{order.statut === 'bloquee' ? <button type="button" className="button button-dark" onClick={() => generate(order)}><QrCode size={15} /> Générer le QR</button> : null}</article>)}<ListPagination {...ordersPage} /></div>}</section>
+
+    <section className="seller-wallet-orders">
+      <div className="seller-wallet-orders-heading"><div><span className="seller-wallet-kicker-dark">COMMANDES VENDEUR</span><h2>Remises et fonds</h2></div><span>{orders.length} commande{orders.length > 1 ? 's' : ''}</span></div>
+      {loading ? <OrionLoader label="Chargement du portefeuille…" /> : orders.length === 0 ? <div className="seller-orders-empty"><ShoppingBag size={24} /><p>Aucune commande payée pour le moment.</p></div> : <div className="seller-wallet-order-list">{ordersPage.pageItems.map((order) => {
+        const status = order.statut === 'bloquee' ? { label: 'Payée · à remettre', tone: 'status-gold' } : order.statut === 'liberee' ? { label: 'Remise confirmée · fonds libérés', tone: 'status-green' } : { label: 'Remboursée', tone: 'status-coral' };
+        return <article className="seller-wallet-order" key={order.remiseId}>
+          <div className="seller-wallet-order-main">
+            <div className="seller-wallet-order-title"><strong>Commande #{order.venteId}</strong><span className={`status-pill ${status.tone}`}>{status.label}</span></div>
+            <p>{order.articles.map((item) => `${item.nom} × ${item.quantite}`).join(', ')}</p>
+            {order.commissionMontant > 0 ? <dl className="seller-wallet-breakdown"><div><dt>Prix de vente</dt><dd>{money(order.montantBrut)}</dd></div><div><dt>Commission Orion ({order.commissionPourcentage} %)</dt><dd>− {money(order.commissionMontant)}</dd></div><div className="is-total"><dt>Vous recevez</dt><dd>{money(order.montant)}</dd></div></dl> : null}
+          </div>
+          <div className="seller-wallet-order-side"><strong>{money(order.montant)}</strong>{order.statut === 'bloquee' ? <button type="button" className="button button-dark" onClick={() => generate(order)}><QrCode size={15} /> Générer le QR</button> : null}</div>
+        </article>;
+      })}<ListPagination {...ordersPage} /></div>}
+    </section>
   </div>;
 }
 
