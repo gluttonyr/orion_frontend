@@ -43,7 +43,9 @@ import { getUploadUrl } from "../lib/api";
 import { getCurrentUser, updateUser, type AuthUser } from "../lib/auth-service";
 import { ClientHandoverScanner, SellerHandoverWallet, SellerOrdersView } from "../components/HandoverTools";
 import { deleteAboutTeamMember, getAboutTeam, getAdminCarouselProducts, getAdminMerchantProducts, getAdminMerchants, getAdminOrders, getAdminUsers, getAdminWallet, getAdminDashboardStats, getSiteSettings, saveAboutTeamMember, saveSiteSettings, type AboutTeamMember, type AdminMerchant, type AdminMerchantProduct, type AdminOrder, type AdminPlatformWallet, type AdminUser, type AdminDashboardStats, type SiteSettingsRecord } from "../lib/admin-service";
-import { completeAdminOrder } from "../lib/admin-service";
+import { changeAdminOrderStatus, type AdminOrderStatus } from "../lib/admin-service";
+import { OrderStatusMenu } from "../components/OrderStatusMenu";
+import { ORDER_STATUS_META } from "../lib/order-status";
 import { toast } from "../components/ui/sonner";
 import { createStoreCategory, deleteStoreCategory, getStoreCategories, updateStoreCategory, type StoreCategory } from "../lib/store-category-service";
 import { createProductCategory, deleteProductCategory, getProductCategories, updateProductCategory, type ProductCategory } from "../lib/product-category-service";
@@ -63,8 +65,7 @@ const withdrawalMethods: WithdrawalMethod[] = [
   { id: "bank-ci", type: "Compte bancaire", label: "NSIA Banque · •••• 4812", detail: "Abidjan, Côte d'Ivoire", status: "Vérifié" },
 ];
 
-const ORDER_STATUS_LABELS: Record<string, string> = { en_attente: "En attente", payee: "Payée", echouee: "Échouée", remboursee: "Remboursée", terminee: "Terminée", annulee: "Annulée" };
-const orderStatusLabel = (status?: string | null) => (status ? ORDER_STATUS_LABELS[status] ?? status.replace(/_/g, " ") : "—");
+const orderStatusLabel = (status?: string | null) => (status ? ORDER_STATUS_META[status]?.label ?? status.replace(/_/g, " ") : "—");
 
 function ManagementHeading({ eyebrow, title, description, action, onAction, actionDisabled = false }: { eyebrow: string; title: string; description: string; action?: string; onAction?: () => void; actionDisabled?: boolean }) {
   return <div className="management-heading"><div><span className="public-kicker">{eyebrow}</span><h2>{title}</h2><p>{description}</p></div>{action && onAction ? <button type="button" className="button button-dark" onClick={onAction} disabled={actionDisabled}><Plus size={15} /> {action}</button> : null}</div>;
@@ -1194,7 +1195,7 @@ function AdminOrdersView() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [orderToComplete, setOrderToComplete] = useState<AdminOrder | null>(null);
+  const [pendingChange, setPendingChange] = useState<{ order: AdminOrder; target: AdminOrderStatus } | null>(null);
   const [updatingOrder, setUpdatingOrder] = useState(false);
 
   const loadOrders = async () => {
@@ -1215,19 +1216,19 @@ function AdminOrdersView() {
     void loadOrders();
   }, [session?.token]);
 
-  const completeOrder = async () => {
-    if (!session?.token || !orderToComplete || orderToComplete.statut === "terminee") return;
+  const applyStatusChange = async () => {
+    if (!session?.token || !pendingChange) return;
+    const { order, target } = pendingChange;
     setUpdatingOrder(true);
     try {
-      await completeAdminOrder(orderToComplete.id, session.token);
-      setOrders((current) => current.map((order) => order.id === orderToComplete.id ? { ...order, statut: "terminee" } : order));
-      setSelectedOrderId(null);
-      toast.success(`La commande ${orderToComplete.reference || `#${orderToComplete.id}`} est terminée.`);
+      const updated = await changeAdminOrderStatus(order.id, target, session.token);
+      setOrders((current) => current.map((item) => item.id === order.id ? { ...item, statut: updated.statut, allowedTransitions: updated.allowedTransitions } : item));
+      toast.success(`Commande ${order.reference || `#${order.id}`} : ${ORDER_STATUS_META[target].label.toLowerCase()}.`);
+      setPendingChange(null);
     } catch (reason) {
-      toast.error(reason instanceof Error ? reason.message : "Impossible de terminer cette commande.");
+      toast.error(reason instanceof Error ? reason.message : "Impossible de modifier le statut de cette commande.");
     } finally {
       setUpdatingOrder(false);
-      setOrderToComplete(null);
     }
   };
 
@@ -1239,7 +1240,6 @@ function AdminOrdersView() {
   return <div className="management-view admin-management-view"><ManagementHeading eyebrow="ADMINISTRATION" title="Toutes les commandes" description={`${orders.length} commande${orders.length === 1 ? "" : "s"}, tous les comptes confondus.`} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input aria-label="Rechercher une commande" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Référence, client, vendeur ou statut" /></div></div>{error ? <p className="auth-error" role="alert">{error}</p> : loading ? <OrionLoader label="Chargement des commandes…" /> : <ManagementTable className="admin-order-table"><div className="management-table-head admin-order-head"><span>COMMANDE</span><span>CLIENT</span><span>VENDEUR(S)</span><span>PRODUITS</span><span>TOTAL</span><span>STATUT</span><span /></div>{filteredPage.pageItems.map((order) => {
     const customerName = [order.clientPrenom ?? order.utilisateur?.prenom, order.clientNom ?? order.utilisateur?.nom].filter(Boolean).join(" ") || order.clientEmail || order.utilisateur?.email || "Client invité";
     const sellerNames = order.vendeurs?.map((seller) => `${seller.prenom} ${seller.nom}`.trim()).filter(Boolean).join(", ") || "—";
-    const isComplete = order.statut === "terminee";
     return <Fragment key={order.id}>
       <div className="management-table-row admin-order-row">
         <div><strong>{order.reference || `Commande #${order.id}`}</strong><small>#{order.id} · {order.date_achat ? new Date(order.date_achat).toLocaleDateString("fr-FR") : "Date inconnue"}</small></div>
@@ -1247,8 +1247,8 @@ function AdminOrdersView() {
         <span>{sellerNames}</span>
         <span>{order.produits?.map((product) => product.nom).join(", ") || "—"}</span>
         <strong>{formatCfa(Number(order.prix_total ?? 0))}</strong>
-        <span className={`status-pill ${isComplete ? "status-green" : order.statut === "remboursee" ? "status-coral" : "status-gold"}`}>{isComplete ? "Terminée" : orderStatusLabel(order.statut)}</span>
-        <div className="table-actions"><button type="button" className="button button-quiet" onClick={() => setSelectedOrderId(selectedOrderId === order.id ? null : order.id)}>{selectedOrderId === order.id ? "Fermer" : "Détails"}</button>{!isComplete ? <button type="button" className="button button-dark" onClick={() => setOrderToComplete(order)}>Terminer</button> : null}</div>
+        <span className={`status-pill ${ORDER_STATUS_META[order.statut]?.tone ?? "status-gold"}`}>{orderStatusLabel(order.statut)}</span>
+        <div className="table-actions"><button type="button" className="button button-quiet" onClick={() => setSelectedOrderId(selectedOrderId === order.id ? null : order.id)}>{selectedOrderId === order.id ? "Fermer" : "Détails"}</button><OrderStatusMenu current={order.statut} allowed={order.allowedTransitions} onSelect={(target) => setPendingChange({ order, target })} /></div>
       </div>
       {selectedOrderId === order.id ? <div className="admin-order-detail">
         <div className="admin-order-detail-section"><span className="public-kicker">CLIENT</span><strong>{customerName}</strong><span>{order.clientEmail ?? order.utilisateur?.email ?? "E-mail indisponible"}</span><span>{order.clientTelephone ?? order.utilisateur?.contact ?? "Téléphone indisponible"}</span></div>
@@ -1258,8 +1258,19 @@ function AdminOrdersView() {
       </div> : null}
     </Fragment>;
   })}<ListPagination {...filteredPage} /></ManagementTable>}
-    <AlertDialog open={Boolean(orderToComplete)} onOpenChange={(open) => { if (!open && !updatingOrder) setOrderToComplete(null); }}>
-      <AlertDialogContent className="admin-order-complete-dialog"><AlertDialogHeader><AlertDialogTitle>Terminer cette commande ?</AlertDialogTitle><AlertDialogDescription>Cette action est définitive. Une commande terminée ne pourra plus changer de statut. {orderToComplete?.reference || ""}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={updatingOrder}>Annuler</AlertDialogCancel><AlertDialogAction disabled={updatingOrder} onClick={(event) => { event.preventDefault(); void completeOrder(); }}>{updatingOrder ? "Enregistrement…" : "Confirmer la fin"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+    <AlertDialog open={Boolean(pendingChange)} onOpenChange={(open) => { if (!open && !updatingOrder) setPendingChange(null); }}>
+      <AlertDialogContent className="admin-order-complete-dialog">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{pendingChange ? `Passer la commande à « ${ORDER_STATUS_META[pendingChange.target].label} » ?` : ""}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {pendingChange ? <>Commande {pendingChange.order.reference || `#${pendingChange.order.id}`} · actuellement « {orderStatusLabel(pendingChange.order.statut)} ».<br /><br />{ORDER_STATUS_META[pendingChange.target].consequence}</> : null}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={updatingOrder}>Annuler</AlertDialogCancel>
+          <AlertDialogAction disabled={updatingOrder} onClick={(event) => { event.preventDefault(); void applyStatusChange(); }}>{updatingOrder ? "Enregistrement…" : "Confirmer"}</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
     </AlertDialog>
   </div>;
 }

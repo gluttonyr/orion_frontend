@@ -2619,3 +2619,42 @@ html[data-theme="dark"] .list-pagination :is(.list-pagination-count, .list-pagin
 .admin-order-head, .admin-order-row { grid-template-columns: 1fr 1.1fr 1.1fr 1.2fr .8fr .8fr minmax(176px, auto); }
 .admin-reports-head, .admin-reports-row { grid-template-columns: 1.1fr 1.1fr 1.35fr .75fr .8fr minmax(118px, .9fr); }
 .admin-reports-row .table-actions, .admin-order-row .table-actions { justify-content: flex-end; }
+
+/* Changement de statut des commandes (admin) */
+.status-blue { background: #e3ecf7; color: #3f6496; }
+.order-status-trigger { gap: 6px; }
+.order-status-locked { color: #a59a93; font-size: 10px; font-weight: 700; padding: 0 6px; }
+.order-status-menu { min-width: 280px; border: 1px solid #ece3dd !important; border-radius: 12px !important; background: #fffdfa !important; padding: 6px !important; box-shadow: 0 16px 36px rgba(55, 33, 27, 0.16) !important; }
+.order-status-menu-label { color: #9d948d; font-size: 10px !important; font-weight: 700 !important; }
+.order-status-menu-item { display: flex !important; align-items: center; gap: 10px; border-radius: 8px !important; padding: 9px 10px !important; cursor: pointer; }
+.order-status-menu-item:focus, .order-status-menu-item[data-highlighted] { background: #f7eee9 !important; }
+.order-status-menu-icon { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; border-radius: 8px; padding: 0; }
+.order-status-menu-text { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; }
+.order-status-menu-text strong { color: #302528; font-size: 12px; }
+.order-status-menu-text small { color: #9d948d; font-size: 10px; }
+.order-status-menu-final { color: #5f8d6b; }
+html[data-theme="dark"] .order-status-menu { border-color: #3e3035 !important; background: #211b1e !important; }
+html[data-theme="dark"] .order-status-menu-text strong { color: #f4e9e9; }
+html[data-theme="dark"] .order-status-menu-item[data-highlighted] { background: #2b2024 !important; }
+
+/* Fenêtres de confirmation (Radix AlertDialog).
+   Le projet n'exécute pas Tailwind : sans ces règles, la fenêtre s'affichait en bas de page, hors de l'écran. */
+.orion-alert-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(28, 18, 20, 0.55); backdrop-filter: blur(2px); animation: orion-alert-fade 160ms ease-out; }
+.orion-alert-content { position: fixed; top: 50%; left: 50%; z-index: 61; display: grid; gap: 18px; width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; transform: translate(-50%, -50%); border: 1px solid #eee5dd; border-radius: 14px; background: #fffdfa; padding: 24px; color: #302528; box-shadow: 0 24px 60px rgba(40, 20, 24, 0.28); animation: orion-alert-pop 180ms ease-out; }
+.orion-alert-header { display: flex; flex-direction: column; gap: 8px; }
+.orion-alert-title { margin: 0; color: #251f21; font-size: 18px; font-weight: 700; line-height: 1.3; }
+.orion-alert-description { margin: 0; color: #766b6c; font-size: 13px; line-height: 1.55; }
+.orion-alert-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.orion-alert-action, .orion-alert-cancel { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; border-radius: 9px; padding: 0 16px; font-size: 12px; font-weight: 800; cursor: pointer; }
+.orion-alert-action { border: 1px solid #841438; background: #841438; color: #fff8ef; }
+.orion-alert-action:hover { background: #68102d; }
+.orion-alert-cancel { border: 1px solid #e2d9d3; background: #fffdfa; color: #5d5153; }
+.orion-alert-cancel:hover { background: #f7f0eb; }
+.orion-alert-action:disabled, .orion-alert-cancel:disabled { cursor: wait; opacity: 0.6; }
+@keyframes orion-alert-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes orion-alert-pop { from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .orion-alert-overlay, .orion-alert-content { animation: none; } }
+html[data-theme="dark"] .orion-alert-content { border-color: #3e3035; background: #211b1e; color: #f4e9e9; }
+html[data-theme="dark"] .orion-alert-title { color: #f4e9e9; }
+html[data-theme="dark"] .orion-alert-description { color: #b6a7a5; }
+html[data-theme="dark"] .orion-alert-cancel { border-color: #4a3b3d; background: #2b2024; color: #f0c4d0; }

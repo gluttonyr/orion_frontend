@@ -17,7 +17,10 @@ export type AdminOrder = {
   utilisateur?: { id?: number; nom?: string; prenom?: string; email?: string; contact?: string } | null;
   vendeurs?: Array<{ id: number; nom: string; prenom: string; email: string; contact?: string }>;
   produits?: Array<{ id: number; nom: string; image?: string; prix?: number; proprietaireId?: number | null }>;
+  /** Statuts vers lesquels l'admin peut faire passer la commande (calculé par le backend). */
+  allowedTransitions?: AdminOrderStatus[];
 };
+export type AdminOrderStatus = 'en_attente' | 'payee' | 'terminee' | 'echouee';
 export type AdminPlatformWallet = { solde: number; totalCommissions: number; totalRemboursements: number; updatedAt?: string | null };
 export type SiteSettingsRecord = { heroImages: string[]; carouselProductIds: number[]; updatedAt?: string };
 export type AdminMerchant = { id: number; nom: string; prenom: string; email: string };
@@ -35,7 +38,7 @@ function auth(token: string): HeadersInit { return { Authorization: `Bearer ${to
 
 export const getAdminUsers = (token: string) => apiRequest<AdminUser[]>('/admin/users', { headers: auth(token) });
 export const getAdminOrders = (token: string) => apiRequest<AdminOrder[]>('/admin/orders', { headers: auth(token) });
-export const completeAdminOrder = (id: number, token: string) => apiRequest<{ id: number; reference: string; statut: string }>(`/admin/orders/${id}/complete`, { method: 'PATCH', headers: auth(token) });
+export const changeAdminOrderStatus = (id: number, statut: AdminOrderStatus, token: string) => apiRequest<{ id: number; reference: string; statut: string; allowedTransitions: AdminOrderStatus[] }>(`/admin/orders/${id}/status`, { method: 'PATCH', headers: { ...auth(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ statut }) });
 export const getAdminWallet = (token: string) => apiRequest<AdminPlatformWallet>('/admin/wallet', { headers: auth(token) });
 export const getAdminDashboardStats = (token: string) => apiRequest<AdminDashboardStats>('/admin/dashboard-stats', { headers: auth(token) });
 export const getSiteSettings = () => apiRequest<SiteSettingsRecord>('/site-settings');
