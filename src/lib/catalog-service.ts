@@ -43,13 +43,16 @@ export function searchProductSuggestions(query: string, limit = 5) {
   return apiRequest<ProductRecord[]>(`/produits/search?${params.toString()}`);
 }
 
+export function categoryLabel(categorie: ProductRecord["categorie"], fallback = "Divers"): string {
+  if (typeof categorie === "string") return categorie || fallback;
+  return categorie?.libellé || fallback;
+}
+
 export async function getProductsByOwner(ownerId: number, token: string) {
   const products = await apiRequest<ProductRecord[]>(`/produits/owner/${ownerId}`, { headers: { Authorization: `Bearer ${token}` } });
   return products.map((product) => ({
     ...product,
-    categorie: typeof product.categorie === "object" && product.categorie !== null
-      ? Object.values(product.categorie)[0] ?? "Divers"
-      : product.categorie,
+    categorie: categoryLabel(product.categorie),
   }));
 }
 

@@ -1,27 +1,22 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  ArrowDownLeft,
   ArrowRight,
-  ArrowUpRight,
   Banknote,
   BriefcaseBusiness,
   Check,
   ChevronLeft,
-  CreditCard,
   Edit3,
   Eye,
   ImagePlus,
   Landmark,
   Mail,
   MapPin,
-  MoreHorizontal,
   Package,
   Pencil,
   Phone,
   Plus,
   Search,
-  ShieldAlert,
   Settings2,
   ShieldCheck,
   ShoppingBag,
@@ -30,16 +25,15 @@ import {
   Trash2,
   TrendingUp,
   UserRound,
-  WalletCards,
   Heart,
   UsersRound,
   X,
 } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { catalogProducts, formatCfa, mapBackendProduct, opportunityCatalog, roleLabel, useOrion, type Product, type UserRole } from "../OrionContext";
-import { createProduct, getProductsByOwner, publishProduct, updateProduct, type ProductRecord } from "../lib/catalog-service";
+import { categoryLabel, createProduct, getProductsByOwner, publishProduct, updateProduct, type ProductRecord } from "../lib/catalog-service";
 import { apiRequest } from "../lib/api";
-import { createMission, formatMissionRemuneration, getMissionById, getMissionCandidates, getMissions, getMyApplications, getMyMissions, startMissionPublicationPayment, updateMission, updateMissionCandidateStatus, type MissionApplicationRecord, type MissionCandidate, type MissionRecord } from "../lib/mission-service";
+import { createMission, formatMissionRemuneration, getMissionById, getMissionCandidates, getMyApplications, getMyMissions, startMissionPublicationPayment, updateMission, updateMissionCandidateStatus, type MissionApplicationRecord, type MissionCandidate, type MissionRecord } from "../lib/mission-service";
 import { getMyPurchases, type PurchaseRecord } from "../lib/order-service";
 import { createStore, getMyStores, getStoreReports, setStoreActivation, updateStore, type StoreRecord as BackendStoreRecord } from "../lib/store-service";
 import { LocationField } from "../components/LocationField";
@@ -238,7 +232,7 @@ function ProductsView() {
   if (loading) return <div className="management-view"><ManagementHeading eyebrow="CATALOGUE" title="Mes produits" description="Chargement de votre catalogue." /><OrionLoader label="Chargement de vos produits…" /></div>;
   if (loadError) return <div className="management-view"><ManagementHeading eyebrow="CATALOGUE" title="Mes produits" description="Le catalogue n’a pas pu être chargé." /><p className="auth-error" role="alert">{loadError}</p><button type="button" className="button button-dark" onClick={() => setReloadKey((current) => current + 1)}>Réessayer</button></div>;
 
-  return <div className="management-view"><ManagementHeading eyebrow="CATALOGUE" title="Mes produits" description={`Forfait Standard : ${products.length}/40 produits dans votre boutique.`} action={products.length >= 40 ? "Limite de 40 produits atteinte" : "Ajouter un produit"} actionDisabled={products.length >= 40} onAction={() => navigate("/dashboard/products/add")} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans mes produits" /></div><button type="button" className="button button-quiet"><Settings2 size={15} /> Filtres</button></div><ManagementTable className="product-management-table"><div className="management-table-head"><span>PRODUIT</span><span>CATÉGORIE</span><span>STOCK</span><span>PRIX</span><span>STATUT</span><span /></div>{filteredPage.pageItems.map((product) => { const isDraft = product.statut === "Brouillon"; return <div className="management-table-row" key={product.id}><div className="management-product-cell"><img src={getUploadUrl(product.image) || "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=88"} alt="" /><div><strong>{product.nom}</strong><small>{Number(product.likesCount ?? 0)} j’aime</small></div></div><span>{product.categorie ?? "Divers"}</span><span className={Number(product.stock) < 10 ? "table-warning" : ""}>{Number(product.stock)} unités</span><ProductAdminPrice price={Number(product.prix ?? 0)} promotionalPrice={product.prixPromotionnel} /><span className={`status-pill ${isDraft ? "status-gold" : "status-green"}`}>{isDraft ? "Brouillon" : <><Check size={12} /> {Number(product.stock) > 0 ? "En ligne" : "Rupture"}</>}</span><div className="table-actions">{isDraft ? <button type="button" className="product-publish-button" disabled={publishingId !== null} onClick={() => void publish(product)}>{publishingId === product.id ? "Publication…" : "Publier"}</button> : null}<button type="button" onClick={() => navigate(`/dashboard/products/${product.id}`)} aria-label="Voir"><Eye size={15} /></button><button type="button" onClick={() => navigate(`/dashboard/products/edit/${product.id}`)} aria-label="Modifier"><Pencil size={15} /></button></div></div>; })}<ListPagination {...filteredPage} /></ManagementTable></div>;
+  return <div className="management-view"><ManagementHeading eyebrow="CATALOGUE" title="Mes produits" description={`Forfait Standard : ${products.length}/40 produits dans votre boutique.`} action={products.length >= 40 ? "Limite de 40 produits atteinte" : "Ajouter un produit"} actionDisabled={products.length >= 40} onAction={() => navigate("/dashboard/products/add")} /><div className="management-toolbar"><div className="public-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans mes produits" /></div><button type="button" className="button button-quiet"><Settings2 size={15} /> Filtres</button></div><ManagementTable className="product-management-table"><div className="management-table-head"><span>PRODUIT</span><span>CATÉGORIE</span><span>STOCK</span><span>PRIX</span><span>STATUT</span><span /></div>{filteredPage.pageItems.map((product) => { const isDraft = product.statut === "Brouillon"; return <div className="management-table-row" key={product.id}><div className="management-product-cell"><img src={getUploadUrl(product.image) || "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=88"} alt="" /><div><strong>{product.nom}</strong><small>{Number(product.likesCount ?? 0)} j’aime</small></div></div><span>{categoryLabel(product.categorie)}</span><span className={Number(product.stock) < 10 ? "table-warning" : ""}>{Number(product.stock)} unités</span><ProductAdminPrice price={Number(product.prix ?? 0)} promotionalPrice={product.prixPromotionnel} /><span className={`status-pill ${isDraft ? "status-gold" : "status-green"}`}>{isDraft ? "Brouillon" : <><Check size={12} /> {Number(product.stock) > 0 ? "En ligne" : "Rupture"}</>}</span><div className="table-actions">{isDraft ? <button type="button" className="product-publish-button" disabled={publishingId !== null} onClick={() => void publish(product)}>{publishingId === product.id ? "Publication…" : "Publier"}</button> : null}<button type="button" onClick={() => navigate(`/dashboard/products/${product.id}`)} aria-label="Voir"><Eye size={15} /></button><button type="button" onClick={() => navigate(`/dashboard/products/edit/${product.id}`)} aria-label="Modifier"><Pencil size={15} /></button></div></div>; })}<ListPagination {...filteredPage} /></ManagementTable></div>;
 }
 
 function MerchantStorefrontView() {
@@ -330,7 +324,7 @@ function ProductFormView({ edit = false }: { edit?: boolean }) {
         const existing = products.find((item) => item.id === productId);
         if (!existing) { setFormError("Ce produit est introuvable dans votre catalogue."); return; }
         setProduct(existing);
-        const category = typeof existing.categorie === "string" ? existing.categorie : existing.categorie?.libellé ?? "Mode";
+        const category = categoryLabel(existing.categorie, "Mode");
         const promotionalPrice = existing.prixPromotionnel == null ? "" : String(existing.prixPromotionnel);
         setForm({ nom: existing.nom, categorie: category, description: existing.description ?? "", prix: String(existing.prix), prixPromotionnel: promotionalPrice, stock: String(existing.stock), image: existing.image ?? "" });
       })
@@ -1243,7 +1237,7 @@ function AdminOrdersView() {
     const customerName = [order.clientPrenom ?? order.utilisateur?.prenom, order.clientNom ?? order.utilisateur?.nom].filter(Boolean).join(" ") || order.clientEmail || order.utilisateur?.email || "Client invité";
     const sellerNames = order.vendeurs?.map((seller) => `${seller.prenom} ${seller.nom}`.trim()).filter(Boolean).join(", ") || "—";
     const isComplete = order.statut === "terminee";
-    return <React.Fragment key={order.id}>
+    return <Fragment key={order.id}>
       <div className="management-table-row admin-order-row">
         <div><strong>{order.reference || `Commande #${order.id}`}</strong><small>#{order.id} · {order.date_achat ? new Date(order.date_achat).toLocaleDateString("fr-FR") : "Date inconnue"}</small></div>
         <span>{customerName}</span>
@@ -1259,7 +1253,7 @@ function AdminOrdersView() {
         <div className="admin-order-detail-section"><span className="public-kicker">LIVRAISON</span><span>{order.adresseLivraison || "Adresse indisponible"}</span></div>
         <div className="admin-order-detail-section admin-order-detail-products"><span className="public-kicker">ARTICLES</span>{order.produits?.map((product, index) => <div className="admin-order-product-line" key={`${product.id}-${index}`}><span>{product.nom} × {Number(order.quantites?.[index] ?? 1)}</span><strong>{formatCfa(Number(order.prix_unitaires?.[index] ?? product.prix ?? 0) * Number(order.quantites?.[index] ?? 1))}</strong></div>)}</div>
       </div> : null}
-    </React.Fragment>;
+    </Fragment>;
   })}<ListPagination {...filteredPage} /></ManagementTable>}
     <AlertDialog open={Boolean(orderToComplete)} onOpenChange={(open) => { if (!open && !updatingOrder) setOrderToComplete(null); }}>
       <AlertDialogContent className="admin-order-complete-dialog"><AlertDialogHeader><AlertDialogTitle>Terminer cette commande ?</AlertDialogTitle><AlertDialogDescription>Cette action est définitive. Une commande terminée ne pourra plus changer de statut. {orderToComplete?.reference || ""}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={updatingOrder}>Annuler</AlertDialogCancel><AlertDialogAction disabled={updatingOrder} onClick={(event) => { event.preventDefault(); void completeOrder(); }}>{updatingOrder ? "Enregistrement…" : "Confirmer la fin"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>

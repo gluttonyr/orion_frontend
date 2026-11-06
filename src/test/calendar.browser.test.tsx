@@ -1,3 +1,4 @@
+import { expect, test } from "vitest";
 import { render } from "vitest-browser-react";
 
 import { Calendar } from "@/components/ui/calendar";

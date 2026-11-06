@@ -45,6 +45,7 @@ export type OpportunityRecord = {
   description: string;
   requirements?: string[];
   accent: string;
+  statut?: string;
 };
 
 export type CartLine = {
@@ -134,9 +135,7 @@ export function syncCatalogProducts(products: Product[]): void {
 
 export function mapBackendProduct(product: ProductRecord): Product {
   const price = Number(product.prix ?? 0);
-  const promotionalPrice = product.prixPromotionnel == null || product.prixPromotionnel === ''
-    ? null
-    : Number(product.prixPromotionnel);
+  const promotionalPrice = product.prixPromotionnel == null ? null : Number(product.prixPromotionnel);
   const category = typeof product.categorie === "string"
     ? product.categorie
     : product.categorie?.libellé;
@@ -146,7 +145,7 @@ export function mapBackendProduct(product: ProductRecord): Product {
     store: product.boutiqueNom ?? "Boutique Orion",
     category: category || "Divers",
     price: Number.isFinite(price) ? price : 0,
-    promotionalPrice: Number.isFinite(promotionalPrice) && promotionalPrice > 0 && promotionalPrice < price ? promotionalPrice : null,
+    promotionalPrice: promotionalPrice !== null && Number.isFinite(promotionalPrice) && promotionalPrice > 0 && promotionalPrice < price ? promotionalPrice : null,
     stock: Number(product.stock ?? 0),
     description: product.description ?? "Produit disponible sur Orion.",
     image: getUploadUrl(product.image || product.images_secondaires?.[0]) || "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=88",

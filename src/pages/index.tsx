@@ -1,7 +1,7 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { OrionBrand } from "../components/OrionBrand";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  ArrowDownLeft,
   ArrowRight,
   ArrowUpRight,
   BarChart3,
@@ -13,11 +13,9 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDollarSign,
-  Clock3,
   Command,
   CreditCard,
   Download,
-  FileText,
   Filter,
   Home,
   Info,
@@ -26,7 +24,6 @@ import {
   LogOut,
   MapPin,
   MessagesSquare,
-  MoreHorizontal,
   PackageOpen,
   Paperclip,
   Phone,
@@ -40,13 +37,11 @@ import {
   Smile,
   Store,
   UserRound,
-  Star,
   Tags,
   TrendingUp,
   UsersRound,
   Video,
   WalletCards,
-  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { getManagementPageCopy, DashboardRouteView } from "./DashboardManagementView";
@@ -62,7 +57,7 @@ import { getMyPurchases, type PurchaseRecord } from "../lib/order-service";
 import { getSellerAnalytics, type SellerAnalytics } from "../lib/analytics-service";
 import { getNotifications, markAllNotificationsRead, markNotificationRead, type OrionNotification } from "../lib/notification-service";
 import { getProductsByOwner } from "../lib/catalog-service";
-import { SellerHandoverWallet, SellerOrdersView } from "../components/HandoverTools";
+import { SellerHandoverWallet } from "../components/HandoverTools";
 import { ThemeModeButton } from "../ThemeMode";
 import { toast } from "../components/ui/sonner";
 import { ListPagination, usePagination } from "../components/ListPagination";
@@ -90,12 +85,6 @@ type Conversation = {
   messages: ChatMessage[];
 };
 
-type NavItem = {
-  id: Section;
-  label: string;
-  icon: LucideIcon;
-  badge?: string;
-};
 
 type DashboardNavItem = {
   id: string;
@@ -251,7 +240,7 @@ function BrandMark() {
   return <img className="brand-logo-image" src="/orion.jpeg" alt="Logo Orion" />;
 }
 
-function Sidebar({ activeSection, pathname, role, onRoute }: { activeSection: Section; pathname: string; role: UserRole; onRoute: (path: string) => void }) {
+function Sidebar({ pathname, role, onRoute }: { activeSection: Section; pathname: string; role: UserRole; onRoute: (path: string) => void }) {
   const { session, activeStoreId } = useOrion();
   const [activeStoreName, setActiveStoreName] = useState<string>("");
   const navItems: DashboardNavItem[] = role === "ADMIN" ? adminNavItems : role === "COMMERCANT" ? merchantNavItems : entrepreneurNavItems;
@@ -351,6 +340,7 @@ function TopBar({ title, onNotificationToggle, notificationsOpen, session, onNav
   const initials = session?.name?.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "OR";
   return (
     <header className="topbar">
+      <OrionBrand compact className="topbar-brand" />
       <div className="topbar-mobile-title">{title}</div>
       <div className="search-field">
         <Search size={18} strokeWidth={1.8} />
@@ -380,39 +370,7 @@ function PageHeader({ section, onSectionChange, pageCopy }: { section: Section; 
   return <div className="page-header"><div><p className="eyebrow">{copy.eyebrow}</p><h1>{copy.title}</h1><p className="page-description">{copy.description}</p></div>{pageCopy ? null : <div className="page-header-actions">{section === "home" ? <button type="button" className="button button-quiet" onClick={() => onSectionChange("analytics")}><BarChart3 size={16} /> Voir les statistiques</button> : null}{section === "marketplace" ? <button type="button" className="button button-dark"><Plus size={16} /> Publier une offre</button> : null}{section === "opportunities" ? <button type="button" className="button button-dark"><Plus size={16} /> Proposer un projet</button> : null}{section === "wallet" ? <button type="button" className="button button-dark"><Download size={16} /> Exporter</button> : null}</div>}</div>;
 }
 
-function WalletCard({ onNavigate }: { onNavigate: (section: Section) => void }) {
-  return (
-    <section className="wallet-card">
-      <div className="wallet-card-glow" />
-      <div className="wallet-card-top">
-        <div>
-          <p className="card-overline light">SOLDE DISPONIBLE</p>
-          <div className="wallet-amount">2 840,50 <span>€</span></div>
-        </div>
-        <span className="wallet-chip"><CircleDollarSign size={14} /> ORION WALLET</span>
-      </div>
-      <div className="wallet-card-bottom">
-        <div className="wallet-change"><TrendingUp size={15} /> <strong>+12,8 %</strong><span>depuis le mois dernier</span></div>
-        <button type="button" className="wallet-link" onClick={() => onNavigate("wallet")}>Voir le portefeuille <ArrowUpRight size={15} /></button>
-      </div>
-      <svg className="wallet-sparkline" viewBox="0 0 440 92" role="img" aria-label="Évolution positive du portefeuille">
-        <path d="M0 74 C35 73 35 58 66 63 C92 67 91 40 123 46 C156 51 155 32 190 39 C224 46 224 17 256 24 C287 32 291 46 321 30 C352 14 366 35 388 18 C405 4 426 14 440 3" fill="none" stroke="rgba(255,247,234,0.85)" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M0 91 L0 74 C35 73 35 58 66 63 C92 67 91 40 123 46 C156 51 155 32 190 39 C224 46 224 17 256 24 C287 32 291 46 321 30 C352 14 366 35 388 18 C405 4 426 14 440 3 L440 91 Z" fill="url(#walletFade)" />
-        <defs><linearGradient id="walletFade" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="rgba(255,247,234,0.18)" /><stop offset="1" stopColor="rgba(255,247,234,0)" /></linearGradient></defs>
-      </svg>
-    </section>
-  );
-}
 
-function StatCard({ icon: Icon, label, value, detail, trend, tone }: { icon: LucideIcon; label: string; value: string; detail: string; trend?: string; tone: string }) {
-  return (
-    <div className="stat-card">
-      <div className={`stat-icon ${tone}`}><Icon size={17} strokeWidth={1.85} /></div>
-      <div className="stat-card-content"><p>{label}</p><strong>{value}</strong><span>{detail}</span></div>
-      {trend ? <span className="stat-trend">{trend}</span> : null}
-    </div>
-  );
-}
 
 function QuickActions({ onNavigate, role }: { onNavigate: (section: Section) => void; role: UserRole }) {
   const actions: { label: string; copy: string; icon: LucideIcon; action: () => void; tone: string }[] = role === "COMMERCANT" ? [
@@ -444,19 +402,6 @@ function OpportunityCard({ opportunity, onSelect }: { opportunity: Opportunity; 
   );
 }
 
-function RecentActivity({ onNavigate }: { onNavigate: (section: Section) => void }) {
-  const activity = [
-    { icon: ArrowDownLeft, tone: "activity-green", title: "Paiement reçu", copy: "Studio Serein · Projet identité", amount: "+ 1 200,00 €", time: "Aujourd'hui, 09:12" },
-    { icon: ShoppingCart, tone: "activity-coral", title: "Achat confirmé", copy: "Chaise Sillon · Atelier N°7", amount: "− 480,00 €", time: "Hier, 17:46" },
-    { icon: UsersRound, tone: "activity-gold", title: "Nouveau contact", copy: "Clara Morel vous a ajouté", amount: "", time: "Hier, 11:24" },
-  ];
-  return (
-    <section className="panel activity-panel">
-      <div className="panel-heading"><div><p className="eyebrow">DERNIERS MOUVEMENTS</p><h2>Votre activité</h2></div><button type="button" className="text-link" onClick={() => onNavigate("wallet")}>Tout voir <ChevronRight size={15} /></button></div>
-      <div className="activity-list">{activity.map(({ icon: Icon, tone, title, copy, amount, time }) => <div className="activity-row" key={title}><span className={`activity-icon ${tone}`}><Icon size={16} /></span><div className="activity-details"><strong>{title}</strong><span>{copy}</span></div><div className="activity-values">{amount ? <strong className={amount.startsWith("+") ? "positive" : "negative"}>{amount}</strong> : null}<span>{time}</span></div></div>)}</div>
-    </section>
-  );
-}
 
 function ConversationPreview({ conversation, onOpen }: { conversation: Conversation; onOpen: () => void }) {
   return (
@@ -589,49 +534,7 @@ function MessagesView({ conversations, selectedConversationId, onSelectConversat
   );
 }
 
-/*
-function LegacyWalletView() {
-  return (
-    <div className="view-stack"><div className="wallet-overview"><div><p className="card-overline light">SOLDE TOTAL</p><div className="wallet-overview-amount">2 840,50 <span>€</span></div><div className="wallet-change"><TrendingUp size={15} /> <strong>+12,8 %</strong><span>sur les 30 derniers jours</span></div></div><div className="wallet-overview-actions"><button type="button" className="button button-cream"><Plus size={16} /> Ajouter des fonds</button><button type="button" className="wallet-outline-button"><ArrowUpRight size={16} /> Transférer</button></div></div><div className="wallet-metrics"><StatCard icon={ArrowDownLeft} label="Entrées ce mois" value="4 286 €" detail="3 transactions" tone="stat-green" /><StatCard icon={ArrowUpRight} label="Sorties ce mois" value="1 446 €" detail="7 transactions" tone="stat-coral" /><StatCard icon={CreditCard} label="Carte Orion" value="•• 4829" detail="Active" tone="stat-blue" /></div><section className="panel transactions-panel"><div className="panel-heading"><div><p className="eyebrow">HISTORIQUE</p><h2>Dernières transactions</h2></div><button type="button" className="button button-quiet"><Filter size={15} /> Filtrer</button></div><div className="transaction-table"><div className="transaction-head"><span>TRANSACTION</span><span>DATE</span><span>STATUT</span><span>MONTANT</span></div>{[{ name: "Studio Serein", copy: "Paiement reçu · Projet identité", icon: ArrowDownLeft, tone: "activity-green", date: "Aujourd'hui, 09:12", amount: "+ 1 200,00 €", positive: true }, { name: "Atelier N°7", copy: "Achat · Chaise Sillon", icon: ShoppingCart, tone: "activity-coral", date: "18 août 2026", amount: "− 480,00 €", positive: false }, { name: "Maison Calme", copy: "Mission conseil", icon: ArrowDownLeft, tone: "activity-green", date: "16 août 2026", amount: "+ 850,00 €", positive: true }].map((transaction) => <div className="transaction-row" key={transaction.name}><div className="transaction-name"><span className={`activity-icon ${transaction.tone}`}><transaction.icon size={16} /></span><div><strong>{transaction.name}</strong><small>{transaction.copy}</small></div></div><span>{transaction.date}</span><span className="status-complete"><Check size={13} /> Terminée</span><strong className={transaction.positive ? "positive" : "negative"}>{transaction.amount}</strong></div>)}</div></section></div>
-}
 
-*/
-
-function LegacyWalletView() {
-  const transactions: { name: string; copy: string; icon: LucideIcon; tone: string; date: string; amount: string; positive: boolean }[] = [
-    { name: "Studio Serein", copy: "Paiement reçu · Projet identité", icon: ArrowDownLeft, tone: "activity-green", date: "Aujourd'hui, 09:12", amount: "+ 1 200,00 €", positive: true },
-    { name: "Atelier N°7", copy: "Achat · Chaise Sillon", icon: ShoppingCart, tone: "activity-coral", date: "18 août 2026", amount: "− 480,00 €", positive: false },
-    { name: "Maison Calme", copy: "Mission conseil", icon: ArrowDownLeft, tone: "activity-green", date: "16 août 2026", amount: "+ 850,00 €", positive: true },
-  ];
-
-  return (
-    <div className="view-stack">
-      <div className="wallet-overview">
-        <div>
-          <p className="card-overline light">SOLDE TOTAL</p>
-          <div className="wallet-overview-amount">2 840,50 <span>€</span></div>
-          <div className="wallet-change"><TrendingUp size={15} /> <strong>+12,8 %</strong><span>sur les 30 derniers jours</span></div>
-        </div>
-        <div className="wallet-overview-actions"><button type="button" className="button button-cream"><Plus size={16} /> Ajouter des fonds</button><button type="button" className="wallet-outline-button"><ArrowUpRight size={16} /> Transférer</button></div>
-      </div>
-      <div className="wallet-metrics">
-        <StatCard icon={ArrowDownLeft} label="Entrées ce mois" value="4 286 €" detail="3 transactions" tone="stat-green" />
-        <StatCard icon={ArrowUpRight} label="Sorties ce mois" value="1 446 €" detail="7 transactions" tone="stat-coral" />
-        <StatCard icon={CreditCard} label="Carte Orion" value="•• 4829" detail="Active" tone="stat-blue" />
-      </div>
-      <section className="panel transactions-panel">
-        <div className="panel-heading"><div><p className="eyebrow">HISTORIQUE</p><h2>Dernières transactions</h2></div><button type="button" className="button button-quiet"><Filter size={15} /> Filtrer</button></div>
-        <div className="transaction-table">
-          <div className="transaction-head"><span>TRANSACTION</span><span>DATE</span><span>STATUT</span><span>MONTANT</span></div>
-          {transactions.map((transaction) => {
-            const TransactionIcon: LucideIcon = transaction.icon;
-            return <div className="transaction-row" key={transaction.name}><div className="transaction-name"><span className={`activity-icon ${transaction.tone}`}><TransactionIcon size={16} /></span><div><strong>{transaction.name}</strong><small>{transaction.copy}</small></div></div><span>{transaction.date}</span><span className="status-complete"><Check size={13} /> Terminée</span><strong className={transaction.positive ? "positive" : "negative"}>{transaction.amount}</strong></div>;
-          })}
-        </div>
-      </section>
-    </div>
-  );
-}
 
 function WalletView() {
   return <SellerHandoverWallet />;

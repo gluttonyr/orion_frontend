@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { OrionBrand } from "../components/OrionBrand";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -13,7 +14,6 @@ import {
   ChevronLeft,
   ChevronUp,
   CircleHelp,
-  CreditCard,
   Filter,
   Globe2,
   Heart,
@@ -34,7 +34,6 @@ import {
   ShoppingBag,
   ShoppingCart,
   Star,
-  Sparkles,
   Store,
   Trash2,
   X,
@@ -238,7 +237,7 @@ export function PublicLayout() {
     navigate(`/product/${product.id}`);
   };
   return <div className="public-site-shell">
-    <header className="public-header"><div className="public-header-inner"><OrionLogo /><nav className={`public-nav ${menuOpen ? "is-open" : ""}`}><Link to="/" onClick={() => setMenuOpen(false)}>Accueil</Link><Link to="/marketplace" onClick={() => setMenuOpen(false)}>Marketplace</Link><Link to="/opportunities" onClick={() => setMenuOpen(false)}>Opportunités</Link><Link to="/a-propos" onClick={() => setMenuOpen(false)}>À propos</Link></nav><form className="public-header-search" role="search" onSubmit={submitSearch} onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}><Search size={19} /><input aria-label="Rechercher dans Orion" placeholder="Rechercher un produit, une marque, une catégorie..." value={searchQuery} onFocus={() => setSearchFocused(true)} onKeyDown={(event) => { if (event.key === "Escape") setSearchFocused(false); }} onChange={(event) => setSearchQuery(event.target.value)} />{searchFocused && searchQuery.trim().length >= 2 ? <div className="public-search-suggestions" role="listbox" aria-label="Suggestions de produits" onMouseDown={(event) => event.preventDefault()}>{searchLoading ? <p className="public-search-suggestions-message">Recherche des produits…</p> : searchSuggestions.length ? searchSuggestions.map((product) => { const mapped = mapBackendProduct(product); return <button type="button" role="option" aria-label={`Voir ${product.nom}`} className="public-search-suggestion" key={product.id} onClick={() => openSuggestedProduct(product)}><img src={getUploadUrl(product.image)} alt="" /><span><strong>{product.nom}</strong><small>{typeof product.categorie === "string" ? product.categorie : product.categorie?.libellé ?? "Produit Orion"}</small></span><ProductPrice product={mapped} className="public-search-suggestion-price" /></button>; }) : <p className="public-search-suggestions-message">Aucun produit similaire trouvé.</p>}</div> : null}</form><div className="public-header-actions"><ThemeModeButton className="theme-mode-button" /><Link to="/cart" className="public-cart-button" aria-label="Ouvrir le panier"><ShoppingCart size={19} /><span>Panier</span>{cartCount > 0 ? <b>{cartCount}</b> : null}</Link>{session ? <div className="public-account-menu"><button type="button" className="public-account-button" aria-expanded={accountMenuOpen} aria-haspopup="menu" onClick={() => setAccountMenuOpen((current) => !current)}><span className="public-account-avatar">{session.name.slice(0, 2).toUpperCase()}</span><span>{session.name}</span><ChevronDown size={14} /></button>{accountMenuOpen ? <div className="public-account-dropdown" role="menu"><span className="public-account-dropdown-name">Connecté en tant que<br /><strong>{session.name}</strong></span><Link to="/dashboard" role="menuitem" onClick={() => setAccountMenuOpen(false)}>Aller au dashboard <ArrowUpRight size={15} /></Link></div> : null}</div> : <Link to="/login" className="public-account-button"><UserRound size={22} /><span>Mon compte</span><ChevronDown size={14} /></Link>}<button type="button" className="public-menu-button" aria-label="Ouvrir le menu" onClick={() => setMenuOpen((current) => !current)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button></div></div></header>
+    <header className="public-header"><div className="public-header-inner"><OrionBrand /><nav className={`public-nav ${menuOpen ? "is-open" : ""}`}><Link to="/" onClick={() => setMenuOpen(false)}>Accueil</Link><Link to="/marketplace" onClick={() => setMenuOpen(false)}>Marketplace</Link><Link to="/opportunities" onClick={() => setMenuOpen(false)}>Opportunités</Link><Link to="/a-propos" onClick={() => setMenuOpen(false)}>À propos</Link></nav><form className="public-header-search" role="search" onSubmit={submitSearch} onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}><Search size={19} /><input aria-label="Rechercher dans Orion" placeholder="Rechercher un produit, une marque, une catégorie..." value={searchQuery} onFocus={() => setSearchFocused(true)} onKeyDown={(event) => { if (event.key === "Escape") setSearchFocused(false); }} onChange={(event) => setSearchQuery(event.target.value)} />{searchFocused && searchQuery.trim().length >= 2 ? <div className="public-search-suggestions" role="listbox" aria-label="Suggestions de produits" onMouseDown={(event) => event.preventDefault()}>{searchLoading ? <p className="public-search-suggestions-message">Recherche des produits…</p> : searchSuggestions.length ? searchSuggestions.map((product) => { const mapped = mapBackendProduct(product); return <button type="button" role="option" aria-label={`Voir ${product.nom}`} className="public-search-suggestion" key={product.id} onClick={() => openSuggestedProduct(product)}><img src={getUploadUrl(product.image)} alt="" /><span><strong>{product.nom}</strong><small>{typeof product.categorie === "string" ? product.categorie : product.categorie?.libellé ?? "Produit Orion"}</small></span><ProductPrice product={mapped} className="public-search-suggestion-price" /></button>; }) : <p className="public-search-suggestions-message">Aucun produit similaire trouvé.</p>}</div> : null}</form><div className="public-header-actions"><ThemeModeButton className="theme-mode-button" /><Link to="/cart" className="public-cart-button" aria-label="Ouvrir le panier"><ShoppingCart size={19} /><span>Panier</span>{cartCount > 0 ? <b>{cartCount}</b> : null}</Link>{session ? <div className="public-account-menu"><button type="button" className="public-account-button" aria-expanded={accountMenuOpen} aria-haspopup="menu" onClick={() => setAccountMenuOpen((current) => !current)}><span className="public-account-avatar">{session.name.slice(0, 2).toUpperCase()}</span><span>{session.name}</span><ChevronDown size={14} /></button>{accountMenuOpen ? <div className="public-account-dropdown" role="menu"><span className="public-account-dropdown-name">Connecté en tant que<br /><strong>{session.name}</strong></span><Link to="/dashboard" role="menuitem" onClick={() => setAccountMenuOpen(false)}>Aller au dashboard <ArrowUpRight size={15} /></Link></div> : null}</div> : <Link to="/login" className="public-account-button"><UserRound size={22} /><span>Mon compte</span><ChevronDown size={14} /></Link>}<button type="button" className="public-menu-button" aria-label="Ouvrir le menu" onClick={() => setMenuOpen((current) => !current)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button></div></div></header>
     <Outlet />
   </div>;
 }
@@ -838,62 +837,13 @@ export function PurchasesPage() {
   return <><main className="public-page"><div className="public-page-heading compact"><div><span className="public-kicker">TON ESPACE CLIENT</span><h1>Mes achats</h1><p>Retrouve ici les commandes associées à ton compte Orion.</p></div></div>{loading ? <OrionLoader label="Chargement de tes achats…" /> : error ? <p className="auth-error" role="alert">{error}</p> : purchases.length === 0 ? <EmptyState title="Aucun achat pour le moment" copy="Tes commandes payées apparaîtront ici." action="Découvrir la marketplace" onAction={() => navigate("/marketplace")} icon={<ShoppingBag size={30} />} /> : <div className="purchase-list">{purchasesPage.pageItems.map((purchase) => <article className="purchase-card" key={purchase.id}><div><span className="public-kicker">{purchase.reference || `COMMANDE #${purchase.id}`}</span><h2>{purchase.produits?.map((product) => product.nom).join(", ") || "Commande Orion"}</h2><p>{new Date(purchase.date_achat).toLocaleDateString("fr-FR")}</p></div><div><strong>{formatCfa(purchase.prix_total)}</strong><span className="purchase-status">{purchase.statut}</span></div></article>)}<ListPagination {...purchasesPage} /></div>}</main><PublicFooter /></>;
 }
 
-export function AuthPage({ register = false }: { register?: boolean }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { login, register: registerUser } = useOrion();
-  const authState = location.state as { from?: string; role?: UserRole } | null;
-  const [role, setRole] = useState<UserRole>(authState?.role ?? "UTILISATEUR");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [error, setError] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const destination: string = authState?.from ?? "/dashboard";
-  const submit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
-    if (!email || password.length < 4) {
-      setError("Renseignez un email et un mot de passe de 4 caractères minimum.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError("");
-
-    try {
-      if (register) {
-        await registerUser({
-          email,
-          password,
-          role,
-          nom: email.split("@")[0] ?? "Membre",
-          prenom: "Orion",
-          date_naissance: "2000-01-01",
-          adresse: "Abidjan",
-          contact: "",
-          specialite: role === "COMMERCANT" ? "Commerce" : "Entrepreneuriat",
-          localisation: "Abidjan",
-        });
-      } else {
-        await login(email, password, role);
-      }
-
-      navigate(role === "COMMERCANT" ? "/store-selection" : destination);
-    } catch (requestError) {
-      const message = requestError instanceof Error ? requestError.message : "Impossible de poursuivre la demande.";
-      setError(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  return <main className="auth-shell"><div className="auth-visual"><OrionLogo light /><span className="auth-visual-kicker">ORION AFRICA</span><h1>Construire<br /><em>ensemble.</em></h1><p>Une marketplace pour les produits qui comptent et les opportunités qui ouvrent des portes.</p><div className="auth-visual-orbit"><Globe2 size={34} strokeWidth={1} /><span>18 pays · une même énergie</span></div></div><div className="auth-form-side"><Link to="/" className="auth-close"><X size={19} /></Link><div className="auth-form-wrap"><span className="public-kicker">{register ? "BIENVENUE DANS LE RÉSEAU" : "BON RETOUR"}</span><h1>{register ? "Créer votre espace." : "Ravi de vous revoir."}</h1><p>{register ? "Choisissez le profil qui correspond le mieux à votre projet." : "Connectez-vous pour retrouver vos boutiques, vos messages et vos opportunités."}</p><form onSubmit={submit}><label>Email professionnel<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="vous@exemple.com" /></label><label>Mot de passe<input type="password" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" /></label>{register ? <div className="auth-role-picker"><span>Je suis...</span><div><button type="button" className={role === "COMMERCANT" ? "is-active" : ""} onClick={() => setRole("COMMERCANT")}><Store size={17} /><strong>Commerçant</strong><small>Je vends et je développe mon commerce</small></button><button type="button" className={role === "UTILISATEUR" ? "is-active" : ""} onClick={() => setRole("UTILISATEUR")}><BriefcaseBusiness size={17} /><strong>Jeune entrepreneur</strong><small>Je cherche des missions et des connexions</small></button></div></div> : <button type="button" className="auth-forgot">Mot de passe oublié ?</button>}{error ? <p className="auth-error">{error}</p> : null}<button type="submit" className="public-primary-button auth-submit" disabled={isSubmitting}>{isSubmitting ? "Chargement..." : register ? "Créer mon espace" : "Se connecter"} <ArrowRight size={17} /></button></form><div className="auth-switch"><span className="auth-switch-divider">ou</span><p>{register ? "Vous avez déjà un compte ?" : "Pas encore de compte ? L’inscription est gratuite."}</p><Link to={register ? "/login" : "/register"} className="public-secondary-button auth-switch-button">{register ? "Se connecter" : "Créer mon compte"} <ArrowRight size={16} /></Link></div><div className="auth-legal">En continuant, vous acceptez les <Link to="/conditions">conditions d'utilisation</Link> et la <Link to="/conditions">politique de confidentialité</Link>.</div></div></div></main>;
-}
 
 export function ProfileSelectionPage() {
   const navigate = useNavigate();
   const { session } = useOrion();
   if (session) return <Navigate to="/dashboard" replace />;
   const choose = (role: UserRole): void => navigate("/register", { state: { role } });
-  return <main className="onboarding-shell"><OrionLogo /><div className="onboarding-center"><span className="public-kicker">AVANT DE CRÉER VOTRE COMPTE</span><h1>Quel est votre<br /><em>prochain chapitre ?</em></h1><p>Choisissez votre profil. Ce rôle sera associé à votre compte dès sa création et ne pourra plus être modifié.</p><div className="profile-choice-grid"><button type="button" onClick={() => choose("COMMERCANT")}><span className="profile-choice-icon icon-store"><Store size={28} /></span><span><strong>Je développe mon commerce</strong><small>Je vends des produits, je gère une boutique et je crée des opportunités.</small></span><ArrowUpRight size={18} /></button><button type="button" onClick={() => choose("UTILISATEUR")}><span className="profile-choice-icon icon-entrepreneur"><BriefcaseBusiness size={28} /></span><span><strong>Je fais grandir mon activité</strong><small>Je trouve des missions, je rencontre des entreprises et je construis mon réseau.</small></span><ArrowUpRight size={18} /></button></div></div><p className="onboarding-footnote">Vous êtes un administrateur ? <ContactEmail email="orionmarket9@gmail.com" className="onboarding-footnote-link">Contactez notre équipe</ContactEmail></p></main>;
+  return <main className="onboarding-shell"><OrionBrand className="onboarding-brand" /><div className="onboarding-center"><span className="public-kicker">AVANT DE CRÉER VOTRE COMPTE</span><h1>Quel est votre<br /><em>prochain chapitre ?</em></h1><p>Choisissez votre profil. Ce rôle sera associé à votre compte dès sa création et ne pourra plus être modifié.</p><div className="profile-choice-grid"><button type="button" onClick={() => choose("COMMERCANT")}><span className="profile-choice-icon icon-store"><Store size={28} /></span><span><strong>Je développe mon commerce</strong><small>Je vends des produits, je gère une boutique et je crée des opportunités.</small></span><ArrowUpRight size={18} /></button><button type="button" onClick={() => choose("UTILISATEUR")}><span className="profile-choice-icon icon-entrepreneur"><BriefcaseBusiness size={28} /></span><span><strong>Je fais grandir mon activité</strong><small>Je trouve des missions, je rencontre des entreprises et je construis mon réseau.</small></span><ArrowUpRight size={18} /></button></div></div><p className="onboarding-footnote">Vous êtes un administrateur ? <ContactEmail email="orionmarket9@gmail.com" className="onboarding-footnote-link">Contactez notre équipe</ContactEmail></p></main>;
 }
 
 export function StoreSelectionPage() {
@@ -930,7 +880,7 @@ export function StoreSelectionPage() {
   }, [session?.token, reloadKey]);
 
   const storeLimitReached = stores.length >= 1;
-  return <main className="onboarding-shell store-selection-shell"><OrionLogo /><div className="onboarding-center"><span className="public-kicker">ESPACE COMMERÇANT</span><h1>Choisissez votre<br /><em>boutique active.</em></h1><p>Vous pourrez changer de boutique à tout moment depuis la barre latérale.</p>{loading ? <OrionLoader label="Chargement de vos boutiques…" /> : loadError ? <div className="store-selection-error" role="alert"><p>Impossible de vérifier vos boutiques : {loadError}</p><button type="button" className="button button-dark" onClick={() => setReloadKey((current) => current + 1)}>Réessayer</button></div> : <><div className="store-selection-grid">{stores.map((store) => <button type="button" key={store.id} className={`store-selection-card ${activeStoreId === store.id ? "is-active" : ""}`} onClick={() => { setActiveStoreId(store.id); navigate("/dashboard"); }}><span className={`store-card-art ${store.color}`}><Store size={28} /></span><span><strong>{store.name}</strong><small>{store.category}</small><small><MapPin size={12} /> {store.location}</small></span>{activeStoreId === store.id ? <span className="store-selected-check"><Check size={15} /></span> : <ArrowUpRight size={17} />}</button>)}{stores.length > 0 ? <button type="button" disabled={storeLimitReached} className={`store-selection-card add-store-card ${storeLimitReached ? "is-disabled" : ""}`} onClick={() => navigate("/dashboard/stores/add")} title={storeLimitReached ? "Vous ne pouvez gérer qu’une boutique par compte." : "Créer une boutique"}><span className="store-card-art store-card-empty"><Plus size={26} /></span><span><strong>Créer une boutique</strong><small>{storeLimitReached ? "Vous ne pouvez gérer qu’une boutique par compte." : "Ajouter un nouvel espace de vente"}</small></span>{storeLimitReached ? <span aria-hidden="true">—</span> : <ArrowUpRight size={17} />}</button> : null}</div>{stores.length === 0 ? <div className="store-selection-empty"><p>Aucune boutique n’est associée à ce compte commerçant.</p><button type="button" className="button button-dark" onClick={() => navigate("/dashboard/stores/add")}>Créer une boutique</button></div> : null}</>}</div></main>;
+  return <main className="onboarding-shell store-selection-shell"><OrionBrand className="onboarding-brand" /><div className="onboarding-center"><span className="public-kicker">ESPACE COMMERÇANT</span><h1>Choisissez votre<br /><em>boutique active.</em></h1><p>Vous pourrez changer de boutique à tout moment depuis la barre latérale.</p>{loading ? <OrionLoader label="Chargement de vos boutiques…" /> : loadError ? <div className="store-selection-error" role="alert"><p>Impossible de vérifier vos boutiques : {loadError}</p><button type="button" className="button button-dark" onClick={() => setReloadKey((current) => current + 1)}>Réessayer</button></div> : <><div className="store-selection-grid">{stores.map((store) => <button type="button" key={store.id} className={`store-selection-card ${activeStoreId === store.id ? "is-active" : ""}`} onClick={() => { setActiveStoreId(store.id); navigate("/dashboard"); }}><span className={`store-card-art ${store.color}`}><Store size={28} /></span><span><strong>{store.name}</strong><small>{store.category}</small><small><MapPin size={12} /> {store.location}</small></span>{activeStoreId === store.id ? <span className="store-selected-check"><Check size={15} /></span> : <ArrowUpRight size={17} />}</button>)}{stores.length > 0 ? <button type="button" disabled={storeLimitReached} className={`store-selection-card add-store-card ${storeLimitReached ? "is-disabled" : ""}`} onClick={() => navigate("/dashboard/stores/add")} title={storeLimitReached ? "Vous ne pouvez gérer qu’une boutique par compte." : "Créer une boutique"}><span className="store-card-art store-card-empty"><Plus size={26} /></span><span><strong>Créer une boutique</strong><small>{storeLimitReached ? "Vous ne pouvez gérer qu’une boutique par compte." : "Ajouter un nouvel espace de vente"}</small></span>{storeLimitReached ? <span aria-hidden="true">—</span> : <ArrowUpRight size={17} />}</button> : null}</div>{stores.length === 0 ? <div className="store-selection-empty"><p>Aucune boutique n’est associée à ce compte commerçant.</p><button type="button" className="button button-dark" onClick={() => navigate("/dashboard/stores/add")}>Créer une boutique</button></div> : null}</>}</div></main>;
 }
 function EmptyState({ title, copy, action, onAction, icon = <Search size={30} /> }: { title: string; copy: string; action: string; onAction: () => void; icon?: ReactNode }) {
   return <div className="public-empty-state"><span>{icon}</span><h2>{title}</h2><p>{copy}</p><button type="button" className="public-secondary-button" onClick={onAction}>{action} <ArrowRight size={16} /></button></div>;
